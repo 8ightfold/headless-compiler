@@ -26,14 +26,13 @@
 #include <Common/Features.hpp>
 #include <Common/Fundamental.hpp>
 #include <Common/DynAlloc.hpp>
+#include <Common/Memory.hpp>
 
 // For more info:
 // "Finding Kernel32 Base and Function Addresses in Shellcode"
 // https://en.wikipedia.org/wiki/Win32_Thread_Information_Block
 // https://www.geoffchappell.com/studies/windows/km/
 // https://github.com/wine-mirror/wine/blob/master/include/winternl.h
-
-// TODO: refactor list entry stuff
 
 static_assert(HC_PLATFORM_WIN64, "Windows only.");
 
@@ -52,30 +51,18 @@ namespace hc::bootstrap {
     bool isEqual(const Win64UnicodeString& rhs) const;
   };
 
-  struct Win64LDRDataTableEntry;
-
-  struct Win64ListEntry {
-    Win64ListEntry*   prev;
-    Win64ListEntry*   next;
-    HC_MARK_DELETED(Win64ListEntry);
+  struct Win64ListEntryNode {
+    Win64ListEntryNode*   __prev;
+    Win64ListEntryNode*   __next;
+    HC_MARK_DELETED(Win64ListEntryNode);
   public:
-    Win64LDRDataTableEntry* asLDRDataTableEntry() const;
-    Win64LDRDataTableEntry* findDLL(const wchar_t* str) const;
-    Win64LDRDataTableEntry* findDLL(const char* str) const;
-    Win64ListEntry* getFirst() const;
-    Win64ListEntry* getLast() const;
-    bool isFirst() const;
-  private:
-    [[gnu::always_inline, gnu::const]]
-    Win64ListEntry* asMutable() const {
-      return const_cast<Win64ListEntry*>(this);
-    }
+    static Win64ListEntryNode* GetBaseNode();
   };
 
   struct Win64LDRDataTableEntry {
-    Win64ListEntry      __links_in_load_order;
-    Win64ListEntry      __links_in_mem_order;
-    Win64ListEntry      __links_in_init_order;
+    Win64ListEntryNode  __links_in_load_order;
+    Win64ListEntryNode  __links_in_mem_order;
+    Win64ListEntryNode  __links_in_init_order;
     Win64Addr           dll_base;
     Win64Addr           entry_point;
     u32                 size_of_image;
@@ -88,19 +75,113 @@ namespace hc::bootstrap {
     HC_MARK_DELETED(Win64LDRDataTableEntry);
   };
 
+  template <usize TableOffset>
+  struct TWin64ListEntry : Win64ListEntryNode {
+    using BaseType = Win64ListEntryNode;
+    using SelfType = TWin64ListEntry<TableOffset>;
+    using TblType  = Win64LDRDataTableEntry;
+  public:
+    [[gnu::const]] static const SelfType* GetListSentinel() __noexcept {
+      static const auto base_node = Win64ListEntryNode::GetBaseNode();
+      return reinterpret_cast<const SelfType*>(base_node + TableOffset);
+    }
+
+    //=== General ===//
+
+    Win64LDRDataTableEntry* findDLL(const wchar_t* str) const {
+      if __expect_false(!str) 
+        return nullptr;
+      SelfType* curr = this->asMutable();
+      if __expect_false(curr->isSentinel())
+        curr = curr->next();
+      // This is evil... buuut we never modify the buffer so it's ok ;)
+      const auto ustr = Win64UnicodeString::New(const_cast<wchar_t*>(str));
+      while(!curr->isSentinel()) {
+        const auto tbl = curr->asLDRDataTableEntry();
+        const Win64UnicodeString& dll_ustr = tbl->base_dll_name;
+        if(dll_ustr.isEqual(ustr)) return tbl;
+        curr = curr->next();
+      }
+      return nullptr;
+    }
+
+    Win64LDRDataTableEntry* findDLL(const char* str) const {
+      // TODO: Implement
+      return nullptr;
+    }
+
+    //=== Observers ===//
+
+    bool isSentinel() const __noexcept {
+      return this == GetListSentinel();
+    }
+
+    [[gnu::always_inline]] SelfType* next() const {
+      auto* base_next = asMutable()->BaseType::__next;
+      return reinterpret_cast<SelfType*>(base_next);
+    }
+
+    [[gnu::always_inline]] SelfType* prev() const {
+      auto* base_prev = asMutable()->BaseType::__prev;
+      return reinterpret_cast<SelfType*>(base_prev);
+    }
+  
+    //=== Conversions ===//
+
+    [[gnu::always_inline, gnu::const]]
+    TblType* asLDRDataTableEntry() const {
+      // Stupid fucking windows bullshit
+      SelfType* table_base = this->asMutable() - TableOffset;
+      auto* pLDR_dte = reinterpret_cast<TblType*>(table_base);
+      // This is fine because we know it IS a data table entry.
+      return common::__launder(pLDR_dte);
+    }
+
+    [[gnu::always_inline, gnu::const]]
+    SelfType* asMutable() const {
+      return const_cast<SelfType*>(this);
+    }
+  };
+
+  extern template struct TWin64ListEntry<0U>;
+  extern template struct TWin64ListEntry<1U>;
+  extern template struct TWin64ListEntry<2U>;
+
+  using Win64LoadOrderList = TWin64ListEntry<0U>;
+  using Win64MemOrderList  = TWin64ListEntry<1U>;
+  using Win64InitOrderList = TWin64ListEntry<2U>;
+
+  template <typename T>
+  concept __is_win64_list_entry = 
+    __is_base_of(Win64ListEntryNode, T);
+
   //=== PEB Data ===//
 
   struct Win64PEBLDRData {
-    u32               length;
-    Win64Bool         is_initialized;
-    Win64Handle       ss_handle;
-    Win64ListEntry    __mlist_in_load_order;
-    Win64ListEntry    __mlist_in_mem_order;
-    Win64ListEntry    __mlist_in_init_order;
-    Win64Addr         entry_in_progress;
-    Win64Bool         is_shutdown_in_progress;
-    Win64Handle       shutdown_thread_id;
+    u32                length;
+    Win64Bool          is_initialized;
+    Win64Handle        ss_handle;
+    Win64ListEntryNode __mlist_in_load_order;
+    Win64ListEntryNode __mlist_in_mem_order;
+    Win64ListEntryNode __mlist_in_init_order;
+    Win64Addr          entry_in_progress;
+    Win64Bool          is_shutdown_in_progress;
+    Win64Handle        shutdown_thread_id;
     HC_MARK_DELETED(Win64PEBLDRData);
+  public:
+    Win64ListEntryNode* getBaseEntryNode() const {
+      const auto* base = &this->__mlist_in_load_order;
+      return const_cast<Win64ListEntryNode*>(base);
+    }
+
+    template <usize Offset>
+    [[gnu::always_inline, gnu::flatten]]
+    TWin64ListEntry<Offset>* getEntryNodeAt() const {
+      static_assert(Offset < 3, "Invalid offset.");
+      using CastType = TWin64ListEntry<Offset>;
+      auto* base = this->getBaseEntryNode();
+      return reinterpret_cast<CastType*>(base + Offset);
+    }
   };
 
   struct Win64PEB {
@@ -121,11 +202,9 @@ namespace hc::bootstrap {
     // ...
     HC_MARK_DELETED(Win64PEB);
   public:
-    Win64ListEntry* getLDRModulesInMemOrder();
-  private:
-    // Slightly broken (segfaults!!!)
-    Win64ListEntry* getLDRModulesInInitOrder();
-    Win64ListEntry* getLDRModulesInLoadOrder();
+    Win64InitOrderList* getLDRModulesInInitOrder();
+    Win64MemOrderList*  getLDRModulesInMemOrder();
+    Win64LoadOrderList* getLDRModulesInLoadOrder();
   };
 
   //=== TEB Data ===//

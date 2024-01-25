@@ -70,92 +70,29 @@ bool B::Win64UnicodeString::isEqual(const B::Win64UnicodeString& rhs) const {
 
 // LDR
 
-B::Win64LDRDataTableEntry* B::Win64ListEntry::asLDRDataTableEntry() const {
-  // Stupid fucking windows bullshit
-  B::Win64ListEntry* table_base = this->asMutable() - 1;
-  auto* pLDR_dte = reinterpret_cast<B::Win64LDRDataTableEntry*>(table_base);
-  // This is fine because we know it IS a data table entry.
-  return C::__launder(pLDR_dte);
+B::Win64ListEntryNode* B::Win64ListEntryNode::GetBaseNode() {
+  return B::Win64TEB::LoadTEBFromGS()->getPEB()->LDR_data->getBaseEntryNode();
 }
 
-B::Win64LDRDataTableEntry* B::Win64ListEntry::findDLL(const wchar_t* str) const {
-  if __expect_false(!str) 
-    return nullptr;
-  B::Win64ListEntry* curr = this->asMutable();
-  if __expect_false(curr->isFirst())
-    curr = curr->next;
-  // This is evil... buuut we never modify the buffer so it's ok ;)
-  const auto ustr = B::Win64UnicodeString::New(const_cast<wchar_t*>(str));
-  while(!curr->isFirst()) {
-    const auto tbl = curr->asLDRDataTableEntry();
-    const B::Win64UnicodeString& dll_ustr = tbl->base_dll_name;
-    if(dll_ustr.isEqual(ustr)) return tbl;
-    curr = curr->next;
-  }
-  return nullptr;
-}
-
-B::Win64LDRDataTableEntry* B::Win64ListEntry::findDLL(const char* str) const {
-  // TODO: Implement
-  return nullptr;
-}
-
-B::Win64ListEntry* B::Win64ListEntry::getFirst() const {
-  B::Win64ListEntry* curr = this->asMutable();
-  if __expect_false(curr->next->isFirst()) 
-    return curr->next;
-  while(!curr->isFirst()) {
-    curr = curr->prev;
-    __hc_assert(curr != nullptr);
-  }
-  return curr;
-}
-
-B::Win64ListEntry* B::Win64ListEntry::getLast() const {
-  B::Win64ListEntry* curr = this->asMutable();
-  if __expect_false(curr->isFirst()) 
-    return curr->prev;
-  while(!curr->next->isFirst()) {
-    curr = curr->next;
-    __hc_assert(curr != nullptr);
-  }
-  return curr;
-}
-
-bool B::Win64ListEntry::isFirst() const {
-  auto* tbl = this->asLDRDataTableEntry();
-  // RAHHHHHH
-  __hc_assert(tbl != nullptr);
-  return !tbl->entry_point && !tbl->dll_base;
-}
+template struct B::TWin64ListEntry<0U>;
+template struct B::TWin64ListEntry<1U>;
+template struct B::TWin64ListEntry<2U>;
 
 // PEB
 
-[[gnu::always_inline]]
-static inline B::Win64ListEntry* 
- __verify_mlist_integrity(B::Win64ListEntry& e) {
-  // Make sure our assumption that the first table entry
-  // always has a null `.entry_point` is true.
-  __hc_assert(e.asLDRDataTableEntry()->entry_point == nullptr);
-  return &e;
+B::Win64InitOrderList* B::Win64PEB::getLDRModulesInInitOrder() {
+  __hc_assert(LDR_data->is_initialized);
+  return this->LDR_data->getEntryNodeAt<2U>();
 }
 
-B::Win64ListEntry* B::Win64PEB::getLDRModulesInLoadOrder() {
-  const auto data = this->LDR_data;
-  __hc_assert(data->is_initialized);
-  return __verify_mlist_integrity(data->__mlist_in_load_order);
+B::Win64MemOrderList*  B::Win64PEB::getLDRModulesInMemOrder() {
+  __hc_assert(LDR_data->is_initialized);
+  return this->LDR_data->getEntryNodeAt<1U>();
 }
 
-B::Win64ListEntry* B::Win64PEB::getLDRModulesInMemOrder() {
-  const auto data = this->LDR_data;
-  __hc_assert(data->is_initialized);
-  return __verify_mlist_integrity(data->__mlist_in_mem_order)->next;
-}
-
-B::Win64ListEntry* B::Win64PEB::getLDRModulesInInitOrder() {
-  const auto data = this->LDR_data;
-  __hc_assert(data->is_initialized);
-  return __verify_mlist_integrity(data->__mlist_in_init_order);
+B::Win64LoadOrderList* B::Win64PEB::getLDRModulesInLoadOrder() {
+  __hc_assert(LDR_data->is_initialized);
+  return this->LDR_data->getEntryNodeAt<0U>();
 }
 
 // TEB

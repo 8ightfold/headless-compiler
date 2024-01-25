@@ -113,7 +113,8 @@ void dynalloc_test(usize len) {
   std::cout << "Bye bye!\n" << std::endl;
 }
 
-void dumpLDRModule(B::Win64ListEntry* entry) {
+template <B::__is_win64_list_entry EntryType>
+void dumpLDRModule(EntryType* entry) {
   std::cout << "\n|=============================================|\n" << std::endl;
   auto* tbl = entry->asLDRDataTableEntry();
   dump_data(tbl);
@@ -150,9 +151,12 @@ int main() {
   auto stack_range = pteb->getStackRange().verifyIntegrity();
   __hc_assert(stack_range.inRange(__builtin_stack_address()));
   B::Win64PEB* ppeb = pteb->getPEB();
-  B::Win64ListEntry* entry = ppeb->getLDRModulesInMemOrder();
-  B::Win64LDRDataTableEntry* ntdll = entry->findDLL(L"ntdll.dll");
+  B::Win64LDRDataTableEntry* ntdll = nullptr;
+  ntdll = ppeb->getLDRModulesInInitOrder()->findDLL(L"ntdll.dll");
   __hc_assert(ntdll != nullptr);
+  ntdll = ppeb->getLDRModulesInLoadOrder()->findDLL(L"ntdll.dll");
+  __hc_assert(ntdll != nullptr);
+  ntdll = ppeb->getLDRModulesInMemOrder()->findDLL(L"ntdll.dll");
   dump_data(ntdll);
 
   return C::__memcmp(src, cpy, 16);
