@@ -1,0 +1,68 @@
+//===- Common/DynAlloc.hpp ------------------------------------------===//
+//
+// Copyright (C) 2024 Eightfold
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+//     limitations under the License.
+//
+//===----------------------------------------------------------------===//
+
+#pragma once
+
+#include "Features.hpp"
+#include "Memory.hpp"
+
+namespace hc::common {
+  template <typename T, typename...Args>
+  [[gnu::artificial, gnu::always_inline]]
+  inline constexpr T* construct_at(T* t, Args&&...args) {
+    return ::new(t) T(static_cast<decltype(args)&&>(args)...);
+  }
+
+  template <typename T>
+  [[gnu::nodebug]] inline constexpr void
+   destroy_at(T* ptr) __noexcept {
+    if constexpr(__is_array(T)) {
+      for(auto& elem : *ptr)
+        common::destroy_at(__addressof(elem));
+    } else if(!__is_trivially_destructible(T)) {
+      ptr->~T();
+    }
+  }
+
+  template <bool>
+  struct _DestroyAdaptor {
+    template <typename It>
+    static constexpr void __destroy(It I, It E) __noexcept {
+      for(; I != E; ++I) 
+        common::destroy_at(common::__addressof(*I));
+    }
+  };
+
+  template <>
+  struct _DestroyAdaptor<true> {
+    template <typename It>
+    [[gnu::nodebug, gnu::always_inline]]
+    inline static constexpr void
+     __destroy(It, It) __noexcept { }
+  };
+
+  template <typename It>
+  [[gnu::artificial]]
+  inline constexpr void __destroy(It I, It E) __noexcept {
+    using type = __remove_cv(__remove_reference_t(decltype(*I)));
+    if $is_consteval() {
+      return _DestroyAdaptor<false>::__destroy(I, E);
+    }
+    _DestroyAdaptor<__is_trivially_destructible(type)>::__destroy(I, E);
+  }
+} // namespace hc::common

@@ -1,0 +1,135 @@
+//===- Common/Fundamental.hpp ---------------------------------------===//
+//
+// Copyright (C) 2024 Eightfold
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+//     limitations under the License.
+//
+//===----------------------------------------------------------------===//
+//
+//  Defines aliases for fundamental types.
+//
+//===----------------------------------------------------------------===//
+
+#pragma once
+
+#include "Features.hpp"
+
+HC_HAS_REQUIRED(builtin, __make_signed);
+HC_HAS_REQUIRED(builtin, __make_unsigned);
+
+__global auto __bitcount = 8ULL;
+
+//=== Integrals ===//
+
+using i8  = __INT8_TYPE__;
+using i16 = __INT16_TYPE__;
+using i32 = __INT32_TYPE__;
+using i64 = __INT64_TYPE__;
+
+using u8  = __UINT8_TYPE__;
+using u16 = __UINT16_TYPE__;
+using u32 = __UINT32_TYPE__;
+using u64 = __UINT64_TYPE__;
+
+#if __is_reserved(__int128) || defined(__SIZEOF_INT128__)
+using i128 = __int128;
+using u128 = unsigned __int128;
+#elif defined(__hc_i128)
+using i128 = __hc_i128;
+using u128 = unsigned __hc_i128;
+#else
+# error No 128-bit int type found!
+#endif
+
+using usize = decltype(sizeof(0));
+using isize = __make_signed(usize);
+
+namespace hc::__common {
+  template <usize N> struct IntN;
+  template <usize N> struct UIntN;
+
+  template <> struct  IntN<1UL>  { using type = i8; };
+  template <> struct  IntN<2UL>  { using type = i16; };
+  template <> struct  IntN<4UL>  { using type = i32; };
+  template <> struct  IntN<8UL>  { using type = i64; };
+  template <> struct  IntN<16UL> { using type = i128; };
+
+  template <> struct UIntN<1UL>  { using type = u8; };
+  template <> struct UIntN<2UL>  { using type = u16; };
+  template <> struct UIntN<4UL>  { using type = u32; };
+  template <> struct UIntN<8UL>  { using type = u64; };
+  template <> struct UIntN<16UL> { using type = u128; };
+
+  template <usize N> using intn_t  = typename IntN<N>::type;
+  template <usize N> using uintn_t = typename UIntN<N>::type;
+} // namespace hc::__common
+
+using iptr = hc::__common::intn_t<sizeof(void*)>;
+using uptr = __make_unsigned(iptr);
+
+using ihalfptr = hc::__common::intn_t<sizeof(void*) / 2>;
+using uhalfptr = __make_unsigned(ihalfptr);
+
+static_assert(sizeof(i128) == 16);
+static_assert(sizeof(u128) == 16);
+
+//=== Floating Point ===//
+
+#if __is_reserved(_Float16)
+using f16 = _Float16;
+#elif defined(__hc_f16)
+using f16 = __hc_f16;
+#else
+# error No 16-bit float type found!
+#endif
+
+using f32 = float;
+using f64 = double;
+
+namespace hc::__common {
+  template <usize N> struct FloatN;
+
+  template <> struct FloatN<2UL> { using type = f16; };
+  template <> struct FloatN<4UL> { using type = f32; };
+  template <> struct FloatN<8UL> { using type = f64; };
+
+  template <usize N> 
+  using floatn_t = typename FloatN<N>::type;
+} // namespace hc::__common
+
+static_assert(sizeof(f16) == 2);
+static_assert(sizeof(f32) == 4);
+static_assert(sizeof(f64) == 8);
+
+//=== Pseudofunctions ===//
+
+#undef __sizeof
+#undef __bitsizeof
+
+namespace hc { 
+  struct __dummy { };
+  // Proxy void type.
+  struct __void  { };
+} // namespace hc
+
+template <typename T = void> 
+__global usize __sizeof = sizeof(T);
+
+template <> __global usize __sizeof<void> = 0;
+template <> __global usize __sizeof<hc::__void> = 0;
+
+template <typename T = void>
+__global usize __bitsizeof = __sizeof<T> * __bitcount;
+
+#define __sizeof(...) ::__sizeof<__VA_ARGS__>
+#define __bitsizeof(...) ::__bitsizeof<__VA_ARGS__>
