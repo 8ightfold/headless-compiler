@@ -65,4 +65,10 @@ namespace hc::common {
     }
     _DestroyAdaptor<__is_trivially_destructible(type)>::__destroy(I, E);
   }
+
+  template <typename It>
+  [[gnu::always_inline]]
+  inline constexpr void __destroy(It I, usize len) __noexcept {
+    __destroy(I, I + len);
+  }
 } // namespace hc::common

@@ -1,4 +1,4 @@
-//===- Core/Memory.hpp ----------------------------------------------===//
+//===- BinaryFormat/MagicMatcher.hpp --------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -16,15 +16,34 @@
 //
 //===----------------------------------------------------------------===//
 //
-//  This file defines the public API for memory related functions.
+//  This file defines a method to determine a binary type from 
+//  its magic number. Based on LLVM's implementation, extended for DOS.
 //
 //===----------------------------------------------------------------===//
 
 #pragma once
 
-#include <Common/Features.hpp>
 #include <Common/Fundamental.hpp>
+#include <Common/PtrRange.hpp>
 
-namespace hc::util {
-  
-} // namespace hc::util
+namespace hc::binfmt {
+  struct MMagic {
+    enum Detail : u32 {
+      Unknown = 0,
+      COFFHeader,
+      COFFOptPE32,
+      COFFOptPE64,
+      COFFOptPEROM,
+      DosHeader,
+    };
+  public:
+    MMagic() = default;
+    MMagic(Detail d) : __data(d) { }
+    static MMagic Match(common::AddrRange binary);
+    operator Detail() const { return __data; }
+    operator bool() const { return __data != Unknown; }
+    bool isEqual(Detail d) const { return __data == d; }
+  private:
+    Detail __data = Detail::Unknown;
+  };
+} // namespace hc::binfmt

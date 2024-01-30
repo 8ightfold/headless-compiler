@@ -74,6 +74,7 @@
 
 #define __always_inline __attribute__((always_inline)) inline
 #define __visibility(ty) __attribute__((__visibility__(#ty)))
+#define __aligned(n) __attribute__((aligned(n)))
 
 #if __clang_major__ >= 17
 # define __prefer_type(name) [[clang::preferred_type(name)]]
@@ -83,12 +84,43 @@
 
 #define __expect_false(expr...) (__builtin_expect(bool(expr), 0))
 #define __expect_true(expr...)  (__builtin_expect(bool(expr), 1))
+#define __unpredictable(expr...)  (__builtin_unpredictable(bool(expr)))
 #define __global inline constexpr
 #define __noexcept noexcept(!HC_EXCEPTIONS)
 
+// #define __hc_assert(expr...) \
+//  ({ if __expect_false(!bool(expr)) \
+//  __builtin_debugtrap(); void(0); })
+
+#define __hc_fwd(expr...) static_cast<decltype(expr)&&>(expr)
+
 #define __hc_assert(expr...) \
- (void)({ if __expect_false(!(expr)) \
- __builtin_debugtrap(); void(0); })
+ [&] () __attribute__((always_inline, artificial)) { \
+    if __expect_false(!bool(expr)) \
+      __builtin_debugtrap();       \
+ }();
+
+#if _HC_CHECK_INVARIANTS
+# define __hc_invariant(expr...) __hc_assert(expr)
+#else
+# define __hc_invariant(expr...) (void)(0)
+#endif
+
+#if !__has_builtin(__builtin_stack_address)
+extern "C" { 
+  __attribute__((noinline)) static 
+   void* __builtin_stack_address() {
+# if __has_builtin(__builtin_frame_address)
+    return __builtin_frame_address(0);
+# else
+    char byte_aligned = 0;
+    // Force optimization barrier
+    char* volatile ptr = &byte_aligned;
+    return ptr;
+# endif
+  }
+}
+#endif
 
 #define $is_consteval() (__builtin_is_constant_evaluated())
 #define $tail_return [[clang::musttail]] return

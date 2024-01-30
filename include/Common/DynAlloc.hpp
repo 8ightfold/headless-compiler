@@ -28,6 +28,7 @@
 #include "Fundamental.hpp"
 #include "Lifetime.hpp"
 #include "Memory.hpp"
+#include "PtrRange.hpp"
 
 #define $dynalloc(sz, ...) ({ using __ty = \
  ::hc::common::DynAllocation<__VA_ARGS__>; \
@@ -48,43 +49,6 @@ namespace hc::common {
   concept __is_trivial_alloc = 
     __is_trivially_constructible(T) &&
     __is_trivially_destructible(T);
-  
-  template <typename T>
-  struct PointerRange {
-    PointerRange& verifyIntegrity() {
-      __hc_assert(__begin <= __end);
-      return *this;
-    }
-
-    const PointerRange& verifyIntegrity() const {
-      __hc_assert(__begin <= __end);
-      return *this;
-    }
-
-    bool inRange(T* ptr) const {
-      return (ptr >= __begin) && (ptr < __end);
-    }
-
-    usize size() const {
-      if constexpr(__is_void(T)) {
-        return (char*)__end - (char*)__begin;
-      } else {
-        return __end - __begin;
-      }
-    }
-
-    usize sizeInBytes() const {
-      if constexpr(__is_void(T)) {
-        return this->size();
-      } else {
-        return (__end - __begin) * __sizeof(T);
-      }
-    }
-
-  public:
-    T* __begin = nullptr;
-    T* __end   = nullptr;
-  };
 
   template <typename T, usize Align = alignof(T)>
   struct DynAllocation {
@@ -103,7 +67,7 @@ namespace hc::common {
     }
 
     [[nodiscard]] T& operator[](usize n) const __noexcept {
-      // TODO: check if (n > __size) && (!!__data)
+      __hc_invariant(__data != nullptr && n < __size);
       return this->__data[n];
     }
 
@@ -148,7 +112,7 @@ namespace hc::common {
     }
 
     [[nodiscard, gnu::const]]
-    PointerRange<T> toPointerRange() const __noexcept {
+    PtrRange<T> toPointerRange() const __noexcept {
       return { .__begin = begin(), .__end = end() };
     }
 
@@ -174,7 +138,7 @@ namespace hc::common {
 
     [[nodiscard, gnu::const]]
     bool isEmpty() const __noexcept {
-      return !this->__data;
+      return this->__data == nullptr;
     }
   
   private:

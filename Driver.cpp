@@ -20,9 +20,13 @@
 #include <Common/Fundamental.hpp>
 #include <Common/Location.hpp>
 #include <Common/Memory.hpp>
+#include <Common/PtrUnion.hpp>
 #include <Common/Strings.hpp>
 
 #include <Bootstrap/Win64KernelDefs.hpp>
+#include <BinaryFormat/COFF.hpp>
+#include <BinaryFormat/Consumer.hpp>
+#include <BinaryFormat/MagicMatcher.hpp>
 
 #include <cstddef>
 #include <cassert>
@@ -36,24 +40,9 @@
 
 #define __assert_offset(ty, mem, offset) assert($offsetof(mem, ty) == offset)
 
-namespace C = hc::common;
-namespace B = hc::bootstrap;
-
-#if !__has_builtin(__builtin_stack_address)
-extern "C" { 
-  __attribute__((noinline)) static 
-   void* __builtin_stack_address() {
-# if __has_builtin(__builtin_frame_address)
-    return __builtin_frame_address(0);
-# else
-    char byte_aligned = 0;
-    // Force optimization barrier
-    char* volatile ptr = &byte_aligned;
-    return ptr;
-# endif
-  }
-}
-#endif
+namespace C  = hc::common;
+namespace BF = hc::binfmt;
+namespace B  = hc::bootstrap;
 
 void __dump_introspect(
  u32& count, const char* fmt, auto&&...args) {
@@ -105,6 +94,20 @@ void dump_data(auto* p) {
   std::cout << std::endl;
 }
 
+void dump_data(const auto& v) {
+  __builtin_dump_struct(&v, &std::printf);
+  std::cout << std::endl;
+}
+
+template <typename...TT>
+void dump_data(C::PtrUnion<TT...> data) {
+  data.visit([] <typename P> (P* p) {
+    if constexpr(__is_class(P)) {
+      dump_data(p);
+    }
+  });
+}
+
 void dynalloc_test(usize len) {
   auto local = $zdynalloc(len, std::string).init("Hello!");
   for(const auto& str : local) {
@@ -116,6 +119,10 @@ void dynalloc_test(usize len) {
 template <B::__is_win64_list_entry EntryType>
 void dumpLDRModule(EntryType* entry) {
   std::cout << "\n|=============================================|\n" << std::endl;
+  if __expect_false(entry->isSentinel()) {
+    std::cout << "<sentinel>" << std::endl;
+    return;
+  }
   auto* tbl = entry->asLDRDataTableEntry();
   dump_data(tbl);
   u32 lc = 0;
@@ -123,8 +130,10 @@ void dumpLDRModule(EntryType* entry) {
   std::cout << std::endl;
 }
 
+#define $unwrap(obj, ...) ({ if(!obj) return { __VA_ARGS__ }; *obj; })
+
 int main() {
-  i8 dst[64];
+  i8  dst[64];
   u32 src[16] { };
   u32 cpy[16];
 
@@ -132,6 +141,7 @@ int main() {
   C::__array_memset(src, -1);
   C::__vmemcpy<64>(dst, src);
   C::__memcpy(cpy, src);
+  __hc_assert(C::__memcmp(src, cpy, 16) == 0);
 
   int data[8] { };
   C::__array_memset(data, 2);
@@ -147,17 +157,45 @@ int main() {
   // dump_introspect(loc);
   // dump_introspect(str);
 
-  B::Win64TEB* pteb = B::Win64TEB::LoadTEBFromGS();
-  auto stack_range = pteb->getStackRange().verifyIntegrity();
-  __hc_assert(stack_range.inRange(__builtin_stack_address()));
-  B::Win64PEB* ppeb = pteb->getPEB();
-  B::Win64LDRDataTableEntry* ntdll = nullptr;
-  ntdll = ppeb->getLDRModulesInInitOrder()->findDLL(L"ntdll.dll");
-  __hc_assert(ntdll != nullptr);
-  ntdll = ppeb->getLDRModulesInLoadOrder()->findDLL(L"ntdll.dll");
-  __hc_assert(ntdll != nullptr);
-  ntdll = ppeb->getLDRModulesInMemOrder()->findDLL(L"ntdll.dll");
-  dump_data(ntdll);
+  B::Win64PEB* ppeb = B::Win64TEB::LoadTEBFromGS()->getPEB();
+  const auto ldr_modules = ppeb->getLDRModulesInMemOrder();
+  auto* ntdll = ldr_modules->findLoadedDLL(L"ntdll.dll");
+  auto* kernel32 = ldr_modules->findLoadedDLL(L"KERNEL32.DLL");
+  // dump_image(ldr_modules->GetExecutableEntry());
+  // dump_image(ntdll);
+  // dump_image(kernel32);
 
-  return C::__memcmp(src, cpy, 16);
+  namespace COFF = BF::COFF;
+  using COFF::OptPEWindowsHeader;
+  auto IC = BF::Consumer::New(ntdll->getImageRange());
+  auto dos_header = IC.intoIfMatches<COFF::DosHeader>(BF::MMagic::DosHeader);
+  if(dos_header) IC.dropRaw(dos_header->coff_header_offset);
+  auto file_header = IC.consumeIfMatches<COFF::FileHeader>(BF::MMagic::COFFHeader);
+  u16 opt_size = $unwrap(file_header).optional_header_size;
+  COFF::OptPEHeader opt_header;
+  COFF::PEWindowsHeader win_header;
+  if(IC.matches(BF::MMagic::COFFOptPE64)) {
+    opt_header = IC.consumeAndSub<COFF::OptPE64Header>(opt_size);
+    win_header = IC.consumeAndSub<OptPEWindowsHeader<8>>(opt_size);
+  } else if(IC.matches(BF::MMagic::COFFOptPE32)) {
+    opt_header = IC.consumeAndSub<COFF::OptPE32Header>(opt_size);
+    win_header = IC.consumeAndSub<OptPEWindowsHeader<4>>(opt_size);
+  }
+  auto dir_headers = IC.intoRangeRaw<COFF::DataDirectoryHeader>(opt_size);
+
+  dump_data(dos_header);
+  dump_data(file_header);
+  dump_data(opt_header);
+  dump_data(win_header);
+  for(int I = 0, E = BF::COFF::eDirectoryMaxValue; I != E; ++I) {
+    if(dir_headers[I].size == 0) continue;
+    dump_data(dir_headers[I]);
+  }
+
+  auto& export_table = dir_headers[COFF::eDirectoryExportTable];
+  dump_data(export_table);
+  void* raw_offset = ntdll->getImageRange().dropFront(export_table.virtual_address).data();
+  auto* section_header = static_cast<COFF::SectionHeader*>(raw_offset);
+  std::cout << std::string(section_header->name, COFF::eCOFFNameSize) << ":\n";
+  dump_data(section_header);
 }

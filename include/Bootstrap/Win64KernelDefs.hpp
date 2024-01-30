@@ -25,8 +25,8 @@
 
 #include <Common/Features.hpp>
 #include <Common/Fundamental.hpp>
-#include <Common/DynAlloc.hpp>
 #include <Common/Memory.hpp>
+#include <Common/PtrRange.hpp>
 
 // For more info:
 // "Finding Kernel32 Base and Function Addresses in Shellcode"
@@ -34,11 +34,13 @@
 // https://www.geoffchappell.com/studies/windows/km/
 // https://github.com/wine-mirror/wine/blob/master/include/winternl.h
 
+#define _MutLDRNode mutable ::hc::bootstrap::Win64ListEntryNode
+
 static_assert(HC_PLATFORM_WIN64, "Windows only.");
 
 namespace hc::bootstrap {
   using Win64Addr       = void*;
-  using Win64AddrRange  = common::PointerRange<void>;
+  using Win64AddrRange  = common::AddrRange;
   using Win64Handle     = hc::__void*;
   using Win64Bool       = bool;
 
@@ -60,9 +62,9 @@ namespace hc::bootstrap {
   };
 
   struct Win64LDRDataTableEntry {
-    Win64ListEntryNode  __links_in_load_order;
-    Win64ListEntryNode  __links_in_mem_order;
-    Win64ListEntryNode  __links_in_init_order;
+    _MutLDRNode         __links_in_load_order;
+    _MutLDRNode         __links_in_mem_order;
+    _MutLDRNode         __links_in_init_order;
     Win64Addr           dll_base;
     Win64Addr           entry_point;
     u32                 size_of_image;
@@ -73,6 +75,22 @@ namespace hc::bootstrap {
     i16                 TLS_index;
     // ...
     HC_MARK_DELETED(Win64LDRDataTableEntry);
+  public:
+    Win64AddrRange getImageRange() const {
+      common::_VoidPtrProxy begin { this->dll_base };
+      auto end = begin + this->size_of_image;
+      return { begin, end };
+    }
+
+    __always_inline Win64UnicodeString name() const {
+      return this->base_dll_name;
+    }
+  };
+
+  struct Win64ModuleType {
+    static constexpr usize loadOrder  = 0U;
+    static constexpr usize memOrder   = 1U;
+    static constexpr usize initOrder  = 2U;
   };
 
   template <usize TableOffset>
@@ -82,13 +100,22 @@ namespace hc::bootstrap {
     using TblType  = Win64LDRDataTableEntry;
   public:
     [[gnu::const]] static const SelfType* GetListSentinel() __noexcept {
+      // We assume the base node never changes.
+      // If it does, something has gone horribly wrong...
       static const auto base_node = Win64ListEntryNode::GetBaseNode();
       return reinterpret_cast<const SelfType*>(base_node + TableOffset);
     }
 
+    __always_inline static Win64LDRDataTableEntry* GetExecutableEntry() __noexcept {
+      // initOrder doesn't have the executable as the base, so we always use memOrder.
+      const auto mem_node = TWin64ListEntry<Win64ModuleType::memOrder>::GetListSentinel();
+      return mem_node->prev()->asLDRDataTableEntry();
+    }
+
     //=== General ===//
 
-    Win64LDRDataTableEntry* findDLL(const wchar_t* str) const {
+    Win64LDRDataTableEntry* findLoadedDLL(const wchar_t* str, bool ignore_extension = false) const {
+      (void)ignore_extension;
       if __expect_false(!str) 
         return nullptr;
       SelfType* curr = this->asMutable();
@@ -105,8 +132,11 @@ namespace hc::bootstrap {
       return nullptr;
     }
 
-    Win64LDRDataTableEntry* findDLL(const char* str) const {
+    Win64LDRDataTableEntry* findLoadedDLL(const char* str, bool ignore_extension = false) const {
+      if __expect_false(!str) 
+        return nullptr;
       // TODO: Implement
+      // return findLoadedDLL(wconvert(str), ignore_extension);
       return nullptr;
     }
 
@@ -125,6 +155,10 @@ namespace hc::bootstrap {
       auto* base_prev = asMutable()->BaseType::__prev;
       return reinterpret_cast<SelfType*>(base_prev);
     }
+
+    Win64UnicodeString name() const {
+      return this->asLDRDataTableEntry()->name();
+    }
   
     //=== Conversions ===//
 
@@ -134,6 +168,7 @@ namespace hc::bootstrap {
       SelfType* table_base = this->asMutable() - TableOffset;
       auto* pLDR_dte = reinterpret_cast<TblType*>(table_base);
       // This is fine because we know it IS a data table entry.
+      // TODO: Check if I'm chattin shit
       return common::__launder(pLDR_dte);
     }
 
@@ -143,13 +178,13 @@ namespace hc::bootstrap {
     }
   };
 
-  extern template struct TWin64ListEntry<0U>;
-  extern template struct TWin64ListEntry<1U>;
-  extern template struct TWin64ListEntry<2U>;
+  extern template struct TWin64ListEntry<Win64ModuleType::loadOrder>;
+  extern template struct TWin64ListEntry<Win64ModuleType::memOrder>;
+  extern template struct TWin64ListEntry<Win64ModuleType::initOrder>;
 
-  using Win64LoadOrderList = TWin64ListEntry<0U>;
-  using Win64MemOrderList  = TWin64ListEntry<1U>;
-  using Win64InitOrderList = TWin64ListEntry<2U>;
+  using Win64LoadOrderList = TWin64ListEntry<Win64ModuleType::loadOrder>;
+  using Win64MemOrderList  = TWin64ListEntry<Win64ModuleType::memOrder>;
+  using Win64InitOrderList = TWin64ListEntry<Win64ModuleType::initOrder>;
 
   template <typename T>
   concept __is_win64_list_entry = 
@@ -161,9 +196,9 @@ namespace hc::bootstrap {
     u32                length;
     Win64Bool          is_initialized;
     Win64Handle        ss_handle;
-    Win64ListEntryNode __mlist_in_load_order;
-    Win64ListEntryNode __mlist_in_mem_order;
-    Win64ListEntryNode __mlist_in_init_order;
+    _MutLDRNode        __mlist_in_load_order;
+    _MutLDRNode        __mlist_in_mem_order;
+    _MutLDRNode        __mlist_in_init_order;
     Win64Addr          entry_in_progress;
     Win64Bool          is_shutdown_in_progress;
     Win64Handle        shutdown_thread_id;
@@ -202,9 +237,9 @@ namespace hc::bootstrap {
     // ...
     HC_MARK_DELETED(Win64PEB);
   public:
-    Win64InitOrderList* getLDRModulesInInitOrder();
-    Win64MemOrderList*  getLDRModulesInMemOrder();
-    Win64LoadOrderList* getLDRModulesInLoadOrder();
+    Win64InitOrderList* getLDRModulesInInitOrder() const;
+    Win64MemOrderList*  getLDRModulesInMemOrder() const;
+    Win64LoadOrderList* getLDRModulesInLoadOrder() const;
   };
 
   //=== TEB Data ===//
@@ -233,8 +268,8 @@ namespace hc::bootstrap {
     Win64Addr   CSR_thread_addr;
     Win64Addr   win32_thread_info;
     u32         __user32_reserved[31];
-    Win64Addr   fast_syscall_addr;
-    u32         current_locale;
+    Win64Addr   __fast_syscall_addr;
+    u32         __current_locale;
     u32         fp_status_reg;
     u32         __os_reserved[54];
     u32         exception_code;
@@ -242,7 +277,7 @@ namespace hc::bootstrap {
     HC_MARK_DELETED(Win64TEB);
   public:
     static Win64TEB* LoadTEBFromGS();
-    Win64AddrRange getStackRange() const;
+    Win64AddrRange getStackRange();
     uptr getProcessId() const;
     uptr getThreadId() const;
     Win64PEB* getPEB() const;

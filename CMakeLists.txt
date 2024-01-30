@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 project(
   headless-compiler
-  VERSION 0.1.1
+  VERSION 0.1.2
   LANGUAGES CXX
 )
 
@@ -17,8 +17,13 @@ elseif(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   message(FATAL "Unsupported compiler!")
 endif()
 
+option(HC_CHECK_INVARIANTS "Enable invariant checking." OFF)
+
 add_executable(driver Driver.cpp 
   src/Common/Memory.cpp
+  src/BinaryFormat/MagicMatcher.cpp
   src/Bootstrap/Win64KernelDefs.cpp
 )
 target_include_directories(driver PUBLIC include)
+# TODO: Add macro for this?
+target_compile_definitions(driver PUBLIC "_HC_CHECK_INVARIANTS=$<BOOL:${HC_CHECK_INVARIANTS}>")
