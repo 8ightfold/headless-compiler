@@ -88,28 +88,34 @@
 #define __global inline constexpr
 #define __noexcept noexcept(!HC_EXCEPTIONS)
 
-// #define __hc_assert(expr...) \
-//  ({ if __expect_false(!bool(expr)) \
-//  __builtin_debugtrap(); void(0); })
-
 #define __hc_fwd(expr...) static_cast<decltype(expr)&&>(expr)
 
-#define __hc_assert(expr...) \
- [&] () __attribute__((always_inline, artificial)) { \
+#if _HC_DEBUG
+# define __hc_unreachable() ::__hc_dbg_unreachable()
+#else
+# define __hc_unreachable() __builtin_unreachable()
+#endif // __hc_unreachable
+
+#if _HC_DEBUG
+# define __hc_assert(expr...) \
+  [&] () __attribute__((always_inline, artificial)) { \
     if __expect_false(!bool(expr)) \
       __builtin_debugtrap();       \
- }();
+  }();
+#else
+# define __hc_assert(...) (void)(0)
+#endif // __hc_assert
 
 #if _HC_CHECK_INVARIANTS
 # define __hc_invariant(expr...) __hc_assert(expr)
 #else
 # define __hc_invariant(expr...) (void)(0)
-#endif
+#endif // __hc_invariant
 
-#if !__has_builtin(__builtin_stack_address)
 extern "C" { 
+#if !__has_builtin(__builtin_stack_address)
   __attribute__((noinline)) static 
-   void* __builtin_stack_address() {
+   void* __builtin_stack_address(void) {
 # if __has_builtin(__builtin_frame_address)
     return __builtin_frame_address(0);
 # else
@@ -119,8 +125,16 @@ extern "C" {
     return ptr;
 # endif
   }
-}
 #endif
+
+  __attribute((cold, noreturn))
+  inline void __hc_dbg_unreachable(void) {
+    if constexpr(_HC_DEBUG) {
+      __builtin_debugtrap();
+    }
+    __builtin_unreachable();
+  }
+}
 
 #define $is_consteval() (__builtin_is_constant_evaluated())
 #define $tail_return [[clang::musttail]] return

@@ -42,6 +42,10 @@ namespace hc::binfmt {
       return { addrs.checkInvariants() };
     }
 
+    usize size() const __noexcept {
+      return __image.size();
+    }
+
     bool matches(MMagic chk) const __noexcept {
       if __expect_false(!chk) return false;
       MMagic m = MMagic::Match(__image);
@@ -72,7 +76,7 @@ namespace hc::binfmt {
     template <typename T>
     __always_inline common::PtrRange<T>
      intoRange(usize n) const __noexcept {
-      return this->intoRangeRaw<T>(__sizeof(T) * n);
+      $tail_return this->intoRangeRaw<T>(__sizeof(T) * n);
     }
 
     template <typename T>
@@ -106,11 +110,12 @@ namespace hc::binfmt {
     template <typename T>
     __always_inline common::PtrRange<T> 
      consumeRange(usize n) __noexcept {
-      return this->consumeRangeRaw<T>(__sizeof(T) * n);
+      $tail_return this->consumeRangeRaw<T>(__sizeof(T) * n);
     }
 
     template <typename T>
     common::PtrRange<T> consumeRangeRaw(usize n) __noexcept {
+      __hc_invariant(n % __sizeof(T) == 0);
       const auto range = this->intoRangeRaw<T>(n);
       this->__image = __image.dropFront(n);
       return range;

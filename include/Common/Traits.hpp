@@ -25,7 +25,7 @@
 namespace hc {
 namespace common {
   template <bool B, typename T, typename F>
-  using __conditional_t = __type_pack_element<B, T, F>;  
+  using __conditional_t = __type_pack_element<B, F, T>;  
 
   template <usize I, typename...TT>
   using __selector_t = __type_pack_element<I, TT...>;
@@ -78,10 +78,10 @@ namespace hc::common {
 //=== Uniqueness ===//
 namespace hc::common {
   template <typename T, typename...TT>
-  concept __all_same = (__common_is_same(T, TT) && ...);
+  concept __all_same = (true && ... && __common_is_same(T, TT));
 
   template <typename T, typename...TT>
-  concept __any_same = (__common_is_same(T, TT) || ...);
+  concept __any_same = (false || ... || __common_is_same(T, TT));
 
   // All Unique
 
@@ -109,6 +109,51 @@ namespace hc::common {
   template <typename...TT>
   concept __all_unique = __common_is_same(
     TySeq<TT...>, __unique_list_t<TT...>);
+} // namespace hc::common
+
+//=== Function Stuff ===//
+namespace hc::common {
+  template <typename T> 
+  __add_rvalue_reference(T) Decl() noexcept {
+    static_assert(!__is_same(T, T), 
+      "Decl<...> must be called in an unevaluated context.");
+  }
+
+  template <typename F, typename...TT>
+  using __return_t = decltype(Decl<F>()(Decl<TT>()...));
+
+  template <typename From, typename To>
+  concept __convertible = __is_convertible(From, To);
+
+  template <typename To, typename...From>
+  concept __all_convertible = (true && ... && __convertible<From, To>);
+
+  // Common Return?
+
+  template <typename T, typename...TT>
+  struct _CommonReturn2 {
+    using _F = __decay(T);
+    using Type = __conditional_t<
+      __all_convertible<_F, __decay(TT)...>, _F, void>;
+  };
+
+  template <bool B, typename...>
+  struct _CommonReturn {
+    using Type = void;
+  };
+
+  template <typename T, typename...TT>
+  struct _CommonReturn<true, T, TT...> {
+    using Type = __conditional_t<
+      __all_same<T, TT...>, T, 
+      typename _CommonReturn2<T, TT...>::Type
+    >;
+  };
+
+  template <typename F, typename...TT>
+  using __common_return_t = typename
+    _CommonReturn<(sizeof...(TT) > 0), 
+    __return_t<F, TT>...>::Type;
 } // namespace hc::common
 
 #undef __common_is_same

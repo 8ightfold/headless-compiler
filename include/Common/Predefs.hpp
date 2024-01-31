@@ -56,6 +56,18 @@
 #define $stringify(...) __hc_stringify(__VA_ARGS__)
 #define __hc_stringify(...) #__VA_ARGS__
 
+//=== Mode Macros ===//
+
+#undef _HC_RELEASE
+#ifndef _HC_DEBUG
+# define _HC_DEBUG 0
+# define _HC_RELEASE 1
+#else
+# undef  _HC_DEBUG
+# define _HC_DEBUG 1
+# define _HC_RELEASE 0
+#endif
+
 //=== Platform Macros ===//
 
 #if defined(_WIN64)

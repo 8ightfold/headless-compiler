@@ -24,6 +24,7 @@
 
 // For more info:
 // https://wiki.osdev.org/PE
+// https://wiki.osdev.org/COFF
 // http://justsolve.archiveteam.org/wiki/MS-DOS_EXE
 // http://www.microsoft.com/whdc/system/platform/firmware/PECOFF.mspx
 
@@ -92,13 +93,13 @@ namespace COFF {
     // ...
   };
 
-  struct __aligned(8) FileHeader {
+  struct [[gnu::packed]] FileHeader {
     u32 magic = COFFInfo::eCOFFMagic;
     MachineType machine_type;
-	  u16 section_count; // Must be >eCOFFMaxSections
+	  u16 section_count; // Must be < eCOFFMaxSections
 	  u32 timestamp;
-	  u32 __sym_tal_offset = 0;
-	  u32 __sym_count = 0;
+	  u32 sym_tbl_addr = 0;
+	  u32 symbol_count = 0;
 	  u16 optional_header_size;
 	  Characteristics info_flags;
   };
@@ -193,7 +194,7 @@ namespace COFF {
   //=== Data Directory ===//
 
   struct DataDirectoryHeader {
-    u32 virtual_address;
+    u32 RVA;
     u32 size;
   };
 
@@ -256,18 +257,34 @@ namespace COFF {
     eSectionMemWrite          = 0x80000000
   };
 
-  struct SectionHeader {
+  struct [[gnu::packed]] SectionHeader {
     char name[eCOFFNameSize]; // TODO: handle string table offset
-    u32 virtual_size;
-    u32 virtual_addr;
-    u32 raw_data_size;
-    u32 raw_data_addr;
-    u32 relocation_addr;
-    u32 __linenumber_addr = 0;
-    u32 relocation_count;
-    u32 __linenumber_count = 0;
+    u32  virtual_size;
+    u32  virtual_addr;
+    u32  raw_data_size;
+    u32  raw_data_addr;
+    u32  relocation_addr;
+    u32  __linenumber_addr = 0;
+    u16  relocation_count;
+    u16  __linenumber_count = 0;
     SectionFlags characteristics;
   };
+
+  //=== Other Types ===//
+
+  struct [[gnu::packed]] Symbol {
+    char name[eCOFFNameSize];
+    u32  value;
+    u16  section_number;
+    u16  type;
+    u8   storage_class;
+    u8   auxiliary_count;
+  };
+
+
+  static_assert(sizeof(FileHeader) == 20 + 4); // Size + Magic
+  static_assert(sizeof(SectionHeader) == 40);
+  static_assert(sizeof(Symbol) == 18);
 
 } // namespace COFF
 } // namespace hc::binfmt

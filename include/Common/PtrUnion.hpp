@@ -59,23 +59,27 @@ namespace hc::common {
   };
 
   template <typename...TT>
-  using __ptr_union_base = 
+  using __ptrunion_base = 
     _PtrUnion<make_idxseq<sizeof...(TT)>, TT...>;
   
-  __global usize __ptr_union_max = 255;
+  __global usize __ptrunion_tag_size  = __bitsizeof(u8);
+  __global usize __ptrunion_addr_size = __bitsizeof(uptr) - __ptrunion_tag_size;
+  __global usize __ptrunion_max       = 255ULL;
 
   template <typename...TT>
   struct [[gsl::Pointer]] PtrUnion {
-    static_assert(sizeof...(TT) < __ptr_union_max);
+    static_assert(sizeof...(TT) < __ptrunion_max);
     static_assert(__all_unique<TT...>, "Types cannot repeat.");
     using SelfType = PtrUnion<TT...>;
-    using BaseType = __ptr_union_base<TT...>;
-
-    template <typename, usize>
-    friend struct _PtrUNode;
+    using BaseType = __ptrunion_base<TT...>;
+    struct _SelfTag { };
 
     template <typename U>
     static constexpr usize _ID = BaseType::GetID((U*)nullptr);
+
+    template <typename R, typename F>
+    using _RetType = __conditional_t<__is_same(R, _SelfTag),
+      __common_return_t<F, __add_pointer(TT)...>, R>;
 
   public:
     PtrUnion() = default;
@@ -108,11 +112,8 @@ namespace hc::common {
     template <typename U>
     requires __any_same<U, TT...>
     U* get() const __noexcept {
-      if __expect_true(__isa<U>())
-        return reinterpret_cast<U*>(__addr);
-      return nullptr;
+      return __dyn_cast<U>();
     }
-
 
     template <typename U>
     U* getUnchecked() const __noexcept {
@@ -120,10 +121,24 @@ namespace hc::common {
       return reinterpret_cast<U*>(__addr);
     }
 
-    template <typename F>
-    void visit(F&& f) const __noexcept {
+    void visit(auto&& f) const __noexcept {
       if(this->isEmpty()) return;
-      $tail_return __visit<TT...>(__hc_fwd(f));
+      $tail_return __visitVoid<TT...>(__hc_fwd(f));
+    }
+
+    template <typename R = _SelfTag, typename F>
+    decltype(auto) visitR(F&& f) const __noexcept 
+     requires(sizeof...(TT) > 0) {
+      using Ret = _RetType<R, F>;
+      if constexpr(!__is_void(__remove_const(Ret))) {
+        if(this->isEmpty())
+          $tail_return __visitR<Ret>(__hc_fwd(f));
+        // Real visitor
+        $tail_return __visitR<Ret, TT...>(__hc_fwd(f));
+      } else {
+        if(this->isEmpty()) return;
+        $tail_return __visitVoid<TT...>(__hc_fwd(f));
+      }
     }
 
     //=== Observers ===//
@@ -144,21 +159,46 @@ namespace hc::common {
       return this->__tag == _ID<U>;
     }
 
+    template <typename U>
+    [[gnu::always_inline, gnu::nodebug]]
+    U* __dyn_cast(U* = nullptr) const __noexcept {
+      if __expect_true(__isa<U>())
+        return reinterpret_cast<U*>(__addr);
+      return nullptr;
+    }
+
     template <typename...UU>
     [[gnu::nodebug]]
-    void __visit(auto&& f) const __noexcept
+    void __visitVoid(auto&& f) const __noexcept
      requires(sizeof...(UU) == 0) { }
 
     template <typename U, typename...UU>
     [[gnu::nodebug]]
-    void __visit(auto&& f) const __noexcept {
+    void __visitVoid(auto&& f) const __noexcept {
       if(__tag != _ID<U>)
-        $tail_return __visit<UU...>(__hc_fwd(f));
+        $tail_return __visitVoid<UU...>(__hc_fwd(f));
       (void)__hc_fwd(f)(getUnchecked<U>());
     }
 
+    template <typename R, typename...UU>
+    R __visitR(auto&& f) const __noexcept
+     requires(sizeof...(UU) == 0) {
+      if constexpr(!__is_reference(R)) {
+        return R{};
+      }
+      __hc_unreachable();
+    }
+
+    template <typename R, typename U, typename...UU>
+    [[gnu::nodebug]]
+    R __visitR(auto&& f) const __noexcept {
+      if(__tag != _ID<U>)
+        $tail_return __visitR<R, UU...>(__hc_fwd(f));
+      return static_cast<R>(__hc_fwd(f)(getUnchecked<U>()));
+    }
+
   private:
-    uptr __addr : __bitsizeof(uptr) - 8 = 0;
-    uptr __tag  : 8 = 0;
+    uptr __addr : __ptrunion_addr_size = 0;
+    uptr __tag  : __ptrunion_tag_size  = 0;
   };
 } // namespace hc::common

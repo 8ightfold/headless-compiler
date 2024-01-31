@@ -124,7 +124,7 @@ namespace hc::common {
   template <typename T = void>
   struct PtrRange {
     using SelfType = PtrRange<T>;
-    using PointerType = __ptr_range_base_t<T>;
+    using PtrType  = __ptr_range_base_t<T>;
   public:
     template <typename U = T>
     [[gnu::always_inline, gnu::const]]
@@ -142,7 +142,7 @@ namespace hc::common {
     [[gnu::always_inline, gnu::const]]
     static PtrRange<U> New(U* begin, usize size) {
       if constexpr(__is_void(U)) {
-        PointerType begin_adaptor { begin };
+        PtrType begin_adaptor { begin };
         return { begin_adaptor, begin_adaptor + size };
       } else {
         return { begin, begin + size };
@@ -164,12 +164,12 @@ namespace hc::common {
 
     //=== Observers ===//
 
-    __always_inline PtrRange& checkInvariants() {
+    __always_inline SelfType& checkInvariants() {
       __hc_assert(__begin <= __end);
       return *this;
     }
 
-    const PtrRange& checkInvariants() const {
+    const SelfType& checkInvariants() const {
       __hc_assert(__begin <= __end);
       return *this;
     }
@@ -190,6 +190,10 @@ namespace hc::common {
       }
     }
 
+    bool isEmpty() const {
+      return size() == 0;
+    }
+
     T* data() const __noexcept {
       return this->__begin;
     }
@@ -197,41 +201,42 @@ namespace hc::common {
     template <typename U = T>
     requires(!__is_void(U))
     const U& operator[](usize n) const {
-      __hc_invariant(__begin != nullptr);
-      __hc_invariant(n < this->size());
+      __hc_invariant(!isEmpty() && n < size());
       return __begin[n];
     }
 
     T* begin() const { return this->__begin; }
     T* end() const { return this->__end; }
 
-    SelfType slice(usize pos, usize n) const {
+    //=== Chaining ===//
+
+    [[nodiscard]] SelfType slice(usize pos, usize n) const {
       __hc_invariant(__begin && (pos + n) <= size());
       return SelfType::New(__begin + pos, n);
     }
     
-    SelfType slice(usize n) const {
+    [[nodiscard]] SelfType slice(usize n) const {
       __hc_invariant(__begin && n <= size());
       return SelfType::New(__begin + n, __end);
     }
 
-    SelfType dropFront(usize n = 1) const {
-      return slice(n);
+    [[nodiscard]] SelfType dropFront(usize n = 1) const {
+      $tail_return slice(n);
     }
 
-    SelfType dropBack(usize n = 1) const {
+    [[nodiscard]] SelfType dropBack(usize n = 1) const {
       __hc_invariant(n <= size());
       return slice(0, size() - n);
     }
 
-    SelfType takeFront(usize n = 1) const {
+    [[nodiscard]] SelfType takeFront(usize n = 1) const {
       if(n >= size()) return *this;
-      return dropBack(size() - n);
+      $tail_return dropBack(size() - n);
     }
 
-    SelfType takeBack(usize n = 1) const {
+    [[nodiscard]] SelfType takeBack(usize n = 1) const {
       if(n >= size()) return *this;
-      return dropFront(size() - n);
+      $tail_return dropFront(size() - n);
     }
 
     template <typename U>
@@ -248,8 +253,8 @@ namespace hc::common {
     }
 
   public:
-    PointerType __begin = nullptr;
-    PointerType __end   = nullptr;
+    PtrType __begin = nullptr;
+    PtrType __end   = nullptr;
   };
 
   template <typename T>

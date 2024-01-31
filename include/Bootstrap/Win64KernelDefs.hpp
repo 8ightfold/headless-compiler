@@ -82,6 +82,17 @@ namespace hc::bootstrap {
       return { begin, end };
     }
 
+    template <typename T = void>
+    T* getRVA(u32 offset) const {
+      __hc_invariant(offset < this->size_of_image);
+      auto loc = common::_VoidPtrProxy(dll_base) + offset;
+      return static_cast<T*>(loc);
+    }
+
+    Win64AddrRange getRangeFromRVA(u32 offset) const {
+      return this->getImageRange().dropFront(offset);
+    }
+
     __always_inline Win64UnicodeString name() const {
       return this->base_dll_name;
     }
@@ -114,7 +125,7 @@ namespace hc::bootstrap {
 
     //=== General ===//
 
-    Win64LDRDataTableEntry* findLoadedDLL(const wchar_t* str, bool ignore_extension = false) const {
+    Win64LDRDataTableEntry* findModule(const wchar_t* str, bool ignore_extension = false) const {
       (void)ignore_extension;
       if __expect_false(!str) 
         return nullptr;
@@ -132,11 +143,11 @@ namespace hc::bootstrap {
       return nullptr;
     }
 
-    Win64LDRDataTableEntry* findLoadedDLL(const char* str, bool ignore_extension = false) const {
+    Win64LDRDataTableEntry* findModule(const char* str, bool ignore_extension = false) const {
       if __expect_false(!str) 
         return nullptr;
       // TODO: Implement
-      // return findLoadedDLL(wconvert(str), ignore_extension);
+      // return findModule(wconvert(str), ignore_extension);
       return nullptr;
     }
 

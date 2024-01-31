@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 project(
   headless-compiler
-  VERSION 0.1.2
+  VERSION 0.1.3
   LANGUAGES CXX
 )
 
@@ -25,5 +25,10 @@ add_executable(driver Driver.cpp
   src/Bootstrap/Win64KernelDefs.cpp
 )
 target_include_directories(driver PUBLIC include)
+target_link_options(driver PUBLIC -Wl,--stack,0xF42400)
+target_compile_definitions(driver PUBLIC
+  $<$<CONFIG:Debug>:_HC_DEBUG>
+  $<$<CONFIG:RelWithDebInfo>:_HC_DEBUG>
+)
 # TODO: Add macro for this?
 target_compile_definitions(driver PUBLIC "_HC_CHECK_INVARIANTS=$<BOOL:${HC_CHECK_INVARIANTS}>")
