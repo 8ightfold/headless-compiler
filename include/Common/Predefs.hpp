@@ -58,14 +58,14 @@
 
 //=== Mode Macros ===//
 
-#undef _HC_RELEASE
 #ifndef _HC_DEBUG
 # define _HC_DEBUG 0
-# define _HC_RELEASE 1
-#else
-# undef  _HC_DEBUG
-# define _HC_DEBUG 1
-# define _HC_RELEASE 0
+#endif
+
+#define _HC_RELEASE (!_HC_DEBUG)
+
+#if _HC_DEBUG && _HC_ENABLE_LTO
+# error LTO cannot be used in debug mode!
 #endif
 
 //=== Platform Macros ===//

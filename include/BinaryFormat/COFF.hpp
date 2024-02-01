@@ -281,10 +281,32 @@ namespace COFF {
     u8   auxiliary_count;
   };
 
+  // Export Directory
+
+  struct ExportDirectoryTable {
+    u32 __export_flags = 0;
+    u32 timestamp;
+    u16 major_version;
+    u16 minor_version;
+    u32 name_RVA;
+    u32 ordinal_base = 1;
+    u32 export_address_table_count;
+    u32 name_pointer_table_count;
+    u32 export_address_table_RVA;
+    u32 name_pointer_table_RVA;
+    u32 ordinal_table_RVA;
+  };
+
+  using NamePointerType = u32;
+  using OrdinalType = u16;
+
+  // TODO: Other export tables
+
 
   static_assert(sizeof(FileHeader) == 20 + 4); // Size + Magic
   static_assert(sizeof(SectionHeader) == 40);
   static_assert(sizeof(Symbol) == 18);
+  static_assert(sizeof(ExportDirectoryTable) == 40);
 
 } // namespace COFF
 } // namespace hc::binfmt

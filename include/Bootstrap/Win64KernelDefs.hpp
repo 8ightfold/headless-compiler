@@ -25,8 +25,7 @@
 
 #include <Common/Features.hpp>
 #include <Common/Fundamental.hpp>
-#include <Common/Memory.hpp>
-#include <Common/PtrRange.hpp>
+#include <BinaryFormat/Consumer.hpp>
 
 // For more info:
 // "Finding Kernel32 Base and Function Addresses in Shellcode"
@@ -91,6 +90,10 @@ namespace hc::bootstrap {
 
     Win64AddrRange getRangeFromRVA(u32 offset) const {
       return this->getImageRange().dropFront(offset);
+    }
+
+    binfmt::Consumer getConsumerFromRVA(u32 offset) const {
+      return binfmt::Consumer::New(getRangeFromRVA(offset));
     }
 
     __always_inline Win64UnicodeString name() const {
@@ -180,7 +183,7 @@ namespace hc::bootstrap {
       auto* pLDR_dte = reinterpret_cast<TblType*>(table_base);
       // This is fine because we know it IS a data table entry.
       // TODO: Check if I'm chattin shit
-      return common::__launder(pLDR_dte);
+      return $launder(pLDR_dte);
     }
 
     [[gnu::always_inline, gnu::const]]

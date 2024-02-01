@@ -17,7 +17,6 @@
 //===----------------------------------------------------------------===//
 
 #include <Bootstrap/Win64KernelDefs.hpp>
-#include <Common/Memory.hpp>
 #include <Common/Strings.hpp>
 
 static_assert(sizeof(void*) == 8, 
@@ -28,17 +27,16 @@ namespace C = ::hc::common;
 namespace B = ::hc::bootstrap;
 
 namespace {
-/// Load from segment register at `offset`.
-[[gnu::always_inline, gnu::nodebug]]
-static inline void* __load_seg_offset(uptr offset) {
-  void* raw_addr = nullptr;
-  __asm__(
-   "mov %%gs:%[off], %[ret]"
-   : [ret] "=r"(raw_addr)
-   : [off]  "m"(*reinterpret_cast<u64*>(offset))
-  );
-  return raw_addr;
-}
+  /// Load from segment register at `offset`.
+  __always_inline void* __load_seg_offset(uptr offset) {
+    void* raw_addr = nullptr;
+    __asm__(
+     "mov %%gs:%[off], %[ret]"
+     : [ret] "=r"(raw_addr)
+     : [off]  "m"(*reinterpret_cast<u64*>(offset))
+    );
+    return raw_addr;
+  }
 } // namespace `anonymous`
 
 // UnicodeString

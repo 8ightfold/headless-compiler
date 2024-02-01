@@ -22,6 +22,15 @@
 
 #define __common_is_same(t, u) (__is_same(t, u) && __is_same(u, t))
 
+#define _HC_UNARY_OP(name, op) \
+ template <typename T> \
+ concept __has_unary_##name = \
+  requires(T t) { op t; };
+#define _HC_BINARY_OP(name, op) \
+ template <typename T, typename U = T> \
+ concept __has_binary_##name = \
+  requires(T t, U u) { t op u; };
+
 namespace hc {
 namespace common {
   template <bool B, typename T, typename F>
@@ -156,4 +165,65 @@ namespace hc::common {
     __return_t<F, TT>...>::Type;
 } // namespace hc::common
 
+//=== Operator Stuff ===//
+namespace hc::common {
+  _HC_UNARY_OP(plus, +)
+  _HC_UNARY_OP(minus, -)
+  _HC_UNARY_OP(deref, *)
+  _HC_UNARY_OP(addrof, &)
+  _HC_BINARY_OP(pmem, ->*)
+
+  _HC_UNARY_OP(inc, ++)
+  _HC_UNARY_OP(dec, --)
+  _HC_BINARY_OP(add, +)
+  _HC_BINARY_OP(sub, -)
+  _HC_BINARY_OP(mul, *)
+  _HC_BINARY_OP(div, /)
+  _HC_BINARY_OP(mod, %)
+
+  _HC_BINARY_OP(eq, ==)
+  _HC_BINARY_OP(ne, !=)
+  _HC_BINARY_OP(gt, >)
+  _HC_BINARY_OP(lt, <)
+  _HC_BINARY_OP(ge, >=)
+  _HC_BINARY_OP(le, <=)
+
+  _HC_UNARY_OP(not, !)
+  _HC_BINARY_OP(and, &&)
+  _HC_BINARY_OP(or, ||)
+  // Sadly no logical xor
+
+  _HC_UNARY_OP(bitnot, ~)
+  _HC_BINARY_OP(bitand, &)
+  _HC_BINARY_OP(bitor,  |)
+  _HC_BINARY_OP(bitxor, ^)
+  _HC_BINARY_OP(shl, <<)
+  _HC_BINARY_OP(shr, >>)
+
+  _HC_BINARY_OP(equals, =)
+  _HC_BINARY_OP(add_eq, +=)
+  _HC_BINARY_OP(sub_eq, -=)
+  _HC_BINARY_OP(mul_eq, *=)
+  _HC_BINARY_OP(div_eq, /=)
+  _HC_BINARY_OP(mod_eq, %=)
+  _HC_BINARY_OP(and_eq, &=)
+  _HC_BINARY_OP(or_eq,  |=)
+  _HC_BINARY_OP(shl_eq, <<=)
+  _HC_BINARY_OP(shr_eq, >>=)
+
+  template <typename T, typename...Args>
+  concept __has_op_call = 
+   requires(T t, Args...args) { t(__hc_fwd(args)...); };
+  
+  template <typename T, typename U>
+  concept __has_op_subscript = 
+   requires(T t, U u) { t[u]; };
+  
+  template <typename T, typename...Args>
+  concept __has_op_arrow = __is_pointer(T) ||
+   requires(T t) { t.operator->(); };
+} // namespace hc::common
+
 #undef __common_is_same
+#undef _HC_UNARY_OP
+#undef _HC_BINARY_OP

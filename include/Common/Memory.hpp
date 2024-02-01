@@ -21,9 +21,6 @@
 #include "Features.hpp"
 #include "Fundamental.hpp"
 
-#define $launder(expr...) __builtin_launder(expr)
-#define $offsetof(name, ty...) __builtin_offsetof(ty, name)
-
 HC_HAS_BUILTIN(is_constant_evaluated);
 HC_HAS_BUILTIN(addressof);
 HC_HAS_BUILTIN(offsetof);
@@ -35,7 +32,6 @@ namespace hc::common {
   template <usize N>
   void* __vmemcpy(void* __restrict dst, const void* __restrict src) {
     if constexpr(N == 0) return nullptr;
-    if __expect_false(!dst || !src) return nullptr;
     __builtin_memcpy_inline(dst, src, N);
     return dst;
   }
@@ -43,7 +39,6 @@ namespace hc::common {
   template <usize N>
   void* __vmemset(void* dst, int ch) {
     if constexpr(N == 0) return nullptr;
-    if __expect_false(!dst) return nullptr;
     __builtin_memset_inline(dst, ch, N);
     return dst;
   }
@@ -52,7 +47,6 @@ namespace hc::common {
   requires(__is_trivially_copyable(T))
   T* __memcpy(T* __restrict dst, const T* __restrict src) {
     if constexpr(N == 0) return nullptr;
-    if __expect_false(!dst || !src) return nullptr;
     __builtin_memcpy_inline(dst, src, __sizeof(T) * N);
     return dst;
   }
@@ -69,7 +63,6 @@ namespace hc::common {
   requires(__is_trivially_copyable(T))
   T* __memset(T* dst, int ch) {
     if constexpr(N == 0) return nullptr;
-    if __expect_false(!dst) return nullptr;
     __builtin_memset_inline(dst, ch, __sizeof(T) * N);
     return dst;
   }
@@ -85,13 +78,19 @@ namespace hc::common {
   template <usize N, typename T>
   __always_inline T* __zero_memory(T* dst) {
     if constexpr(N == 0) return nullptr;
-    if __expect_false(!dst) return nullptr;
     return memset<N>(dst, 0);
   }
 
   template <usize N, typename T>
   __always_inline auto __zero_memory(T(&dst)[N]) -> T(&)[N] {
     return __array_memset(dst, 0);
+  }
+
+  template <typename T>
+  requires(__is_trivially_copyable(T))
+  T& __clone(T& dst, const T& src) {
+    __builtin_memcpy_inline(&dst, &src, __sizeof(T));
+    return dst;
   }
 } // namespace hc::common
 
@@ -135,17 +134,64 @@ namespace hc::common {
   [[nodiscard, gnu::nodebug]] 
   __visibility(hidden) constexpr T*
    __launder(T* src) __noexcept {
-    static_assert(!__is_function(T));
+    static_assert(__is_object(T));
     return __builtin_launder(src);
   }
 
   void* __launder(void*) = delete;
   void* __launder(const void*) = delete;
+
+  // assume_aligned
+
+  template <usize Align, typename T>
+  [[nodiscard, gnu::always_inline]]
+  __visibility(hidden) inline constexpr T*
+   __assume_aligned(T* p) __noexcept {
+    static_assert((Align & (Align - 1)) == 0,
+      "Align must be a power of 2.");
+    if $is_consteval() {
+      return p;
+    } else {
+      __hc_invariant((uptr)p % Align == 0);
+      return static_cast<T*>(
+        __builtin_assume_aligned(p, Align));
+    }
+  }
 } // namespace hc::common
 
 namespace hc::common {
   struct Mem {
-    static void* VCopy(void* dst, const void* src, usize len);
+    static void* VCopy(void* __restrict dst, const void* __restrict src, usize len);
+    // TODO: This! lol!
     static void* VSet(void* dst, int ch, usize len);
+
+    template <typename T>
+    requires(__is_trivially_copyable(T))
+    __always_inline static T* 
+     Copy(T* __restrict dst, const T* __restrict src, usize len) {
+      static_assert(!__is_void(T), "Use VCopy with void*!");
+      (void)Mem::VCopy(dst, src, len * __sizeof(T));
+      return dst;
+    }
+
+    template <typename T>
+    requires(!__is_trivially_copyable(T))
+    static T* Copy(T* __restrict dst, const T* __restrict src, usize len) {
+      for(usize I = 0; I < len; ++I)
+        dst[I] = src[I];
+      return dst;
+    }
+
+    template <typename T>
+    requires(__is_trivially_copyable(T))
+    __always_inline static T& Clone(T& dst, const T& src) {
+      return __clone(dst, src);
+    }
+
+    template <typename T>
+    requires(!__is_trivially_copyable(T))
+    static T& Clone(T& dst, const T& src) {
+      return dst = src;
+    }
   };
 } // namespace hc::common

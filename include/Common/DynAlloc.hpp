@@ -30,8 +30,8 @@
 #include "Memory.hpp"
 #include "PtrRange.hpp"
 
-#define $dynalloc(sz, ...) ({ using __ty = \
- ::hc::common::DynAllocation<__VA_ARGS__>; \
+#define $dynalloc(sz, ty...) ({ using __ty = \
+ ::hc::common::DynAllocation<ty>; \
  auto* __local_alloc = __hc_typed_alloca(sz, __ty); \
  __ty::New(__local_alloc, sz); })
 

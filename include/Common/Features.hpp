@@ -91,9 +91,9 @@
 #define __hc_fwd(expr...) static_cast<decltype(expr)&&>(expr)
 
 #if _HC_DEBUG
-# define __hc_unreachable() ::__hc_dbg_unreachable()
+# define __hc_unreachable(msg...) ::__hc_dbg_unreachable()
 #else
-# define __hc_unreachable() __builtin_unreachable()
+# define __hc_unreachable(...) $unreachable
 #endif // __hc_unreachable
 
 #if _HC_DEBUG
@@ -112,6 +112,26 @@
 # define __hc_invariant(expr...) (void)(0)
 #endif // __hc_invariant
 
+#define $is_consteval() (__builtin_is_constant_evaluated())
+#define $launder(expr...) __builtin_launder(expr)
+#define $offsetof(name, ty...) __builtin_offsetof(ty, name)
+
+#define $tail_return [[clang::musttail]] return
+#define $unreachable __builtin_unreachable()
+
+#pragma clang final(__always_inline)
+#pragma clang final(__global)
+#pragma clang final(__noexcept)
+
+HC_HAS_REQUIRED(attribute, always_inline);
+HC_HAS_REQUIRED(attribute, __visibility__);
+HC_HAS_REQUIRED(cpp_attribute, clang::musttail);
+HC_HAS_BUILTIN(trap);
+HC_HAS_BUILTIN(expect);
+HC_HAS_BUILTIN(launder);
+HC_HAS_BUILTIN(unreachable);
+HC_HAS_BUILTIN(is_constant_evaluated);
+
 extern "C" { 
 #if !__has_builtin(__builtin_stack_address)
   __attribute__((noinline)) static 
@@ -127,7 +147,7 @@ extern "C" {
   }
 #endif
 
-  __attribute((cold, noreturn))
+  __attribute__((cold, noreturn))
   inline void __hc_dbg_unreachable(void) {
     if constexpr(_HC_DEBUG) {
       __builtin_debugtrap();
@@ -135,19 +155,3 @@ extern "C" {
     __builtin_unreachable();
   }
 }
-
-#define $is_consteval() (__builtin_is_constant_evaluated())
-#define $tail_return [[clang::musttail]] return
-
-#pragma clang final(__always_inline)
-#pragma clang final(__global)
-#pragma clang final(__noexcept)
-
-HC_HAS_REQUIRED(attribute, always_inline);
-HC_HAS_REQUIRED(attribute, __visibility__);
-HC_HAS_REQUIRED(cpp_attribute, clang::musttail);
-HC_HAS_BUILTIN(trap);
-HC_HAS_BUILTIN(expect);
-HC_HAS_BUILTIN(launder);
-HC_HAS_BUILTIN(unreachable);
-HC_HAS_BUILTIN(is_constant_evaluated);

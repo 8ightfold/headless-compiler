@@ -42,7 +42,7 @@
 #define __assert_offset(ty, mem, offset) assert($offsetof(mem, ty) == offset)
 
 #define $unwrap(obj, ...) ({ if(!obj) return { __VA_ARGS__ }; *obj; })
-#define $extract(name, ty...) visitR<ty>([](auto* p) { return p->name; }) 
+#define $extract(name, ty...) visitR<ty>([](auto* p) { return p->name; })
 
 namespace C  = hc::common;
 namespace BF = hc::binfmt;
@@ -156,7 +156,6 @@ void dumpLDRModule(EntryType* entry) {
 int dump_image(B::Win64LDRDataTableEntry* dll) {
   namespace COFF = BF::COFF;
   using COFF::OptPEWindowsHeader;
-  dump_data(dll);
 
   auto IC = BF::Consumer::New(dll->getImageRange());
   auto dos_header = IC.intoIfMatches<COFF::DosHeader>(BF::MMagic::DosHeader);
@@ -218,23 +217,62 @@ int dump_image(B::Win64LDRDataTableEntry* dll) {
     std::cout << get_sym(str) << ":\n";
     dump_data(S);
   }
+  if(u32 export_table_RVA = dir_headers[COFF::eDirectoryExportTable].RVA) {
+    auto* EDT = dll->getRVA<COFF::ExportDirectoryTable>(export_table_RVA);
+    dump_data(EDT);
+    auto NPT = dll->getRangeFromRVA(EDT->name_pointer_table_RVA)
+      .intoRange<COFF::NamePointerType>()
+      .takeFront(EDT->name_pointer_table_count);
+    std::cout << "Exported names:\n";
+    for(auto off : NPT) {
+      auto S = C::StrRef::NewRaw(dll->getRVA<char>(off));
+      std::cout << S << '\n';
+    }
+    std::cout << std::endl;
+  }
 
   return 1;
 }
 
+static void dump_module(const wchar_t* name) {
+  if __expect_false(!name) {
+    std::printf("ERROR: Name cannot be NULL.\n");
+    return;
+  }
+  B::Win64PEB* ppeb = B::Win64TEB::LoadTEBFromGS()->getPEB();
+  auto* mod = ppeb->getLDRModulesInMemOrder()->findModule(name);
+  if(!mod) {
+    std::printf("ERROR: Unable to find module `%ls`.\n", name);
+    return;
+  }
+  dump_data(mod);
+  if(int code = dump_image(mod); code != 1)
+    std::printf("\nERROR: Dump failed with code `%i`.\n", code);
+}
+
+static void dump_module(const char* name) {
+  if __expect_false(!name) {
+    std::printf("ERROR: Name cannot be NULL.\n");
+    return;
+  }
+  const usize len = C::__strlen(name);
+  auto buf = $dynalloc(len + 1, wchar_t).zeroMemory();
+  for(usize I = 0; I < len; ++I)
+    buf[I] = static_cast<wchar_t>(name[I]);
+  dump_module(buf.data());
+}
+
 static void dump_modules() {
-  const auto modules = B::Win64TEB::LoadTEBFromGS()->getPEB()->getLDRModulesInMemOrder();
+  B::Win64PEB* ppeb = B::Win64TEB::LoadTEBFromGS()->getPEB();
+  const auto modules = ppeb->getLDRModulesInMemOrder();
   for(auto* P = modules->prev(); !P->isSentinel(); P = P->prev())
     dump_data(P->asLDRDataTableEntry());
 }
 
 int main() {
-  B::Win64PEB* ppeb = B::Win64TEB::LoadTEBFromGS()->getPEB();
-  const auto ldr_modules = ppeb->getLDRModulesInMemOrder();
-  auto* self = ldr_modules->findModule(L"driver.exe");
-  auto* ntdll = ldr_modules->findModule(L"ntdll.dll");
-  auto* kernel32 = ldr_modules->findModule(L"KERNEL32.DLL");
-
+  // dump_module("driver.exe");
+  // dump_module("ntdll.dll");
+  // dump_module("KERNEL32.DLL");
+  dump_module("msvcrt.dll");
   // dump_modules();
-  dump_image(self);
 }

@@ -186,7 +186,7 @@ namespace hc::common {
       if constexpr(!__is_reference(R)) {
         return R{};
       }
-      __hc_unreachable();
+      __hc_unreachable("Unable to instantiate a default object.");
     }
 
     template <typename R, typename U, typename...UU>
