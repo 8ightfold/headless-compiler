@@ -22,11 +22,13 @@
 
 #pragma once
 
-#include "Fundamental.hpp"
+#include "Align.hpp"
 #include "Lifetime.hpp"
 #include "PtrRange.hpp"
 #include "Traits.hpp"
 
+/// Creates a `StaticVec` deduced from the passed arguments.
+/// Has a capacity rounded to the next power of 2 (inclusively).
 #define $vec(args...) ::hc::common::__make_staticvec(args)
 
 namespace hc::common {
@@ -76,6 +78,34 @@ namespace hc::common {
       this->__init(begin(), end(), D);
     }
 
+    template <usize Sz>
+    StaticVec(const StaticVec<T, Sz>& vec) : StaticVec() {
+      if constexpr(Sz > Capacity()) {
+        const auto n = (vec.__size > Capacity()) 
+          ? Capacity() : vec.__size;
+        Mem::Copy(begin(), vec.begin(), n);
+        this->__size = n;
+      } else {
+        Mem::Copy(begin(), vec.begin(), vec.__size);
+        this->__size = vec.__size;
+      }
+    }
+
+    template <usize Sz>
+    StaticVec(StaticVec<T, Sz>&& vec) : StaticVec() {
+      if constexpr(Sz > Capacity()) {
+        const auto n = (vec.__size > Capacity()) 
+          ? Capacity() : vec.__size;
+        Mem::Move(begin(), vec.begin(), n);
+        this->__size = n;
+      } else {
+        Mem::Move(begin(), vec.begin(), vec.__size);
+        this->__size = vec.__size;
+      }
+    }
+
+    constexpr ~StaticVec() { __destroy(); }
+
     //=== Mutators/Accessors ===//
 
     [[nodiscard]] constexpr T& 
@@ -115,6 +145,11 @@ namespace hc::common {
     constexpr T& back() const __noexcept {
       __hc_invariant(size() > 0);
       return data()[__size - 1];
+    }
+
+    constexpr SelfType& erase() __noexcept {
+      __destroy();
+      return *this;
     }
 
     //=== Observers ===//
@@ -162,17 +197,13 @@ namespace hc::common {
       
       constexpr void operator()() __noexcept {
         if __expect_true(__vec.__size > 0)
-          __destroy(__vec.begin(), __vec.end());
+          common::__destroy(__vec.begin(), __vec.end());
       }
 
     private:
       StaticVec& __vec;
     };
   
-  public:
-    constexpr ~StaticVec() { _DestroyVec{*this}(); }
-
-  private:
     template <usize...II>
     __always_inline constexpr void __init_from_pack(IdxSeq<II...>, auto&&...args) {
       static_assert(sizeof...(II) == sizeof...(args));
@@ -191,6 +222,11 @@ namespace hc::common {
       (void)common::construct_at(end(), __hc_fwd(args)...);
       ++__size;
       return true;
+    }
+
+    __always_inline constexpr void __destroy() {
+      _DestroyVec{*this}();
+      this->__size = 0;
     }
 
     __always_inline constexpr bool __destroy_back() {
@@ -238,11 +274,18 @@ namespace hc::common {
     constexpr bool isEmpty() const __noexcept { return true; }
   };
 
+  template <typename T, usize N>
+  StaticVec(const StaticVec<T, N>&) -> StaticVec<T, N>;
+
+  template <typename T, usize N>
+  StaticVec(StaticVec<T, N>&&) -> StaticVec<T, N>;
+
   template <typename T, typename...TT>
   [[nodiscard, gnu::always_inline, gnu::nodebug]]
   __visibility(hidden) inline constexpr auto
    __make_staticvec(T&& t, TT&&...tt) __noexcept {
-    using VecType = StaticVec<__remove_reference_t(T), sizeof...(TT) + 1>;
+    constexpr auto vecSize = Align::Up(sizeof...(TT) + 1);
+    using  VecType = StaticVec<__remove_reference_t(T), vecSize>;
     return VecType { _StaticVecVars{}, __hc_fwd(t), __hc_fwd(tt)... };
   }
 } // namespace hc::common

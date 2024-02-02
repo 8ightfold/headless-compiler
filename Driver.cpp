@@ -16,6 +16,7 @@
 //
 //===----------------------------------------------------------------===//
 
+#include <Common/Align.hpp>
 #include <Common/DynAlloc.hpp>
 #include <Common/Fundamental.hpp>
 #include <Common/Location.hpp>
@@ -274,6 +275,9 @@ int main() {
   // dump_module("driver.exe");
   // dump_module("ntdll.dll");
   // dump_module("KERNEL32.DLL");
-  dump_module("msvcrt.dll");
+  // dump_module("msvcrt.dll");
   // dump_modules();
+  auto V = $vec(0, 1, 2, 3, 4, 5, 5, 6, 7);
+  std::cout << V.Capacity() << std::endl;
+  std::cout << V.push(8).push(9).size() << std::endl;
 }

@@ -169,7 +169,7 @@ namespace hc::common {
     requires(__is_trivially_copyable(T))
     __always_inline static T* 
      Copy(T* __restrict dst, const T* __restrict src, usize len) {
-      static_assert(!__is_void(T), "Use VCopy with void*!");
+      static_assert(!__is_void(T), "Directly use VCopy with void*!");
       (void)Mem::VCopy(dst, src, len * __sizeof(T));
       return dst;
     }
@@ -177,8 +177,24 @@ namespace hc::common {
     template <typename T>
     requires(!__is_trivially_copyable(T))
     static T* Copy(T* __restrict dst, const T* __restrict src, usize len) {
+      static_assert(!__is_void(T), "Directly use VCopy with void*!");
       for(usize I = 0; I < len; ++I)
         dst[I] = src[I];
+      return dst;
+    }
+
+    template <typename T>
+    requires(__is_trivially_copyable(T))
+    __always_inline static T* 
+     Move(T* __restrict dst, T* __restrict src, usize len) {
+      return Mem::Copy(dst, src, len);
+    }
+
+    template <typename T>
+    requires(!__is_trivially_copyable(T))
+    static T* Move(T* __restrict dst, T* __restrict src, usize len) {
+      for(usize I = 0; I < len; ++I)
+        dst[I] = static_cast<T&&>(src[I]);
       return dst;
     }
 
