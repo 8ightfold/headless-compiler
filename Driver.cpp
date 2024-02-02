@@ -21,6 +21,7 @@
 #include <Common/Location.hpp>
 #include <Common/Memory.hpp>
 #include <Common/PtrUnion.hpp>
+#include <Common/StaticVec.hpp>
 #include <Common/Strings.hpp>
 #include <Common/StrRef.hpp>
 

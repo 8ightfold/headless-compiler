@@ -112,13 +112,13 @@ namespace hc::common {
     }
 
     [[nodiscard, gnu::const]]
-    PtrRange<T> toPointerRange() const __noexcept {
-      return { .__begin = begin(), .__end = end() };
+    usize sizeInBytes() const __noexcept {
+      return this->AllocationSize(size());
     }
 
     [[nodiscard, gnu::const]]
-    usize sizeInBytes() const __noexcept {
-      return this->AllocationSize(size());
+    PtrRange<T> toPtrRange() const __noexcept {
+      return { .__begin = begin(), .__end = end() };
     }
 
     [[nodiscard, gnu::const]]
