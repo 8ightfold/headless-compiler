@@ -36,8 +36,8 @@
 #define _HC_COPY_BLOCK(size, args...) \
  __copy_block<size>(args, len)
 
-using namespace hc;
-namespace C = ::hc::common;
+using namespace hc::common;
+namespace C = hc::common;
 
 //=== Memcpy Backend ===//
 namespace {
@@ -69,7 +69,7 @@ namespace {
     const usize limit = len + offla - BlockSize;
     for (usize off = BlockSize; off < limit; off += BlockSize)
       __copy_block<BlockSize>(
-        C::__assume_aligned<BlockSize>(dst - offla + off), 
+        __assume_aligned<BlockSize>(dst - offla + off), 
         src - offla + off);
     // Copy last block.
     $tail_return __copy_last_block<BlockSize>(dst, src, len);

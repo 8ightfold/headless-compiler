@@ -26,13 +26,19 @@
 #include <Common/StaticVec.hpp>
 #include <BinaryFormat/COFF.hpp>
 
+namespace hc::binfmt {
+  struct Consumer;
+} // namespace hc::binfmt
+
 namespace hc::bootstrap {
   struct Win64LDRDataTableEntry;
   using ModuleHandle = Win64LDRDataTableEntry*;
-  namespace COFF = ::hc::binfmt::COFF;
+  using DualString = common::PtrUnion<const char, const wchar_t>;
+  using ImageConsumer = binfmt::Consumer;
+  namespace COFF = hc::binfmt::COFF;
 
   struct COFFHeader {
-    COFF::DosHeader*      dos = nullptr;
+    COFF::DosHeader*      dos  = nullptr;
     COFF::FileHeader*     file = nullptr;
     COFF::OptPEHeader     opt;
     COFF::PEWindowsHeader win;
@@ -43,15 +49,41 @@ namespace hc::bootstrap {
     COFF::SectionTable sections;
   };
 
-  struct COFFModule {
-    COFFHeader        __header;
-    COFFTables        __tables;
-    common::AddrRange __image;
+  class COFFModule {
+    friend class ModuleParser;
+    COFFModule() = default;
+    COFFModule(ModuleHandle H) : __image(H) { }
+  public:
+    COFFModule(const COFFModule&) = default;
+    COFFModule(COFFModule&&) = default;
+    COFFModule& operator=(const COFFModule&) = default;
+    COFFModule& operator=(COFFModule&&) = default;
+  public:
+    common::AddrRange getImageRange() const;
+  private:
+    ModuleHandle operator->() const;
+  private:
+    COFFHeader   __header;
+    COFFTables   __tables;
+    ModuleHandle __image = nullptr;
   };
 
-  struct ModuleParser {
-    // Don't assume these will always be valid.
-    static ModuleHandle GetModuleHandle(const char* name);
-    static ModuleHandle GetModuleHandle(const wchar_t* name);
+  class ModuleParser {
+    ModuleParser(COFFModule& M, ImageConsumer& C) : mod(M), IC(C) { }
+  public:
+    /// Don't assume these will always be valid.
+    /// If a module is unloaded, it'll no longer work.
+    /// This is ok for stuff like ntdll, but not for user dlls.
+    static ModuleHandle GetModuleHandle(DualString name);
+    static COFFModule Parse(ModuleHandle handle); 
+    static COFFModule GetParsedModule(DualString name);
+  private:
+    [[nodiscard]] bool runParser();
+    COFF::FileHeader* parseHeader();
+    COFF::PEWindowsHeader& parseOpt(u32& size);
+    void parseTables(u32 RVAs, COFF::FileHeader* fh);
+  private:
+    COFFModule&    mod;
+    ImageConsumer& IC;
   };
 } // namespace hc::bootstrap

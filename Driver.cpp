@@ -28,6 +28,7 @@
 #include <Common/Unwrap.hpp>
 
 #include <Bootstrap/Win64KernelDefs.hpp>
+#include <Bootstrap/ModuleParser.hpp>
 #include <BinaryFormat/COFF.hpp>
 #include <BinaryFormat/Consumer.hpp>
 #include <BinaryFormat/MagicMatcher.hpp>
@@ -42,6 +43,7 @@
 #include <winternl.h>
 #include <Winnls.h>
 
+#undef GetModuleHandle
 #define __assert_offset(ty, mem, offset) assert($offsetof(mem, ty) == offset)
 
 namespace C  = hc::common;
@@ -240,8 +242,7 @@ static void dump_module(const wchar_t* name) {
     std::printf("ERROR: Name cannot be NULL.\n");
     return;
   }
-  B::Win64PEB* ppeb = B::Win64TEB::LoadTEBFromGS()->getPEB();
-  auto* mod = ppeb->getLDRModulesInMemOrder()->findModule(name);
+  auto* mod = B::ModuleParser::GetModuleHandle(name);
   if (!mod) {
     std::printf("ERROR: Unable to find module `%ls`.\n", name);
     return;

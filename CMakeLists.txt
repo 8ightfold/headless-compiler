@@ -32,7 +32,8 @@ if(HC_DEBUG)
 endif()
 
 option(HC_CHECK_INVARIANTS "Enable invariant checking." OFF)
-option(HC_ENABLE_LTO "Enable interprocedural optimization." ON)
+# Currently broken :(
+option(HC_ENABLE_LTO "Enable interprocedural optimization." OFF)
 
 message("invariant checking: ${HC_ENABLE_LTO}")
 message("interprocedural optimization: ${HC_ENABLE_LTO}")

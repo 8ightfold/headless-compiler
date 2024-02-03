@@ -20,8 +20,8 @@
 #include <Common/Strings.hpp>
 
 using namespace hc::binfmt;
-namespace C  = ::hc::common;
-namespace BF = ::hc::binfmt;
+namespace C  = hc::common;
+namespace BF = hc::binfmt;
 
 template <usize N>
 static inline bool __starts_with(C::AddrRange data, const char(&str)[N]) {

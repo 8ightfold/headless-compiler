@@ -23,8 +23,8 @@ static_assert(sizeof(void*) == 8,
   "Do not use these definitions with 32-bit executables.");
 
 using namespace hc::bootstrap;
-namespace C = ::hc::common;
-namespace B = ::hc::bootstrap;
+namespace C = hc::common;
+namespace B = hc::bootstrap;
 
 namespace {
   /// Load from segment register at `offset`.

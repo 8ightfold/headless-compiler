@@ -42,6 +42,11 @@ namespace hc::binfmt {
       return { addrs.checkInvariants() };
     }
 
+    Consumer& reInit(common::AddrRange addrs) {
+      this->__image = addrs.checkInvariants();
+      return *this;
+    }
+
     usize size() const __noexcept {
       return __image.size();
     }
