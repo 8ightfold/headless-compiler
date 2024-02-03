@@ -1,4 +1,4 @@
-//===- Common/Casting.hpp -------------------------------------------===//
+//===- Bootstrap/ModuleParser.cpp -----------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -16,23 +16,24 @@
 //
 //===----------------------------------------------------------------===//
 
-#pragma once
+#include <Bootstrap/ModuleParser.hpp>
+#include <Bootstrap/Win64KernelDefs.hpp>
 
-#include "Features.hpp"
-#include "Fundamental.hpp"
+using namespace hc::bootstrap;
+namespace C = ::hc::common;
+namespace B = ::hc::bootstrap;
 
-namespace hc {
-  template <typename U = void, typename T>
-  __always_inline U* ptr_cast(T* t) __noexcept {
-    if constexpr (!__is_void(__remove_const(T))) {
-      return reinterpret_cast<U*>(t);
-    } else {
-      return static_cast<U*>(t);
-    }
-  }
+static inline const Win64PEB* __get_PEB() {
+  static thread_local const Win64PEB* ppeb =
+    Win64TEB::LoadTEBFromGS()->getPEB();
+  return ppeb;
+}
 
-  template <typename U = void>
-  __always_inline U* ptr_cast(uptr i) __noexcept {
-    return reinterpret_cast<U*>(i);
-  }
-} // namespace hc
+ModuleHandle B::ModuleParser::GetModuleHandle(const char* name) {
+  return __get_PEB()->getLDRModulesInMemOrder()->findModule(name);
+}
+
+ModuleHandle B::ModuleParser::GetModuleHandle(const wchar_t* name) {
+  return __get_PEB()->getLDRModulesInMemOrder()->findModule(name);
+}
+

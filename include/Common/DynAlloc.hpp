@@ -83,13 +83,13 @@ namespace hc::common {
       if __expect_true(this->__active) return *this;
       else if __expect_false(this->isEmpty()) return *this;
       this->__active = true;
-      for(T* I = begin(), *E = end(); I != E; ++I)
+      for (T* I = begin(), *E = end(); I != E; ++I)
         common::construct_at(I, args...);
       return *this;
     }
 
     DynAllocation& zeroMemory() __noexcept {
-      if constexpr(!__is_trivial_alloc<T>) {
+      if constexpr (!__is_trivial_alloc<T>) {
         if __expect_false(this->__active) 
           return *this;
       }

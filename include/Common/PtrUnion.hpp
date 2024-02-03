@@ -124,7 +124,7 @@ namespace hc::common {
     }
 
     void visit(auto&& f) const __noexcept {
-      if(this->isEmpty()) return;
+      if (this->isEmpty()) return;
       $tail_return __visitVoid<TT...>(__hc_fwd(f));
     }
 
@@ -132,13 +132,13 @@ namespace hc::common {
     decltype(auto) visitR(F&& f) const __noexcept 
      requires(sizeof...(TT) > 0) {
       using Ret = _RetType<R, F>;
-      if constexpr(!__is_void(__remove_const(Ret))) {
-        if(this->isEmpty())
+      if constexpr (!__is_void(__remove_const(Ret))) {
+        if (this->isEmpty())
           $tail_return __visitR<Ret>(__hc_fwd(f));
         // Real visitor
         $tail_return __visitR<Ret, TT...>(__hc_fwd(f));
       } else {
-        if(this->isEmpty()) return;
+        if (this->isEmpty()) return;
         $tail_return __visitVoid<TT...>(__hc_fwd(f));
       }
     }
@@ -177,7 +177,7 @@ namespace hc::common {
     template <typename U, typename...UU>
     [[gnu::nodebug]]
     void __visitVoid(auto&& f) const __noexcept {
-      if(__tag != _ID<U>)
+      if (__tag != _ID<U>)
         $tail_return __visitVoid<UU...>(__hc_fwd(f));
       (void)__hc_fwd(f)(getUnchecked<U>());
     }
@@ -185,7 +185,7 @@ namespace hc::common {
     template <typename R, typename...UU>
     R __visitR(auto&& f) const __noexcept
      requires(sizeof...(UU) == 0) {
-      if constexpr(!__is_reference(R)) {
+      if constexpr (!__is_reference(R)) {
         return R{};
       }
       __hc_unreachable("Unable to instantiate a default object.");
@@ -194,7 +194,7 @@ namespace hc::common {
     template <typename R, typename U, typename...UU>
     [[gnu::nodebug]]
     R __visitR(auto&& f) const __noexcept {
-      if(__tag != _ID<U>)
+      if (__tag != _ID<U>)
         $tail_return __visitR<R, UU...>(__hc_fwd(f));
       return static_cast<R>(__hc_fwd(f)(getUnchecked<U>()));
     }

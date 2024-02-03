@@ -22,7 +22,7 @@
 static_assert(sizeof(void*) == 8, 
   "Do not use these definitions with 32-bit executables.");
 
-using namespace hc;
+using namespace hc::bootstrap;
 namespace C = ::hc::common;
 namespace B = ::hc::bootstrap;
 
@@ -41,9 +41,9 @@ namespace {
 
 // UnicodeString
 
-B::Win64UnicodeString B::Win64UnicodeString::New(wchar_t* str) {
+Win64UnicodeString B::Win64UnicodeString::New(wchar_t* str) {
   __hc_invariant(str != nullptr);
-  B::Win64UnicodeString new_ustr;
+  Win64UnicodeString new_ustr;
   usize str_len = C::__wstrlen(str);
   new_ustr.buffer = str;
   new_ustr.size = str_len * 2;
@@ -51,9 +51,9 @@ B::Win64UnicodeString B::Win64UnicodeString::New(wchar_t* str) {
   return new_ustr;
 }
 
-B::Win64UnicodeString B::Win64UnicodeString::New(wchar_t* str, usize max) {
+Win64UnicodeString B::Win64UnicodeString::New(wchar_t* str, usize max) {
   __hc_invariant(str != nullptr);
-  B::Win64UnicodeString new_ustr;
+  Win64UnicodeString new_ustr;
   new_ustr.buffer = str;
   new_ustr.size = C::__wstrlen(str) * 2;
   new_ustr.size_max = max * 2;
@@ -61,17 +61,17 @@ B::Win64UnicodeString B::Win64UnicodeString::New(wchar_t* str, usize max) {
   return new_ustr;
 }
 
-bool B::Win64UnicodeString::isEqual(const B::Win64UnicodeString& rhs) const {
+bool B::Win64UnicodeString::isEqual(const Win64UnicodeString& rhs) const {
   if __expect_false(!this->buffer || !rhs.buffer) return false;
-  if(this->size != rhs.size) return false;
+  if (this->size != rhs.size) return false;
   int ret = C::__wstrncmp(this->buffer, rhs.buffer, this->size);
   return (ret == 0);
 }
 
 // LDR
 
-B::Win64ListEntryNode* B::Win64ListEntryNode::GetBaseNode() {
-  return B::Win64TEB::LoadTEBFromGS()->getPEB()->LDR_data->getBaseEntryNode();
+Win64ListEntryNode* B::Win64ListEntryNode::GetBaseNode() {
+  return Win64TEB::LoadTEBFromGS()->getPEB()->LDR_data->getBaseEntryNode();
 }
 
 template struct B::TWin64ListEntry<B::Win64ModuleType::loadOrder>;
@@ -80,31 +80,31 @@ template struct B::TWin64ListEntry<B::Win64ModuleType::initOrder>;
 
 // PEB
 
-B::Win64InitOrderList* B::Win64PEB::getLDRModulesInInitOrder() const {
+Win64InitOrderList* B::Win64PEB::getLDRModulesInInitOrder() const {
   __hc_invariant(LDR_data->is_initialized);
   return this->LDR_data->getEntryNodeAt<B::Win64ModuleType::initOrder>();
 }
 
-B::Win64MemOrderList*  B::Win64PEB::getLDRModulesInMemOrder() const {
+Win64MemOrderList*  B::Win64PEB::getLDRModulesInMemOrder() const {
   __hc_invariant(LDR_data->is_initialized);
-  return this->LDR_data->getEntryNodeAt<B::Win64ModuleType::memOrder>();
+  return this->LDR_data->getEntryNodeAt<Win64ModuleType::memOrder>();
 }
 
-B::Win64LoadOrderList* B::Win64PEB::getLDRModulesInLoadOrder() const {
+Win64LoadOrderList* B::Win64PEB::getLDRModulesInLoadOrder() const {
   __hc_invariant(LDR_data->is_initialized);
-  return this->LDR_data->getEntryNodeAt<B::Win64ModuleType::loadOrder>();
+  return this->LDR_data->getEntryNodeAt<Win64ModuleType::loadOrder>();
 }
 
 // TEB
 
-B::Win64TEB* B::Win64TEB::LoadTEBFromGS() {
-  static constexpr uptr offset = $offsetof(TEB_addr, B::Win64TIB);
+Win64TEB* B::Win64TEB::LoadTEBFromGS() {
+  static constexpr uptr offset = $offsetof(TEB_addr, Win64TIB);
   void* raw_addr = __load_seg_offset(offset);
   __hc_invariant(raw_addr != nullptr);
-  return static_cast<B::Win64TEB*>(raw_addr);
+  return static_cast<Win64TEB*>(raw_addr);
 }
 
-B::Win64AddrRange B::Win64TEB::getStackRange() {
+Win64AddrRange B::Win64TEB::getStackRange() {
   return C::AddrRange::New(tib.stack_end, tib.stack_begin);
 }
 
@@ -116,6 +116,6 @@ uptr B::Win64TEB::getThreadId() const {
   return reinterpret_cast<uptr>(this->thread_id);
 }
 
-B::Win64PEB* B::Win64TEB::getPEB() const {
-  return static_cast<B::Win64PEB*>(this->PEB_addr);
+Win64PEB* B::Win64TEB::getPEB() const {
+  return static_cast<Win64PEB*>(this->PEB_addr);
 }

@@ -69,7 +69,7 @@ namespace hc::common {
     constexpr StaticVec(_StaticVecVars, Args&&...args) 
      : __base(), __size(sizeof...(Args)) {
       using Seq = make_idxseq<sizeof...(Args)>;
-      this->__init_from_pack(Seq{}, __hc_fwd(args)...);
+      this->__initFromPack(Seq{}, __hc_fwd(args)...);
     }
 
     constexpr StaticVec(usize n, const T& D) 
@@ -78,22 +78,28 @@ namespace hc::common {
       this->__init(begin(), end(), D);
     }
 
+    StaticVec(PtrRange<T> R) : StaticVec() {
+      if __expect_false(R.isEmpty()) return;
+      const auto n = __Cap(R.size());
+      Mem::Copy(begin(), R.begin(), n);
+      this->__size = n;
+    }
+
     template <usize Sz>
-    StaticVec(const StaticVec<T, Sz>& vec) : StaticVec() {
-      if constexpr(Sz > Capacity()) {
-        const auto n = (vec.__size > Capacity()) 
-          ? Capacity() : vec.__size;
-        Mem::Copy(begin(), vec.begin(), n);
+    StaticVec(const StaticVec<T, Sz>& V) : StaticVec() {
+      if constexpr (Sz > Capacity()) {
+        const auto n = __Cap(V.size());
+        Mem::Copy(begin(), V.begin(), n);
         this->__size = n;
       } else {
-        Mem::Copy(begin(), vec.begin(), vec.__size);
-        this->__size = vec.__size;
+        Mem::Copy(begin(), V.begin(), V.__size);
+        this->__size = V.__size;
       }
     }
 
     template <usize Sz>
     StaticVec(StaticVec<T, Sz>&& vec) : StaticVec() {
-      if constexpr(Sz > Capacity()) {
+      if constexpr (Sz > Capacity()) {
         const auto n = (vec.__size > Capacity()) 
           ? Capacity() : vec.__size;
         Mem::Move(begin(), vec.begin(), n);
@@ -123,17 +129,17 @@ namespace hc::common {
     // TODO: Return optional
 
     constexpr SelfType& push(const T& t) __noexcept {
-      (void)__init_back(t);
+      (void)__initBack(t);
       return *this;
     }
 
     constexpr SelfType& emplace(auto&&...args) __noexcept {
-      (void)__init_back(__hc_fwd(args)...);
+      (void)__initBack(__hc_fwd(args)...);
       return *this;
     }
 
     constexpr SelfType& pop() __noexcept {
-      (void)__destroy_back();
+      (void)__destroyBack();
       return *this;
     }
 
@@ -205,18 +211,18 @@ namespace hc::common {
     };
   
     template <usize...II>
-    __always_inline constexpr void __init_from_pack(IdxSeq<II...>, auto&&...args) {
+    __always_inline constexpr void __initFromPack(IdxSeq<II...>, auto&&...args) {
       static_assert(sizeof...(II) == sizeof...(args));
       const auto D = data();
       (((void)common::construct_at(D + II, __hc_fwd(args))), ...);
     }
 
     __always_inline constexpr void __init(T* I, T* E, const T& D) {
-      for(; I != E; ++I)
+      for (; I != E; ++I)
         (void)common::construct_at(I, D);
     }
 
-    __always_inline constexpr bool __init_back(auto&&...args) {
+    __always_inline constexpr bool __initBack(auto&&...args) {
       if __expect_false(size() == Capacity())
         return false;
       (void)common::construct_at(end(), __hc_fwd(args)...);
@@ -229,12 +235,17 @@ namespace hc::common {
       this->__size = 0;
     }
 
-    __always_inline constexpr bool __destroy_back() {
+    __always_inline constexpr bool __destroyBack() {
       if __expect_false(size() == 0)
         return false;
       common::destroy_at(end() - 1);
       --__size;
       return true;
+    }
+
+    [[gnu::always_inline, gnu::const]]
+    inline constexpr static usize __Cap(usize n) {
+      return (n > Capacity()) ? Capacity() : n;
     }
 
   private:

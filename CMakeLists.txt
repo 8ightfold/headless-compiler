@@ -41,6 +41,7 @@ add_executable(driver Driver.cpp
   src/Common/Memory.cpp
   src/BinaryFormat/MagicMatcher.cpp
   src/Bootstrap/Win64KernelDefs.cpp
+  src/Bootstrap/ModuleParser.cpp
 )
 target_include_directories(driver PUBLIC include)
 target_link_options(driver PUBLIC -Wl,--stack,0xF42400)

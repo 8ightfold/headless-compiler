@@ -76,20 +76,20 @@ namespace {
   }
 
   _HC_MEMCPY_FN(__memcpy_small) {
-    if(len == 1)
+    if (len == 1)
       $tail_return _HC_COPY_BLOCK(1, dst, src);
-    if(len == 2)
+    if (len == 2)
       $tail_return _HC_COPY_BLOCK(2, dst, src);
-    if(len == 3)
+    if (len == 3)
       $tail_return _HC_COPY_BLOCK(3, dst, src);
     // else:
     $tail_return _HC_COPY_BLOCK(4, dst, src);
   }
 
   __always_inline _HC_MEMCPY_FN(__memcpy_dispatch) {
-    if(len == 0)
+    if (len == 0)
       return;
-    if(len < 5)
+    if (len < 5)
       $tail_return __memcpy_small(dst, src, len);
     if (len < 8)
       $tail_return __copy_overlap_block<4>(dst, src, len);

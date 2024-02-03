@@ -141,7 +141,7 @@ namespace hc::common {
     template <typename U = T>
     [[gnu::always_inline, gnu::const]]
     static PtrRange<U> New(U* begin, usize size) {
-      if constexpr(__is_void(U)) {
+      if constexpr (__is_void(U)) {
         PtrType begin_adaptor { begin };
         return { begin_adaptor, begin_adaptor + size };
       } else {
@@ -183,7 +183,7 @@ namespace hc::common {
     }
 
     usize sizeInBytes() const {
-      if constexpr(__is_void(T)) {
+      if constexpr (__is_void(T)) {
         return this->size();
       } else {
         return (__end - __begin) * __sizeof(T);
@@ -230,12 +230,12 @@ namespace hc::common {
     }
 
     [[nodiscard]] SelfType takeFront(usize n = 1) const {
-      if(n >= size()) return *this;
+      if (n >= size()) return *this;
       $tail_return dropBack(size() - n);
     }
 
     [[nodiscard]] SelfType takeBack(usize n = 1) const {
-      if(n >= size()) return *this;
+      if (n >= size()) return *this;
       $tail_return dropFront(size() - n);
     }
 

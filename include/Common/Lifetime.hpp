@@ -31,10 +31,10 @@ namespace hc::common {
   template <typename T>
   [[gnu::nodebug]] inline constexpr void
    destroy_at(T* ptr) __noexcept {
-    if constexpr(__is_array(T)) {
-      for(auto& elem : *ptr)
+    if constexpr (__is_array(T)) {
+      for (auto& elem : *ptr)
         common::destroy_at(__addressof(elem));
-    } else if(!__is_trivially_destructible(T)) {
+    } else if constexpr (!__is_trivially_destructible(T)) {
       ptr->~T();
     }
   }
@@ -43,7 +43,7 @@ namespace hc::common {
   struct _DestroyAdaptor {
     template <typename It>
     static constexpr void __destroy(It I, It E) __noexcept {
-      for(; I != E; ++I) 
+      for (; I != E; ++I) 
         common::destroy_at(common::__addressof(*I));
     }
   };

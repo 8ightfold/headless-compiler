@@ -117,7 +117,7 @@ namespace hc::bootstrap {
     [[gnu::const]] static const SelfType* GetListSentinel() __noexcept {
       // We assume the base node never changes.
       // If it does, something has gone horribly wrong...
-      static const auto base_node = Win64ListEntryNode::GetBaseNode();
+      static thread_local const auto base_node = Win64ListEntryNode::GetBaseNode();
       return reinterpret_cast<const SelfType*>(base_node + TableOffset);
     }
 
@@ -138,7 +138,7 @@ namespace hc::bootstrap {
         curr = curr->next();
       // This is evil... buuut we never modify the buffer so it's ok ;)
       const auto ustr = Win64UnicodeString::New(const_cast<wchar_t*>(str));
-      while(!curr->isSentinel()) {
+      while (!curr->isSentinel()) {
         const auto tbl = curr->asLDRDataTableEntry();
         const Win64UnicodeString& dll_ustr = tbl->base_dll_name;
         if(dll_ustr.isEqual(ustr)) return tbl;
@@ -151,11 +151,11 @@ namespace hc::bootstrap {
       if __expect_false(!str) 
         return nullptr;
       // return findModule(wconvert(str)?, ignore_extension);
-      const usize len = C::__strlen(str);
+      const usize len = __builtin_strlen(str);
       auto wstr = $dynalloc(len + 1, wchar_t).zeroMemory();
-      for(usize I = 0; I < len; ++I)
+      for (usize I = 0; I < len; ++I)
         wstr[I] = static_cast<wchar_t>(str[I]);
-      return findModule(wstr, ignore_extension);
+      return findModule(wstr.data(), ignore_extension);
     }
 
     //=== Observers ===//

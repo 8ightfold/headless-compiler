@@ -31,14 +31,14 @@ HC_HAS_BUILTIN(memset_inline);
 namespace hc::common {
   template <usize N>
   void* __vmemcpy(void* __restrict dst, const void* __restrict src) {
-    if constexpr(N == 0) return nullptr;
+    if constexpr (N == 0) return nullptr;
     __builtin_memcpy_inline(dst, src, N);
     return dst;
   }
 
   template <usize N>
   void* __vmemset(void* dst, int ch) {
-    if constexpr(N == 0) return nullptr;
+    if constexpr (N == 0) return nullptr;
     __builtin_memset_inline(dst, ch, N);
     return dst;
   }
@@ -46,7 +46,7 @@ namespace hc::common {
   template <usize N, typename T>
   requires(__is_trivially_copyable(T))
   T* __memcpy(T* __restrict dst, const T* __restrict src) {
-    if constexpr(N == 0) return nullptr;
+    if constexpr (N == 0) return nullptr;
     __builtin_memcpy_inline(dst, src, __sizeof(T) * N);
     return dst;
   }
@@ -62,7 +62,7 @@ namespace hc::common {
   template <usize N, typename T>
   requires(__is_trivially_copyable(T))
   T* __memset(T* dst, int ch) {
-    if constexpr(N == 0) return nullptr;
+    if constexpr (N == 0) return nullptr;
     __builtin_memset_inline(dst, ch, __sizeof(T) * N);
     return dst;
   }
@@ -77,7 +77,7 @@ namespace hc::common {
 
   template <usize N, typename T>
   __always_inline T* __zero_memory(T* dst) {
-    if constexpr(N == 0) return nullptr;
+    if constexpr (N == 0) return nullptr;
     return memset<N>(dst, 0);
   }
 
@@ -178,7 +178,7 @@ namespace hc::common {
     requires(!__is_trivially_copyable(T))
     static T* Copy(T* __restrict dst, const T* __restrict src, usize len) {
       static_assert(!__is_void(T), "Directly use VCopy with void*!");
-      for(usize I = 0; I < len; ++I)
+      for (usize I = 0; I < len; ++I)
         dst[I] = src[I];
       return dst;
     }
@@ -193,7 +193,7 @@ namespace hc::common {
     template <typename T>
     requires(!__is_trivially_copyable(T))
     static T* Move(T* __restrict dst, T* __restrict src, usize len) {
-      for(usize I = 0; I < len; ++I)
+      for (usize I = 0; I < len; ++I)
         dst[I] = static_cast<T&&>(src[I]);
       return dst;
     }

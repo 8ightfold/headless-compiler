@@ -217,6 +217,9 @@ namespace COFF {
     eDirectoryMaxValue
   };
 
+  using DataDirectoryTable = 
+    common::PtrRange<DataDirectoryHeader>;
+
   //=== Section Data ===//
 
   enum SectionFlags : u32 {
@@ -269,6 +272,9 @@ namespace COFF {
     u16  __linenumber_count = 0;
     SectionFlags characteristics;
   };
+
+  using SectionTable = 
+    common::PtrRange<SectionHeader>;
 
   //=== Other Types ===//
 

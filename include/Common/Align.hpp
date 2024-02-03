@@ -29,11 +29,11 @@ namespace hc::common {
       n |= n >> 1;
       n |= n >> 2;
       n |= n >> 4;
-      if constexpr(BitMax > 8)
+      if constexpr (BitMax > 8)
         n |= n >> 8;
-      if constexpr(BitMax > 16)
+      if constexpr (BitMax > 16)
         n |= n >> 16;
-      if constexpr(BitMax > 32)
+      if constexpr (BitMax > 32)
         n |= n >> 32;
       return n + 1;
     }

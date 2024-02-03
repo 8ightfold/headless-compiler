@@ -112,7 +112,7 @@ namespace hc::common {
     //=== Observers ===//
 
     bool isEqual(StrRef S) const {
-      if(size() != S.size()) return false;
+      if (size() != S.size()) return false;
       return __memcmp(data(), S.data(), size()) == 0;
     }
 
@@ -138,12 +138,12 @@ namespace hc::common {
     }
 
     [[nodiscard]] StrRef takeFront(usize n = 1) const {
-      if(n >= size()) return *this;
+      if (n >= size()) return *this;
       $tail_return dropBack(size() - n);
     }
 
     [[nodiscard]] StrRef takeBack(usize n = 1) const {
-      if(n >= size()) return *this;
+      if (n >= size()) return *this;
       $tail_return dropFront(size() - n);
     }
 
@@ -163,7 +163,7 @@ namespace hc::common {
     [[nodiscard]] StrRef dropNull() const {
       if __expect_false(size() == 0) 
         return *this;
-      if(back() != '\0')
+      if (back() != '\0')
         return *this;
       const auto len = __strlen(data());
       return takeFront(len);
@@ -175,11 +175,11 @@ namespace hc::common {
     requires(__is_unsigned(Int))
     [[nodiscard]] bool consumeUnsigned(Int& i) {
       StrRef S = *this;
-      if(S.isEmpty())
+      if (S.isEmpty())
         return true;
       
       Int result = 0;
-      while(!S.isEmpty()) {
+      while (!S.isEmpty()) {
         const char C = S[0];
         if __expect_false(C < '0' || C > '9')
           break;

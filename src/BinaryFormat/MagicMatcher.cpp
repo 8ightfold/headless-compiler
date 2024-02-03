@@ -19,7 +19,7 @@
 #include <BinaryFormat/MagicMatcher.hpp>
 #include <Common/Strings.hpp>
 
-using namespace hc;
+using namespace hc::binfmt;
 namespace C  = ::hc::common;
 namespace BF = ::hc::binfmt;
 
@@ -29,35 +29,35 @@ static inline bool __starts_with(C::AddrRange data, const char(&str)[N]) {
   return C::__memcmp(data.intoRange<char>().data(), str, N - 1) == 0;
 }
 
-BF::MMagic BF::MMagic::Match(C::AddrRange binary) {
-  if(binary.size() < 2) return Detail::Unknown;
+MMagic BF::MMagic::Match(C::AddrRange binary) {
+  if (binary.size() < 2) return Detail::Unknown;
   const auto binstr = binary.intoRange<char>();
-  switch((u8)binstr[0]) {
+  switch ((u8)binstr[0]) {
    case 0x00: {
     break;
    }
    case 0x07:
-    if(__starts_with(binary, "\x07\x01"))
+    if (__starts_with(binary, "\x07\x01"))
       return Detail::COFFOptPEROM;
     break;
    case 0x0B: {
-    if(__starts_with(binary, "\x0B\x01"))
+    if (__starts_with(binary, "\x0B\x01"))
       return Detail::COFFOptPE32;
-    else if(__starts_with(binary, "\x0B\x02"))
+    else if (__starts_with(binary, "\x0B\x02"))
       return Detail::COFFOptPE64;
     break;
    }
    case 'M':
-    if(binary.size() >= 4 && __starts_with(binary, "MZ"))
+    if (binary.size() >= 4 && __starts_with(binary, "MZ"))
       return Detail::DosHeader;
     break;
    case 'P': {
-    if(__starts_with(binary, "PE\0\0"))
+    if (__starts_with(binary, "PE\0\0"))
       return Detail::COFFHeader;
     break;
    }
    case 'Z':
-    if(binstr[1] == 'M')
+    if (binstr[1] == 'M')
       return Detail::DosHeader;
     break;
    default:
