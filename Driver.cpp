@@ -25,6 +25,7 @@
 #include <Common/StaticVec.hpp>
 #include <Common/Strings.hpp>
 #include <Common/StrRef.hpp>
+#include <Common/Unwrap.hpp>
 
 #include <Bootstrap/Win64KernelDefs.hpp>
 #include <BinaryFormat/COFF.hpp>
@@ -42,9 +43,6 @@
 #include <Winnls.h>
 
 #define __assert_offset(ty, mem, offset) assert($offsetof(mem, ty) == offset)
-
-#define $unwrap(obj, ...) ({ if(!obj) return { __VA_ARGS__ }; *obj; })
-#define $extract(name, ty...) visitR<ty>([](auto* p) { return p->name; })
 
 namespace C  = hc::common;
 namespace BF = hc::binfmt;
@@ -175,7 +173,7 @@ int dump_image(B::Win64LDRDataTableEntry* dll) {
     win_header = IC.consumeAndSub<OptPEWindowsHeader<4>>(opt_size);
   }
 
-  const u32 RVA_count = win_header.$extract(RVA_and_sizes_count);
+  const u32 RVA_count = win_header.$extract_member(RVA_and_sizes_count);
   auto dir_headers = IC.consumeRange<COFF::DataDirectoryHeader>(RVA_count);
   auto section_headers = IC.consumeRange<COFF::SectionHeader>(file_header->section_count);
 
@@ -280,4 +278,14 @@ int main() {
   auto V = $vec(0, 1, 2, 3, 4, 5, 5, 6, 7);
   std::cout << V.Capacity() << std::endl;
   std::cout << V.push(8).push(9).size() << std::endl;
+
+  using hc::__i;
+  C::Tuple tup { 0, 55Ul, C::StrRef::NewRaw("Rahh"), &V };
+  static_assert(tup.IsArray() == false);
+  __hc_assert(tup[__i<2>] == "Rahh");
+  dump_data(tup);
+
+  C::Tuple arr { 0, 55, 78, 335 };
+  static_assert(arr.IsArray() == true);
+  dump_data(arr);
 }

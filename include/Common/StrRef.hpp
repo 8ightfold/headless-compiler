@@ -97,7 +97,7 @@ namespace hc::common {
       return BaseType::New(S, __strlen(S));
     }
 
-    //=== Observers ===//
+    //=== Mutators ===//
 
     Type& front() const {
       __hc_invariant(size() != 0);
@@ -107,6 +107,13 @@ namespace hc::common {
     Type& back() const {
       __hc_invariant(size() != 0);
       return BaseType::__end[size() - 1];
+    }
+
+    //=== Observers ===//
+
+    bool isEqual(StrRef S) const {
+      if(size() != S.size()) return false;
+      return __memcmp(data(), S.data(), size()) == 0;
     }
 
     //=== Chaining ===//
@@ -138,6 +145,17 @@ namespace hc::common {
     [[nodiscard]] StrRef takeBack(usize n = 1) const {
       if(n >= size()) return *this;
       $tail_return dropFront(size() - n);
+    }
+
+    //=== Comparison ===//
+
+    friend bool operator==(StrRef lhs, StrRef rhs) {
+      return lhs.isEqual(rhs);
+    }
+
+    friend bool operator==(StrRef S, const char* lit) {
+      if __expect_false(!lit) return false;
+      return S.isEqual(StrRef::NewRaw(lit));
     }
 
     //=== Parsing ===//

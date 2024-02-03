@@ -25,6 +25,7 @@
 
 #include <Common/Features.hpp>
 #include <Common/Fundamental.hpp>
+#include <Common/DynAlloc.hpp>
 #include <BinaryFormat/Consumer.hpp>
 
 // For more info:
@@ -149,9 +150,12 @@ namespace hc::bootstrap {
     Win64LDRDataTableEntry* findModule(const char* str, bool ignore_extension = false) const {
       if __expect_false(!str) 
         return nullptr;
-      // TODO: Implement
-      // return findModule(wconvert(str), ignore_extension);
-      return nullptr;
+      // return findModule(wconvert(str)?, ignore_extension);
+      const usize len = C::__strlen(str);
+      auto wstr = $dynalloc(len + 1, wchar_t).zeroMemory();
+      for(usize I = 0; I < len; ++I)
+        wstr[I] = static_cast<wchar_t>(str[I]);
+      return findModule(wstr, ignore_extension);
     }
 
     //=== Observers ===//

@@ -26,6 +26,8 @@
 #include "Fundamental.hpp"
 #include "Traits.hpp"
 
+#define $extract_member(name, ty...) visitR<ty>([](auto* p) { return p->name; })
+
 namespace hc::common {
   template <typename T, usize I>
   struct _PtrUNode {
