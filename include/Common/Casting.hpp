@@ -21,6 +21,7 @@
 #include "Features.hpp"
 #include "Fundamental.hpp"
 
+//=== Basic Casts ===//
 namespace hc {
   template <typename U = void, typename T>
   __always_inline U* ptr_cast(T* t) __noexcept {
@@ -34,5 +35,29 @@ namespace hc {
   template <typename U = void>
   __always_inline U* ptr_cast(uptr i) __noexcept {
     return reinterpret_cast<U*>(i);
+  }
+} // namespace hc
+
+//=== isa/dyn_cast ===//
+namespace hc {
+  template <typename Base, typename To>
+  concept __has__isa = 
+    requires(Base B) { B.template __isa<To>(); };
+
+  template <typename Base, typename To>
+  concept __has__dyn_cast = 
+    requires(Base B) { B.template __dyn_cast<To>(); };
+  
+  template <typename To, typename Base>
+  requires __has__isa<Base, To>
+  constexpr bool isa(Base&& B) __noexcept {
+    return static_cast<bool>(
+      __hc_fwd(B).template __isa<To>());
+  }
+
+  template <typename To, typename Base>
+  requires __has__dyn_cast<Base, To>
+  decltype(auto) dyn_cast(Base&& B) __noexcept {
+    return __hc_fwd(B).template __dyn_cast<To>();
   }
 } // namespace hc

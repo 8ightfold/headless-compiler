@@ -25,7 +25,8 @@ namespace hc::common {
   template <typename T, typename...Args>
   [[gnu::artificial, gnu::always_inline]]
   inline constexpr T* construct_at(T* t, Args&&...args) {
-    return ::new(t) T(static_cast<decltype(args)&&>(args)...);
+    return ::new(static_cast<void*>(t))
+     T(static_cast<decltype(args)&&>(args)...);
   }
 
   template <typename T>
@@ -33,10 +34,23 @@ namespace hc::common {
    destroy_at(T* ptr) __noexcept {
     if constexpr (__is_array(T)) {
       for (auto& elem : *ptr)
-        common::destroy_at(__addressof(elem));
+        common::destroy_at(common::__addressof(elem));
     } else if constexpr (!__is_trivially_destructible(T)) {
       ptr->~T();
     }
+  }
+
+  template <typename T>
+  __always_inline constexpr T*
+   construct_at_ref(T& ref, auto&&...args) __noexcept {
+    return common::construct_at(
+      common::__addressof(ref), __hc_fwd(args)...);
+  }
+
+  template <typename T>
+  __always_inline constexpr void
+   destroy_at_ref(T& ref) __noexcept {
+    common::destroy_at(common::__addressof(ref));
   }
 
   template <bool>

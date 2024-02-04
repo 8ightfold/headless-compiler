@@ -17,6 +17,7 @@
 //===----------------------------------------------------------------===//
 
 #include <Common/Align.hpp>
+#include <Common/Casting.hpp>
 #include <Common/DynAlloc.hpp>
 #include <Common/Fundamental.hpp>
 #include <Common/Location.hpp>
@@ -25,6 +26,9 @@
 #include <Common/StaticVec.hpp>
 #include <Common/Strings.hpp>
 #include <Common/StrRef.hpp>
+
+#include <Common/Option.hpp>
+#include <Common/Result.hpp>
 #include <Common/Unwrap.hpp>
 
 #include <Bootstrap/Win64KernelDefs.hpp>
@@ -140,6 +144,10 @@ void dump_data(C::PtrUnion<TT...> data) {
   });
 }
 
+void multidump(auto&&...args) {
+  ((dump_data(args)), ...);
+}
+
 template <B::__is_win64_list_entry EntryType>
 void dumpLDRModule(EntryType* entry) {
   std::cout << "\n|=============================================|\n" << std::endl;
@@ -237,31 +245,38 @@ int dump_image(B::Win64LDRDataTableEntry* dll) {
   return 1;
 }
 
-static void dump_module(const wchar_t* name) {
-  if __expect_false(!name) {
+static void dump_module(B::DualString name) {
+  using hc::dyn_cast;
+  if (name.isEmpty()) {
     std::printf("ERROR: Name cannot be NULL.\n");
     return;
   }
-  auto* mod = B::ModuleParser::GetModuleHandle(name);
-  if (!mod) {
-    std::printf("ERROR: Unable to find module `%ls`.\n", name);
+  auto O = B::ModuleParser::GetParsedModule(name);
+  if(O.isNone()) {
+    if (auto* WS = dyn_cast<const wchar_t>(name))
+      std::printf("ERROR: Unable to find module `%ls`.\n", WS);
+    if (auto* S  = dyn_cast<const char>(name))
+      std::printf("ERROR: Unable to find module `%s`.\n", S);
     return;
   }
-  dump_data(mod);
-  if (int code = dump_image(mod); code != 1)
-    std::printf("\nERROR: Dump failed with code `%i`.\n", code);
-}
+  B::COFFModule M = O.some();
+  auto& H = M.getHeader();
+  auto& T = M.getTables();
 
-static void dump_module(const char* name) {
-  if __expect_false(!name) {
-    std::printf("ERROR: Name cannot be NULL.\n");
-    return;
+  multidump(H.dos, H.file, H.opt, H.win);
+  const auto RVA_count = T.data_dirs.size();
+  std::cout << "RVA Count: " << RVA_count << "\n\n";
+  for (int I = 0; I < RVA_count; ++I) {
+    std::cout << "|===================================|\n\n";
+    std::cout << RVA_names[I] << ":\n";
+    dump_data(T.data_dirs[I]);
   }
-  const usize len = C::__strlen(name);
-  auto buf = $dynalloc(len + 1, wchar_t).zeroMemory();
-  for (usize I = 0; I < len; ++I)
-    buf[I] = static_cast<wchar_t>(name[I]);
-  dump_module(buf.data());
+  std::cout << "Section Count: " << T.sections.size() << "\n\n";
+  for (const auto& S : T.sections) {
+    std::cout << "|===================================|\n\n";
+    std::cout << C::StrRef(S.name) << ":\n";
+    dump_data(S);
+  }
 }
 
 static void dump_modules() {

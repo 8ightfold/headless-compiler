@@ -88,7 +88,14 @@
 #define __global inline constexpr
 #define __noexcept noexcept(!HC_EXCEPTIONS)
 
+template <typename T>
+[[gnu::always_inline, gnu::nodebug]]
+constexpr __remove_reference_t(T)&& __hc_move(T&& t) __noexcept {
+  return static_cast<__remove_reference_t(T)&&>(t);
+}
+
 #define __hc_fwd(expr...) static_cast<decltype(expr)&&>(expr)
+#define __hc_move(expr...) ::__hc_move(expr)
 
 #if _HC_DEBUG
 # define __hc_unreachable(msg...) ::__hc_dbg_unreachable()

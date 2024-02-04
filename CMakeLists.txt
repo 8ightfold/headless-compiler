@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 project(
   headless-compiler
-  VERSION 0.1.5
+  VERSION 0.1.6
   LANGUAGES CXX
 )
 
@@ -43,6 +43,7 @@ add_executable(driver Driver.cpp
   src/BinaryFormat/MagicMatcher.cpp
   src/Bootstrap/Win64KernelDefs.cpp
   src/Bootstrap/ModuleParser.cpp
+  src/Bootstrap/COFFModule.cpp
 )
 target_include_directories(driver PUBLIC include)
 target_link_options(driver PUBLIC -Wl,--stack,0xF42400)

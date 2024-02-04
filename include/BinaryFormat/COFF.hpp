@@ -21,6 +21,7 @@
 #include <Common/Features.hpp>
 #include <Common/Fundamental.hpp>
 #include <Common/PtrUnion.hpp>
+#include <Common/PtrRange.hpp>
 
 // For more info:
 // https://wiki.osdev.org/PE

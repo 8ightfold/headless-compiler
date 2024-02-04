@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include <Common/StaticVec.hpp>
+#include <Common/Option.hpp>
 #include <BinaryFormat/COFF.hpp>
 
 namespace hc::binfmt {
@@ -45,7 +45,7 @@ namespace hc::bootstrap {
   };
 
   struct COFFTables {
-    COFF::DataDirectoryTable data_directories;
+    COFF::DataDirectoryTable data_dirs;
     COFF::SectionTable sections;
   };
 
@@ -59,14 +59,17 @@ namespace hc::bootstrap {
     COFFModule& operator=(const COFFModule&) = default;
     COFFModule& operator=(COFFModule&&) = default;
   public:
+    const COFFHeader& getHeader() const { return __header; }
+    const COFFTables& getTables() const { return __tables; }
     common::AddrRange getImageRange() const;
-  private:
     ModuleHandle operator->() const;
   private:
     COFFHeader   __header;
     COFFTables   __tables;
     ModuleHandle __image = nullptr;
   };
+
+  using OptCOFFModule = common::Option<COFFModule>;
 
   class ModuleParser {
     ModuleParser(COFFModule& M, ImageConsumer& C) : mod(M), IC(C) { }
@@ -75,8 +78,8 @@ namespace hc::bootstrap {
     /// If a module is unloaded, it'll no longer work.
     /// This is ok for stuff like ntdll, but not for user dlls.
     static ModuleHandle GetModuleHandle(DualString name);
-    static COFFModule Parse(ModuleHandle handle); 
-    static COFFModule GetParsedModule(DualString name);
+    static OptCOFFModule Parse(ModuleHandle handle); 
+    static OptCOFFModule GetParsedModule(DualString name);
   private:
     [[nodiscard]] bool runParser();
     COFF::FileHeader* parseHeader();
