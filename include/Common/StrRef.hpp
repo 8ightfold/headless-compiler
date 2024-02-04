@@ -152,7 +152,15 @@ namespace hc::common {
 
     //=== Comparison ===//
 
-    friend bool operator==(StrRef lhs, StrRef rhs) {
+    bool beginsWith(auto&& R) {
+      const auto S = StrRef(R);
+      if (S.size() > this->size())
+        return false;
+      return takeFront(S.size()).isEqual(S);
+    }
+
+    __always_inline friend bool 
+     operator==(StrRef lhs, StrRef rhs) {
       return lhs.isEqual(rhs);
     }
 

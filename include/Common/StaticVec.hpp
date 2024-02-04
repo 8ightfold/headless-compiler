@@ -26,6 +26,7 @@
 #include "Lifetime.hpp"
 #include "PtrRange.hpp"
 #include "Traits.hpp"
+#include "Option.hpp"
 
 /// Creates a `StaticVec` deduced from the passed arguments.
 /// Has a capacity rounded to the next power of 2 (inclusively).
@@ -126,21 +127,27 @@ namespace hc::common {
       return this->data()[n];
     }
 
-    // TODO: Return optional
-
     constexpr SelfType& push(const T& t) __noexcept {
-      (void)__initBack(t);
+      (void) __initBack(t);
       return *this;
     }
 
     constexpr SelfType& emplace(auto&&...args) __noexcept {
-      (void)__initBack(__hc_fwd(args)...);
+      (void) __initBack(__hc_fwd(args)...);
       return *this;
     }
 
     constexpr SelfType& pop() __noexcept {
-      (void)__destroyBack();
+      (void) __destroyBack();
       return *this;
+    }
+
+    constexpr Option<T> popBack() __noexcept {
+      if (this->isEmpty())
+        return $None();
+      Option<T> O = $Some(back()); 
+      (void) __destroyBack();
+      return O;
     }
 
     constexpr T& front() const __noexcept {
@@ -195,6 +202,16 @@ namespace hc::common {
     [[nodiscard]]
     constexpr bool isEmpty() const __noexcept {
       return this->__size == 0;
+    }
+
+    //=== Internals ===//
+
+    constexpr usize& __get_sizeref()& __noexcept {
+      return this->__size;
+    }
+
+    constexpr usize __get_capacity()& __noexcept {
+      return this->capacity;
     }
   
   private:
@@ -296,7 +313,7 @@ namespace hc::common {
   __visibility(hidden) inline constexpr auto
    __make_staticvec(T&& t, TT&&...tt) __noexcept {
     constexpr auto vecSize = Align::Up(sizeof...(TT) + 1);
-    using  VecType = StaticVec<__remove_reference_t(T), vecSize>;
+    using  VecType = StaticVec<__decay(T), vecSize>;
     return VecType { _StaticVecVars{}, __hc_fwd(t), __hc_fwd(tt)... };
   }
 } // namespace hc::common

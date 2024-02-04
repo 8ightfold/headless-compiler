@@ -42,13 +42,7 @@
 #include <cstdio>
 #include <iostream>
 
-#include <Processthreadsapi.h>
-#include <winnt.h>
-#include <winternl.h>
-#include <Winnls.h>
-
 #undef GetModuleHandle
-#define __assert_offset(ty, mem, offset) assert($offsetof(mem, ty) == offset)
 
 namespace C  = hc::common;
 namespace BF = hc::binfmt;
@@ -163,90 +157,9 @@ void dumpLDRModule(EntryType* entry) {
   std::cout << std::endl;
 }
 
-int dump_image(B::Win64LDRDataTableEntry* dll) {
-  namespace COFF = BF::COFF;
-  using COFF::OptPEWindowsHeader;
-
-  auto IC = BF::Consumer::New(dll->getImageRange());
-  auto dos_header = IC.intoIfMatches<COFF::DosHeader>(BF::MMagic::DosHeader);
-  if (dos_header) IC.dropRaw(dos_header->coff_header_offset);
-  auto file_header = IC.consumeIfMatches<COFF::FileHeader>(BF::MMagic::COFFHeader);
-  u16 opt_size = $unwrap(file_header).optional_header_size;
-
-  COFF::OptPEHeader opt_header;
-  COFF::PEWindowsHeader win_header;
-  if (IC.matches(BF::MMagic::COFFOptPE64)) {
-    opt_header = IC.consumeAndSub<COFF::OptPE64Header>(opt_size);
-    win_header = IC.consumeAndSub<OptPEWindowsHeader<8>>(opt_size);
-  } else if (IC.matches(BF::MMagic::COFFOptPE32)) {
-    opt_header = IC.consumeAndSub<COFF::OptPE32Header>(opt_size);
-    win_header = IC.consumeAndSub<OptPEWindowsHeader<4>>(opt_size);
-  }
-
-  const u32 RVA_count = win_header.$extract_member(RVA_and_sizes_count);
-  auto dir_headers = IC.consumeRange<COFF::DataDirectoryHeader>(RVA_count);
-  auto section_headers = IC.consumeRange<COFF::SectionHeader>(file_header->section_count);
-
-  // Object only
-  C::PtrRange<COFF::Symbol> symbols;
-  C::PtrRange<char> string_table;
-  if (file_header->sym_tbl_addr && (volatile bool)(false)) {
-    auto sym_offset_span = dll->getRangeFromRVA(file_header->sym_tbl_addr);
-    auto sIC = BF::Consumer::New(sym_offset_span);
-    symbols = sIC.consumeRange<COFF::Symbol>(file_header->symbol_count);
-    const auto string_table_len = *sIC.consume<u32>();
-    string_table = sIC.consumeRange<char>(string_table_len);
-  }
-
-  auto get_sym = [&] (C::StrRef S) {
-    S = S.dropNull();
-    if (S[0] == '\\' && !string_table.isEmpty()) {
-      u32 offset = 0;
-      if (S.dropFront().consumeUnsigned(offset))
-        return S;
-      S = C::StrRef::NewRaw(&string_table[offset]);
-    }
-    return S;
-  };
-
-  dump_data(dos_header);
-  dump_data(file_header);
-  dump_data(opt_header);
-  dump_data(win_header);
-
-  std::cout << "RVA Count: " << RVA_count << "\n\n";
-  for (int I = 0; I < RVA_count; ++I) {
-    std::cout << "|===================================|\n\n";
-    std::cout << RVA_names[I] << ":\n";
-    dump_data(dir_headers[I]);
-  }
-  std::cout << "Section Count: " << section_headers.size() << "\n\n";
-  for (const auto& S : section_headers) {
-    std::cout << "|===================================|\n\n";
-    auto str = C::StrRef::New(S.name);
-    std::cout << get_sym(str) << ":\n";
-    dump_data(S);
-  }
-  if (u32 export_table_RVA = dir_headers[COFF::eDirectoryExportTable].RVA) {
-    std::cout << "|===================================|\n\n";
-    auto* EDT = dll->getRVA<COFF::ExportDirectoryTable>(export_table_RVA);
-    dump_data(EDT);
-    auto NPT = dll->getRangeFromRVA(EDT->name_pointer_table_RVA)
-      .intoRange<COFF::NamePointerType>()
-      .takeFront(EDT->name_pointer_table_count);
-    std::cout << "Exported names:\n";
-    for (auto off : NPT) {
-      auto S = C::StrRef::NewRaw(dll->getRVA<char>(off));
-      std::cout << S << '\n';
-    }
-    std::cout << std::endl;
-  }
-
-  return 1;
-}
-
 static void dump_module(B::DualString name) {
   using hc::dyn_cast;
+  namespace COFF = B::COFF;
   if (name.isEmpty()) {
     std::printf("ERROR: Name cannot be NULL.\n");
     return;
@@ -277,19 +190,113 @@ static void dump_module(B::DualString name) {
     std::cout << C::StrRef(S.name) << ":\n";
     dump_data(S);
   }
+  if (u32 extbl_RVA = T.data_dirs[COFF::eDirectoryExportTable].RVA) {
+    std::cout << "|===================================|\n\n";
+    auto* EDT = M->getRVA<COFF::ExportDirectoryTable>(extbl_RVA);
+    dump_data(EDT);
+    auto NPT = M->getRangeFromRVA(EDT->name_pointer_table_RVA)
+      .intoRange<COFF::NamePointerType>()
+      .takeFront(EDT->name_pointer_table_count);
+    std::cout << "Exported names:\n";
+    for (auto off : NPT) {
+      auto S = C::StrRef::NewRaw(M->getRVA<char>(off));
+      std::cout << S << '\n';
+    }
+    std::cout << std::endl;
+  }
 }
 
-static void dump_modules() {
+static void dump_exports(B::DualString name) {
+  using hc::dyn_cast;
+  namespace COFF = B::COFF;
+  if (name.isEmpty()) {
+    std::printf("ERROR: Name cannot be NULL.\n");
+    return;
+  }
+  auto O = B::ModuleParser::GetParsedModule(name);
+  if(O.isNone()) return;
+  B::COFFModule& M = O.some();
+  auto& T = M.getTables();
+  if (u32 extbl_RVA = T.data_dirs[COFF::eDirectoryExportTable].RVA) {
+    std::cout << "|===================================|\n\n";
+    auto* EDT = M->getRVA<COFF::ExportDirectoryTable>(extbl_RVA);
+    auto NPT = M->getRangeFromRVA(EDT->name_pointer_table_RVA)
+      .intoRange<COFF::NamePointerType>()
+      .takeFront(EDT->name_pointer_table_count);
+    if (auto* WS = dyn_cast<const wchar_t>(name))
+      std::printf("Exported names for `%ls`:\n", WS);
+    if (auto* S  = dyn_cast<const char>(name))
+      std::printf("Exported names for `%s`:\n", S);
+    for (auto off : NPT) {
+      auto S = C::StrRef::NewRaw(M->getRVA<char>(off));
+      // if (S.beginsWith("Ldr") || S.beginsWith("Nt") || S.beginsWith("Zw"))
+      std::cout << S << '\n';
+    }
+    std::cout << std::endl;
+  }
+}
+
+static void list_modules() {
   B::Win64PEB* ppeb = B::Win64TEB::LoadTEBFromGS()->getPEB();
   const auto modules = ppeb->getLDRModulesInMemOrder();
   for (auto* P = modules->prev(); !P->isSentinel(); P = P->prev())
     dump_data(P->asLDRDataTableEntry());
 }
 
+
+
+template <typename T>
+struct SizedHandle {
+  template <typename Obj>
+  SizedHandle(Obj& obj) : __data(obj.data()),
+   __cap(obj.data() + obj.__get_capacity()),
+   __size(obj.__get_sizeref()) {
+  }
+
+  bool checkedEmplace(auto&&...args) {
+    if __expect_false(end() == __cap)
+      return false;
+    (void) C::construct_at(end(), __hc_fwd(args)...);
+    ++__size;
+    return true;
+  }
+
+  bool checkedPush(const T& elem) {
+    if __expect_false(end() == __cap)
+      return false;
+    (void) C::construct_at(end(), elem);
+    ++__size;
+    return true;
+  }
+
+  T* end() __noexcept {
+    return __data + __size;
+  }
+
+private:
+  T* __data = nullptr;
+  T* __cap  = nullptr;
+  usize& __size;
+};
+
+template <typename Obj>
+SizedHandle(Obj&) -> SizedHandle<typename Obj::Type>;
+
+template <typename T, usize N>
+void print_vec(C::StaticVec<T, N>& V) {
+  for(auto&& E : V)
+    std::cout << E << ' ';
+  std::cout << std::endl;
+}
+
 int main() {
-  // dump_module("driver.exe");
-  // dump_module("ntdll.dll");
-  dump_module("KERNEL32.DLL");
-  // dump_module("msvcrt.dll");
-  // dump_modules();
+  dump_exports("ntdll.dll");
+  // dump_exports(L"KERNEL32.DLL");
+  // dump_exports("msvcrt.dll");
+  auto V = $vec("a", "b", "c", "d", "e");
+  auto S = $vec("g", "h", "f");
+  while(SizedHandle(V).checkedPush(
+   S.popBack().valueOr("."))) {
+    print_vec(V);
+  }
 }

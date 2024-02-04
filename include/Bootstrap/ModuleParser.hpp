@@ -59,8 +59,8 @@ namespace hc::bootstrap {
     COFFModule& operator=(const COFFModule&) = default;
     COFFModule& operator=(COFFModule&&) = default;
   public:
-    const COFFHeader& getHeader() const { return __header; }
-    const COFFTables& getTables() const { return __tables; }
+    const COFFHeader& getHeader() const& { return __header; }
+    const COFFTables& getTables() const& { return __tables; }
     common::AddrRange getImageRange() const;
     ModuleHandle operator->() const;
   private:
@@ -77,7 +77,7 @@ namespace hc::bootstrap {
     /// Don't assume these will always be valid.
     /// If a module is unloaded, it'll no longer work.
     /// This is ok for stuff like ntdll, but not for user dlls.
-    static ModuleHandle GetModuleHandle(DualString name);
+    static ModuleHandle  GetModuleHandle(DualString name);
     static OptCOFFModule Parse(ModuleHandle handle); 
     static OptCOFFModule GetParsedModule(DualString name);
   private:

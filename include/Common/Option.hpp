@@ -159,6 +159,24 @@ namespace hc::common {
       return BaseType::__is_value;
     }
 
+    //=== Monads ===//
+
+    template <typename U>
+    constexpr T valueOr(U&& u) const& {
+      if(this->isSome()) 
+        return some();
+      else
+        return T{__hc_fwd(u)};
+    }
+
+    template <typename U>
+    constexpr T valueOr(U&& u)&& {
+      if(this->isSome()) 
+        return __hc_move(some());
+      else
+        return T{__hc_fwd(u)};
+    }
+
     //=== Internals ===//
 
     template <typename U>

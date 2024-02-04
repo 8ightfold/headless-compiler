@@ -26,6 +26,19 @@ using hc::binfmt::MMagic;
 namespace C = hc::common;
 namespace B = hc::bootstrap;
 
+/*
+auto get_sym = [&] (C::StrRef S) {
+  S = S.dropNull();
+  if (S[0] == '\\' && !string_table.isEmpty()) {
+    u32 offset = 0;
+    if (S.dropFront().consumeUnsigned(offset))
+      return S;
+    S = C::StrRef::NewRaw(&string_table[offset]);
+  }
+  return S;
+};
+*/
+
 static inline const Win64PEB* __get_PEB() {
   static thread_local const Win64PEB* ppeb =
     Win64TEB::LoadTEBFromGS()->getPEB();
