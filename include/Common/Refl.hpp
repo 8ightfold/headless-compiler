@@ -25,15 +25,16 @@
 #include "Features.hpp"
 #include "Intrusive.hpp"
 
-#define $reflexpr(type...) ::hc::Refl<type>{}
+#define $reflexpr(type...) ::hc::Refl<__remove_cvref(type)>{}
 
 namespace hc {
-  template <typename T, T Tag = T()>
-  class Refl {
+  template <typename T, T Tag>
+  struct _ReflFields {
+    using SelfType = _ReflFields<T, Tag>;
     static constexpr auto& __fieldArray = __refl_fieldarray(Tag);
     static constexpr usize __fieldCount = common::IADL::Size(__fieldArray) - 1;
   public:
-    static constexpr auto FieldName(const T& V) {
+    static constexpr auto Name(const T& V) {
       auto field_name = __refl_fieldname(V);
       if __expect_false(!field_name) 
         return "<invalid>";
@@ -44,18 +45,33 @@ namespace hc {
       }
     }
 
-    static constexpr auto FieldNameAt(auto I) {
+    static constexpr auto NameAt(auto I) {
       __hc_invariant(I < __fieldCount);
-      return FieldName(__fieldArray[I]);
+      return SelfType::Name(__fieldArray[I]);
     }
 
-    static constexpr auto FieldCount() {
+    static constexpr auto Count() {
       return __fieldCount;
     }
 
     static constexpr auto operator[](auto I) {
       __hc_invariant(I < __fieldCount);
       return __fieldArray[I];
+    }
+  };
+
+  template <typename T, T Tag = T()>
+  struct Refl {
+    using SelfType  = Refl<T, Tag>;
+    using FieldType = _ReflFields<T, Tag>;
+    static constexpr FieldType __fields { };
+  public:
+    static constexpr auto& Name() {
+      return "<FIXME>";
+    }
+
+    static constexpr const FieldType& Fields() {
+      return SelfType::__fields;
     }
   };
 } // namespace hc

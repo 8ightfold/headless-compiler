@@ -190,7 +190,7 @@ static void dump_module(B::DualString name) {
   for (int I = 0; I < RVA_count; ++I) {
     std::cout << "|===================================|\n\n";
     static constexpr auto R = $reflexpr(F::COFF::DataDirectories);
-    std::cout << R.FieldNameAt(I) << ":\n";
+    std::cout << R.Fields().NameAt(I) << ":\n";
     dump_data(T.data_dirs[I]);
   }
   std::cout << "Section Count: " << T.sections.size() << "\n\n";
@@ -252,8 +252,29 @@ static void list_modules() {
     dump_data(P->asLDRDataTableEntry());
 }
 
+
+$Enum((WindowsSubsystemType, u16),
+  (eSubsystemUnknown,    0),
+  (eSubsystemNative,     1),
+  (eSubsystemWindowsGUI, 2),
+  (eSubsystemWindowsCUI, 3),
+  (eSubsystemPosixCUI,   7),
+  // ...
+  (eSubsystemEFIApp,     10),
+  (eSubsystemEFIBoot,    11),
+  (eSubsystemEFIRuntime, 12),
+  (eSubsystemEFIROM,     13)
+  // ...
+);
+
+$MarkPrefix(WindowsSubsystemType, "eSubsystem")
+
 int main() {
-  // dump_exports("ntdll.dll");
-  // dump_exports(L"KERNEL32.DLL");
-  // dump_exports("msvcrt.dll");
+  constexpr auto R = $reflexpr(WindowsSubsystemType);
+  std::cout << R.Name() << ":\n";
+  constexpr auto& F = R.Fields();
+  std::cout << "Field Count: " << F.Count() << '\n';
+  std::cout << F.Name(eSubsystemEFIApp) << '\n';
+  std::cout << F.Name(F[2]) << '\n';
+  std::cout << F.NameAt(3) << '\n';
 }
