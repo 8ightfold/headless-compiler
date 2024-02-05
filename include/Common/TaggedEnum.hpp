@@ -28,15 +28,25 @@
 __cldiag(push)
 __cldiag(ignored "-Wvariadic-macros")
 
+#define $MarkPrefix(type, prefix) \
+inline constexpr usize __refl_markprefix(type) { \
+  return sizeof(prefix) - 1; \
+}
+
+#define $MarkName(type) \
+inline constexpr auto& __refl_markname(type) { \
+  return __hc_stringify(type); \
+}
+
 #define __Enum_def_(name, type...) name __VA_OPT__(:) type
 #define __Enum_name_(name, ...) name
 
 #define __Enum_def(ty_n) __Enum_def_ ty_n
 #define __Enum_name(ty_n) __Enum_name_ ty_n
 
-#define __Enum_field_(name, val...) name __VA_OPT__(=) val,
-#define __Enum_field(n_v) __Enum_field_ n_v
-#define __Enum_fields(n_vs...) $PP_map(__Enum_field, n_vs)
+#define __Enum_value_(name, val...) name __VA_OPT__(=) val,
+#define __Enum_value(n_v) __Enum_value_ n_v
+#define __Enum_values(n_vs...) $PP_map(__Enum_value, n_vs)
 
 #define __Enum_case_(name, ...) case Ty::name: return #name;
 #define __Enum_case(n_v) __Enum_case_ n_v
@@ -65,21 +75,19 @@ inline constexpr auto& __refl_fieldarray(name) { \
   return A; \
 }
 
+#define $EnumFields(name, fields...) \
+ $EnumFieldNames(name, fields) \
+ $EnumFieldArray(name, fields) \
+ $MarkName(name)
+
 #define $Enum(name_type, fields...) \
-enum __Enum_def(name_type) { __Enum_fields(fields) }; \
-$EnumFieldNames(__Enum_name(name_type), fields) \
-$EnumFieldArray(__Enum_name(name_type), fields) \
+enum __Enum_def(name_type) { __Enum_values(fields) }; \
+$EnumFields(__Enum_name(name_type), fields) \
 enum __Enum_def(name_type)
 
 #define $StrongEnum(name_type, fields...) \
-enum class __Enum_def(name_type) { __Enum_fields(fields) }; \
-$EnumFieldNames(__Enum_name(name_type), fields) \
-$EnumFieldArray(__Enum_name(name_type), fields) \
+enum class __Enum_def(name_type) { __Enum_values(fields) }; \
+$EnumFields(__Enum_name(name_type), fields) \
 enum class __Enum_def(name_type)
-
-#define $MarkPrefix(type, prefix) \
-inline constexpr usize __refl_markprefix(type) { \
-  return sizeof(prefix) - 1; \
-}
 
 __cldiag(pop)

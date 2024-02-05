@@ -67,7 +67,7 @@ namespace hc {
     static constexpr FieldType __fields { };
   public:
     static constexpr auto& Name() {
-      return "<FIXME>";
+      return __refl_markname(Tag);
     }
 
     static constexpr const FieldType& Fields() {
