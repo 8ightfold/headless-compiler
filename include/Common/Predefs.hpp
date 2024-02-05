@@ -50,11 +50,24 @@
 
 //=== General Macros ===//
 
-#define $cat(x, y) __hc_cat(x, y)
-#define __hc_cat(x, y) x ## y
+#define __hc_4cat(w, x, y, z) w ## x ## y ## z
+#define $4cat(x, y, z) __hc_4cat(w, x, y, z)
 
-#define $stringify(...) __hc_stringify(__VA_ARGS__)
+#define __hc_3cat(x, y, z) x ## y ## z
+#define $3cat(x, y, z) __hc_3cat(x, y, z)
+
+#define __hc_2cat(x, y) x ## y
+#define $cat(x, y) __hc_2cat(x, y)
+#define $2cat(x, y) __hc_2cat(x, y)
+
 #define __hc_stringify(...) #__VA_ARGS__
+#define $stringify(...) __hc_stringify(__VA_ARGS__)
+
+#define $unique(ty...) ::__hc_tyident_<ty> $2cat(__unique_, __COUNTER__)
+#define $var(name) $3cat(__v_, name, __COUNTER__)
+
+template <typename T>
+using __hc_tyident_ = T;
 
 //=== Mode Macros ===//
 

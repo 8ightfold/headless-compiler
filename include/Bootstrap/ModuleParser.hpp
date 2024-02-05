@@ -18,23 +18,42 @@
 //
 //  This file defines a utility to parse modules that are loaded
 //  into the current process. Windows only.
+//  COFFModule:   COFFModule.cpp
+//  ModuleParser: ModuleParser.cpp
 //
 //===----------------------------------------------------------------===//
 
 #pragma once
 
 #include <Common/Option.hpp>
-#include <BinaryFormat/COFF.hpp>
+#include <Common/PtrRange.hpp>
+#include <Common/PtrUnion.hpp>
 
 namespace hc::binfmt {
   struct Consumer;
+  namespace COFF {
+    struct DosHeader;
+    struct FileHeader;
+    struct OptPE32Header;
+    struct OptPE64Header;
+    struct DataDirectoryHeader; 
+    struct SectionHeader;
+
+    template <usize> 
+    struct OptPEWindowsHeader;
+
+    using OptPEHeader = $PUnion(OptPE64Header, OptPE32Header);
+    using PEWindowsHeader = $PUnion(OptPEWindowsHeader<8>, OptPEWindowsHeader<4>);
+    using DataDirectoryTable = $PRange(DataDirectoryHeader);
+    using SectionTable = $PRange(SectionHeader);
+  } // namespace COFF
 } // namespace hc::binfmt
 
 namespace hc::bootstrap {
   struct Win64LDRDataTableEntry;
   using ModuleHandle = Win64LDRDataTableEntry*;
-  using DualString = common::PtrUnion<const char, const wchar_t>;
   using ImageConsumer = binfmt::Consumer;
+  using common::DualString;
   namespace COFF = hc::binfmt::COFF;
 
   struct COFFHeader {

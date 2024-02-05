@@ -19,6 +19,7 @@
 #include <Bootstrap/ModuleParser.hpp>
 #include <Bootstrap/Win64KernelDefs.hpp>
 #include <BinaryFormat/Consumer.hpp>
+#include <BinaryFormat/COFF.hpp>
 #include <Common/Unwrap.hpp>
 
 using namespace hc::bootstrap;

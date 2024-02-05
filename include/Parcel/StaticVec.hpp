@@ -1,4 +1,4 @@
-//===- Common/StaticVec.hpp -----------------------------------------===//
+//===- Parcel/StaticVec.hpp -----------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -22,17 +22,18 @@
 
 #pragma once
 
-#include "Align.hpp"
-#include "Lifetime.hpp"
-#include "PtrRange.hpp"
-#include "Traits.hpp"
-#include "Option.hpp"
+#include <Common/Align.hpp>
+#include <Common/Lifetime.hpp>
+#include <Common/PtrRange.hpp>
+#include <Common/Traits.hpp>
+#include <Common/Option.hpp>
+#include "Common.hpp"
 
 /// Creates a `StaticVec` deduced from the passed arguments.
 /// Has a capacity rounded to the next power of 2 (inclusively).
-#define $vec(args...) ::hc::common::__make_staticvec(args)
+#define $Vec(args...) ::hc::parcel::__make_staticvec(args)
 
-namespace hc::common {
+namespace hc::parcel {
   struct _StaticVecVars { };
 
   template <typename T, usize BufferSize>
@@ -61,28 +62,36 @@ namespace hc::common {
     using _BaseType = _StaticVecBase<T, BufferSize>;
     using SelfType  = StaticVec;
     using Type = T;
-    static constexpr usize capacity = BufferSize;
+    static constexpr usize __capacity = BufferSize;
   public:
     StaticVec() = default;
 
     template <typename...Args>
-    requires(sizeof...(Args) <= capacity)
+    requires(sizeof...(Args) <= __capacity)
     constexpr StaticVec(_StaticVecVars, Args&&...args) 
      : __base(), __size(sizeof...(Args)) {
-      using Seq = make_idxseq<sizeof...(Args)>;
+      using Seq = CC::make_idxseq<sizeof...(Args)>;
       this->__initFromPack(Seq{}, __hc_fwd(args)...);
     }
 
-    constexpr StaticVec(usize n, const T& D) 
+    template <typename...Args>
+    requires((sizeof...(Args) + 1) <= __capacity)
+    constexpr StaticVec(const T& t, Args&&...args) 
+     : __base(), __size(sizeof...(Args) + 1) {
+      using Seq = CC::make_idxseq<sizeof...(Args) + 1>;
+      this->__initFromPack(Seq{}, t, __hc_fwd(args)...);
+    }
+
+    constexpr StaticVec(usize n, const T& D = T()) 
      : __base(), __size(n) {
-      __hc_assert(n <= capacity);
+      __hc_assert(n <= __capacity);
       this->__init(begin(), end(), D);
     }
 
-    StaticVec(PtrRange<T> R) : StaticVec() {
+    StaticVec(CC::PtrRange<T> R) : StaticVec() {
       if __expect_false(R.isEmpty()) return;
       const auto n = __Cap(R.size());
-      Mem::Copy(begin(), R.begin(), n);
+      CC::Mem::Copy(begin(), R.begin(), n);
       this->__size = n;
     }
 
@@ -90,10 +99,10 @@ namespace hc::common {
     StaticVec(const StaticVec<T, Sz>& V) : StaticVec() {
       if constexpr (Sz > Capacity()) {
         const auto n = __Cap(V.size());
-        Mem::Copy(begin(), V.begin(), n);
+        CC::Mem::Copy(begin(), V.begin(), n);
         this->__size = n;
       } else {
-        Mem::Copy(begin(), V.begin(), V.__size);
+        CC::Mem::Copy(begin(), V.begin(), V.__size);
         this->__size = V.__size;
       }
     }
@@ -103,10 +112,10 @@ namespace hc::common {
       if constexpr (Sz > Capacity()) {
         const auto n = (vec.__size > Capacity()) 
           ? Capacity() : vec.__size;
-        Mem::Move(begin(), vec.begin(), n);
+        CC::Mem::Move(begin(), vec.begin(), n);
         this->__size = n;
       } else {
-        Mem::Move(begin(), vec.begin(), vec.__size);
+        CC::Mem::Move(begin(), vec.begin(), vec.__size);
         this->__size = vec.__size;
       }
     }
@@ -142,10 +151,10 @@ namespace hc::common {
       return *this;
     }
 
-    constexpr Option<T> popBack() __noexcept {
+    constexpr CC::Option<T> popBack() __noexcept {
       if (this->isEmpty())
         return $None();
-      Option<T> O = $Some(back()); 
+      CC::Option<T> O = $Some(back()); 
       (void) __destroyBack();
       return O;
     }
@@ -168,7 +177,7 @@ namespace hc::common {
     //=== Observers ===//
 
     static constexpr usize Capacity() __noexcept {
-      return SelfType::capacity;
+      return SelfType::__capacity;
     }
 
     [[nodiscard, gnu::const]]
@@ -185,7 +194,7 @@ namespace hc::common {
     }
 
     [[nodiscard]]
-    PtrRange<T> toPtrRange() const __noexcept {
+    CC::PtrRange<T> toPtrRange() const __noexcept {
       return { .__begin = begin(), .__end = end() };
     }
 
@@ -206,12 +215,8 @@ namespace hc::common {
 
     //=== Internals ===//
 
-    constexpr usize& __get_sizeref()& __noexcept {
-      return this->__size;
-    }
-
-    constexpr usize __get_capacity()& __noexcept {
-      return this->capacity;
+    friend constexpr usize& __get_size_ref(StaticVec& V) {
+      return V.__size;
     }
   
   private:
@@ -220,7 +225,7 @@ namespace hc::common {
       
       constexpr void operator()() __noexcept {
         if __expect_true(__vec.__size > 0)
-          common::__destroy(__vec.begin(), __vec.end());
+          CC::__destroy(__vec.begin(), __vec.end());
       }
 
     private:
@@ -228,21 +233,22 @@ namespace hc::common {
     };
   
     template <usize...II>
-    __always_inline constexpr void __initFromPack(IdxSeq<II...>, auto&&...args) {
+    __always_inline constexpr void __initFromPack(
+     CC::IdxSeq<II...>, auto&&...args) {
       static_assert(sizeof...(II) == sizeof...(args));
       const auto D = data();
-      (((void)common::construct_at(D + II, __hc_fwd(args))), ...);
+      (((void) CC::construct_at(D + II, __hc_fwd(args))), ...);
     }
 
     __always_inline constexpr void __init(T* I, T* E, const T& D) {
       for (; I != E; ++I)
-        (void)common::construct_at(I, D);
+        (void) CC::construct_at(I, D);
     }
 
     __always_inline constexpr bool __initBack(auto&&...args) {
       if __expect_false(size() == Capacity())
         return false;
-      (void)common::construct_at(end(), __hc_fwd(args)...);
+      (void) CC::construct_at(end(), __hc_fwd(args)...);
       ++__size;
       return true;
     }
@@ -255,7 +261,7 @@ namespace hc::common {
     __always_inline constexpr bool __destroyBack() {
       if __expect_false(size() == 0)
         return false;
-      common::destroy_at(end() - 1);
+      CC::destroy_at(end() - 1);
       --__size;
       return true;
     }
@@ -275,7 +281,7 @@ namespace hc::common {
     static_assert(!__is_array(T));
     using SelfType  = StaticVec;
     using Type = T;
-    static constexpr usize capacity = 0;
+    static constexpr usize __capacity = 0;
   public:
     [[nodiscard, gnu::const]]
     static constexpr usize Capacity() __noexcept { return 0; }
@@ -290,7 +296,7 @@ namespace hc::common {
     constexpr usize sizeInBytes() const __noexcept { return 0; }
 
     [[nodiscard, gnu::const]]
-    PtrRange<T> toPtrRange() const __noexcept { return {}; }
+    CC::PtrRange<T> toPtrRange() const __noexcept { return {}; }
 
     [[nodiscard, gnu::const]]
     constexpr T* begin() const __noexcept { return nullptr; }
@@ -308,12 +314,21 @@ namespace hc::common {
   template <typename T, usize N>
   StaticVec(StaticVec<T, N>&&) -> StaticVec<T, N>;
 
+  //=== Deduction ===//
+
+  template <typename T, typename...TT>
+  using __staticvec_t = StaticVec<__decay(T), 
+    common::Align::Up(sizeof...(TT) + 1)>;
+  
+  template <typename T, typename...TT>
+  StaticVec(T&&, TT&&...) -> StaticVec<__decay(T), 
+    common::Align::Up(sizeof...(TT) + 1)>;
+
   template <typename T, typename...TT>
   [[nodiscard, gnu::always_inline, gnu::nodebug]]
   __visibility(hidden) inline constexpr auto
    __make_staticvec(T&& t, TT&&...tt) __noexcept {
-    constexpr auto vecSize = Align::Up(sizeof...(TT) + 1);
-    using  VecType = StaticVec<__decay(T), vecSize>;
+    using  VecType = __staticvec_t<T, TT...>;
     return VecType { _StaticVecVars{}, __hc_fwd(t), __hc_fwd(tt)... };
   }
-} // namespace hc::common
+} // namespace hc::parcel

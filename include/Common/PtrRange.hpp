@@ -21,6 +21,8 @@
 #include "Features.hpp"
 #include "Fundamental.hpp"
 
+#define $PRange(ty...) ::hc::common::PtrRange<ty>
+
 namespace hc::common {
   struct [[gsl::Pointer]] _VoidPtrProxy {
     using Type = _VoidPtrProxy;

@@ -22,6 +22,7 @@
 #include <Common/Fundamental.hpp>
 #include <Common/PtrUnion.hpp>
 #include <Common/PtrRange.hpp>
+#include <Common/TaggedEnum.hpp>
 
 // For more info:
 // https://wiki.osdev.org/PE
@@ -31,20 +32,22 @@
 
 namespace hc::binfmt {
 namespace COFF {
-  enum COFFInfo : u32 {
+  $Enum((COFFInfo, u32),
     // Dos stuff
-    eDosMagic           = 0x5A4D,
-    eDosPageSize        = 512,
-    eDosParagraphSize   = 16,
+    (eDosMagic,           0x5A4D),
+    (eDosPageSize,        512),
+    (eDosParagraphSize,   16),
     // COFF
-    eCOFFMagic          = 0x00004550,
-    eCOFFOptMagicPE32   = 0x010B,
-    eCOFFOptMagicPE64   = 0x020B,
-    eCOFFOptMagicROM    = 0x0107,
+    (eCOFFMagic,          0x00004550),
+    (eCOFFOptMagicPE32,   0x010B),
+    (eCOFFOptMagicPE64,   0x020B),
+    (eCOFFOptMagicROM,    0x0107),
     // General info
-    eCOFFMaxSections    = 96,
-    eCOFFNameSize       = 8,
-  };
+    (eCOFFMaxSections,    96),
+    (eCOFFNameSize,       8)
+  );
+
+  $MarkPrefix(COFFInfo, "e")
 
   //=== DOS ===//
 
@@ -71,28 +74,31 @@ namespace COFF {
 
   //=== COFF Header ===//
 
-  enum MachineType : u16 {
-    eMachineAny   = 0x0000, // ugh
-    eMachineAMD64 = 0x8664, // x64
-    eMachineEBC   = 0x0EBC, // EFI bytecode
-    eMachineI386  = 0x014C, // Intel 386+
-    eMachineIA64  = 0x0200, // Intel Itanium
+  $Enum((MachineType, u16),
+    (eMachineAny,    0x0000), // ugh
+    (eMachineAMD64,  0x8664), // x64
+    (eMachineEBC,    0x0EBC), // EFI bytecode
+    (eMachineI386,   0x014C), // Intel 386+
+    (eMachineIA64,   0x0200)  // Intel Itanium
     // ...
-  };
+  );
 
-  enum Characteristics : u16 {
-    eStrippedRelocations  = 0x0001,
-    eExecutableImage      = 0x0002,
-    eLargeAddressAware    = 0x0020,
+  $Enum((Characteristics, u16),
+    (eStrippedRelocations,  0x0001),
+    (eExecutableImage,      0x0002),
+    (eLargeAddressAware,    0x0020),
     // ...
-    e32BitMachine         = 0x0100,
-    eStrippedDebugInfo    = 0x0200,
+    (e32BitMachine,         0x0100),
+    (eStrippedDebugInfo,    0x0200),
     // ...
-    eFiletypeSystem       = 0x1000,
-    eFiletypeDLL          = 0x2000,
-    eUniprocessorOnly     = 0x4000,
+    (eFiletypeSystem,       0x1000),
+    (eFiletypeDLL,          0x2000),
+    (eUniprocessorOnly,     0x4000)
     // ...
-  };
+  );
+
+  $MarkPrefix(MachineType, "eMachine")
+  $MarkPrefix(Characteristics, "e")
 
   struct [[gnu::packed]] FileHeader {
     u32 magic = COFFInfo::eCOFFMagic;
@@ -128,38 +134,42 @@ namespace COFF {
 	  u32 entry_point_addr;
   };
 
-  using OptPEHeader = common::PtrUnion<OptPE64Header, OptPE32Header>;
+  using OptPEHeader = $PUnion(
+    OptPE64Header, OptPE32Header);
 
   //=== Windows COFF Extension ===//
 
-  enum WindowsSubsystemType : u16 {
-    eSubsystemUnknown     = 0,
-    eSubsystemNative      = 1,
-    eSubsystemWindowsGUI  = 2,
-    eSubsystemWindowsCUI  = 3,
-    eSubsystemPosixCUI    = 7,
+  $Enum((WindowsSubsystemType, u16),
+    (eSubsystemUnknown,    0),
+    (eSubsystemNative,     1),
+    (eSubsystemWindowsGUI, 2),
+    (eSubsystemWindowsCUI, 3),
+    (eSubsystemPosixCUI,   7),
     // ...
-    eSubsystemEFIApp      = 10,
-    eSubsystemEFIBoot     = 11,
-    eSubsystemEFIRuntime  = 12,
-    eSubsystemEFIROM      = 13,
+    (eSubsystemEFIApp,     10),
+    (eSubsystemEFIBoot,    11),
+    (eSubsystemEFIRuntime, 12),
+    (eSubsystemEFIROM,     13)
     // ...
-  };
+  );
 
-  enum WindowsDLLCharacteristics : u16 {
+  $Enum((WindowsDLLCharacteristics, u16),
     // ...
-    eDLLHighEntropy         = 0x0020,
-    eDLLDynamicBase         = 0x0040,
-    eDLLForceIntegrity      = 0x0080,
-    eDLLNXCompatible        = 0x0100,
-    eDLLNoIsolation         = 0x0200,
-    eDLLNoSEH               = 0x0400,
-    eDLLNoBind              = 0x0800,
-    eDLLAppContainer        = 0x1000,
-    eDLLWDMDriver           = 0x2000,
-    eDLLGuardControlFlow    = 0x4000,
-    eDLLTerminalServerAware = 0x8000
-  };
+    (eDLLHighEntropy,         0x0020),
+    (eDLLDynamicBase,         0x0040),
+    (eDLLForceIntegrity,      0x0080),
+    (eDLLNXCompatible,        0x0100),
+    (eDLLNoIsolation,         0x0200),
+    (eDLLNoSEH,               0x0400),
+    (eDLLNoBind,              0x0800),
+    (eDLLAppContainer,        0x1000),
+    (eDLLWDMDriver,           0x2000),
+    (eDLLGuardControlFlow,    0x4000),
+    (eDLLTerminalServerAware, 0x8000)
+  );
+
+  $MarkPrefix(WindowsSubsystemType, "eSubsystem")
+  $MarkPrefix(WindowsDLLCharacteristics, "eDLL")
 
   template <usize PointerSize = sizeof(void*)>
   struct OptPEWindowsHeader {
@@ -189,8 +199,8 @@ namespace COFF {
     u32  RVA_and_sizes_count;
   };
 
-  using PEWindowsHeader = common::PtrUnion<
-    OptPEWindowsHeader<8>, OptPEWindowsHeader<4>>;
+  using PEWindowsHeader = $PUnion(
+    OptPEWindowsHeader<8>, OptPEWindowsHeader<4>);
 
   //=== Data Directory ===//
 
@@ -199,67 +209,69 @@ namespace COFF {
     u32 size;
   };
 
-  enum DataDirectories : u32 {
-    eDirectoryExportTable = 0,
-    eDirectoryImportTable,
-    eDirectoryResourceTable,
-    eDirectoryExceptionTable,
-    eDirectoryCertificateTable,
-    eDirectoryBaseRelocationTable,
-    eDirectoryDebug,
-    eDirectoryArchitecture,
-    eDirectoryGlobalPtr,
-    eDirectoryTLSTable,
-    eDirectoryLoadConfigTable,
-    eDirectoryBoundImport,
-    eDirectoryImportAddressTable,
-    eDirectoryDelayImportDescriptor,
-    eDirectoryCLRRuntimeHeader,
-    eDirectoryMaxValue
-  };
+  $Enum((DataDirectories, u32),
+    (eDirectoryExportTable, 0),
+    (eDirectoryImportTable),
+    (eDirectoryResourceTable),
+    (eDirectoryExceptionTable),
+    (eDirectoryCertificateTable),
+    (eDirectoryBaseRelocationTable),
+    (eDirectoryDebug),
+    (eDirectoryArchitecture),
+    (eDirectoryGlobalPtr),
+    (eDirectoryTLSTable),
+    (eDirectoryLoadConfigTable),
+    (eDirectoryBoundImport),
+    (eDirectoryImportAddressTable),
+    (eDirectoryDelayImportDescriptor),
+    (eDirectoryCLRRuntimeHeader),
+    (eDirectoryMaxValue)
+  );
 
-  using DataDirectoryTable = 
-    common::PtrRange<DataDirectoryHeader>;
+  $MarkPrefix(DataDirectories, "eDirectory")
+  using DataDirectoryTable = $PRange(DataDirectoryHeader);
 
   //=== Section Data ===//
 
-  enum SectionFlags : u32 {
+  $Enum((SectionFlags, u32),
     // ...
-    eSectionNoPad             = 0x00000008,
+    (eSectionNoPad             , 0x00000008),
     // ...
-    eSectionCntCode           = 0x00000020,
-    eSectionInitializedData   = 0x00000040,
-    eSectionUninitializedData = 0x00000080,
-    eSectionLinkOther         = 0x00000100,
-    eSectionLinkInfo          = 0x00000200,
+    (eSectionCntCode           , 0x00000020),
+    (eSectionInitializedData   , 0x00000040),
+    (eSectionUninitializedData , 0x00000080),
+    (eSectionLinkOther         , 0x00000100),
+    (eSectionLinkInfo          , 0x00000200),
     // ...
-    eSectionLinkRemove        = 0x00000800,
-    eSectionLinkComdat        = 0x00001000,
-    eSectionGlobalPtrRelative = 0x00008000,
+    (eSectionLinkRemove        , 0x00000800),
+    (eSectionLinkComdat        , 0x00001000),
+    (eSectionGlobalPtrRelative , 0x00008000),
     // Reserved Mem flags...
-    eSectionAlign1Bytes       = 0x00100000,
-    eSectionAlign2Bytes       = 0x00200000,
-    eSectionAlign4Bytes       = 0x00300000,
-    eSectionAlign8Bytes       = 0x00400000,
-    eSectionAlign16Bytes      = 0x00500000,
-    eSectionAlign32Bytes      = 0x00600000,
-    eSectionAlign64Bytes      = 0x00700000,
-    eSectionAlign128Bytes     = 0x00800000,
-    eSectionAlign256Bytes     = 0x00900000,
-    eSectionAlign512Bytes     = 0x00A00000,
-    eSectionAlign1024Bytes    = 0x00B00000,
-    eSectionAlign2048Bytes    = 0x00C00000,
-    eSectionAlign4096Bytes    = 0x00D00000,
-    eSectionAlign8192Bytes    = 0x00E00000,
-    eSectionLink32BitReloc    = 0x01000000,
-    eSectionMemDiscardable    = 0x02000000,
-    eSectionMemNotCached      = 0x04000000,
-    eSectionMemNotPaged       = 0x08000000,
-    eSectionMemShared         = 0x10000000,
-    eSectionMemExecute        = 0x20000000,
-    eSectionMemRead           = 0x40000000,
-    eSectionMemWrite          = 0x80000000
-  };
+    (eSectionAlign1Bytes       , 0x00100000),
+    (eSectionAlign2Bytes       , 0x00200000),
+    (eSectionAlign4Bytes       , 0x00300000),
+    (eSectionAlign8Bytes       , 0x00400000),
+    (eSectionAlign16Bytes      , 0x00500000),
+    (eSectionAlign32Bytes      , 0x00600000),
+    (eSectionAlign64Bytes      , 0x00700000),
+    (eSectionAlign128Bytes     , 0x00800000),
+    (eSectionAlign256Bytes     , 0x00900000),
+    (eSectionAlign512Bytes     , 0x00A00000),
+    (eSectionAlign1024Bytes    , 0x00B00000),
+    (eSectionAlign2048Bytes    , 0x00C00000),
+    (eSectionAlign4096Bytes    , 0x00D00000),
+    (eSectionAlign8192Bytes    , 0x00E00000),
+    (eSectionLink32BitReloc    , 0x01000000),
+    (eSectionMemDiscardable    , 0x02000000),
+    (eSectionMemNotCached      , 0x04000000),
+    (eSectionMemNotPaged       , 0x08000000),
+    (eSectionMemShared         , 0x10000000),
+    (eSectionMemExecute        , 0x20000000),
+    (eSectionMemRead           , 0x40000000),
+    (eSectionMemWrite          , 0x80000000)
+  );
+
+  $MarkPrefix(SectionFlags, "eSection")
 
   struct [[gnu::packed]] SectionHeader {
     char name[eCOFFNameSize]; // TODO: handle string table offset
@@ -274,8 +286,7 @@ namespace COFF {
     SectionFlags characteristics;
   };
 
-  using SectionTable = 
-    common::PtrRange<SectionHeader>;
+  using SectionTable = $PRange(SectionHeader);
 
   //=== Other Types ===//
 

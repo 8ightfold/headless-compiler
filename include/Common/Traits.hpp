@@ -21,7 +21,7 @@
 #include "Fundamental.hpp"
 
 #define __common_is_same(t, u) (__is_same(t, u) && __is_same(u, t))
-#define $i(n) ::hc::__i<n>
+#define $I(n) ::hc::__i<n>
 
 #define _HC_UNARY_OP(name, op) \
  template <typename T> \

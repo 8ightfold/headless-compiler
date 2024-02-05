@@ -69,7 +69,8 @@
 # define HC_SAFESTACK 0
 #endif // If -fsanitize=safe-stack
 
-#define __clpragma(...) _Pragma(__hc_stringify(clang __VA_ARGS__))
+#define __clpragma(args...) _Pragma(__hc_stringify(clang args))
+#define __cldiag(args...) __clpragma(diagnostic args)
 #define __cldebug(...) __clpragma(__debug __VA_ARGS__)
 
 #define __always_inline __attribute__((always_inline)) inline

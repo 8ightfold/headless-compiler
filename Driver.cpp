@@ -17,19 +17,26 @@
 //===----------------------------------------------------------------===//
 
 #include <Common/Align.hpp>
+#include <Common/Array.hpp>
 #include <Common/Casting.hpp>
 #include <Common/DynAlloc.hpp>
 #include <Common/Fundamental.hpp>
 #include <Common/Location.hpp>
 #include <Common/Memory.hpp>
 #include <Common/PtrUnion.hpp>
-#include <Common/StaticVec.hpp>
 #include <Common/Strings.hpp>
 #include <Common/StrRef.hpp>
 
 #include <Common/Option.hpp>
 #include <Common/Result.hpp>
 #include <Common/Unwrap.hpp>
+
+#include <Common/Intrusive.hpp>
+#include <Parcel/StaticVec.hpp>
+
+#include <Common/Preproc.hpp>
+#include <Common/Refl.hpp>
+#include <Common/TaggedEnum.hpp>
 
 #include <Bootstrap/Win64KernelDefs.hpp>
 #include <Bootstrap/ModuleParser.hpp>
@@ -44,9 +51,10 @@
 
 #undef GetModuleHandle
 
-namespace C  = hc::common;
-namespace BF = hc::binfmt;
-namespace B  = hc::bootstrap;
+namespace C = hc::common;
+namespace F = hc::binfmt;
+namespace B = hc::bootstrap;
+namespace P = hc::parcel;
 
 static constexpr const char* RVA_names[] = {
   "Export Table",
@@ -181,7 +189,8 @@ static void dump_module(B::DualString name) {
   std::cout << "RVA Count: " << RVA_count << "\n\n";
   for (int I = 0; I < RVA_count; ++I) {
     std::cout << "|===================================|\n\n";
-    std::cout << RVA_names[I] << ":\n";
+    static constexpr auto R = $reflexpr(F::COFF::DataDirectories);
+    std::cout << R.FieldNameAt(I) << ":\n";
     dump_data(T.data_dirs[I]);
   }
   std::cout << "Section Count: " << T.sections.size() << "\n\n";
@@ -243,60 +252,8 @@ static void list_modules() {
     dump_data(P->asLDRDataTableEntry());
 }
 
-
-
-template <typename T>
-struct SizedHandle {
-  template <typename Obj>
-  SizedHandle(Obj& obj) : __data(obj.data()),
-   __cap(obj.data() + obj.__get_capacity()),
-   __size(obj.__get_sizeref()) {
-  }
-
-  bool checkedEmplace(auto&&...args) {
-    if __expect_false(end() == __cap)
-      return false;
-    (void) C::construct_at(end(), __hc_fwd(args)...);
-    ++__size;
-    return true;
-  }
-
-  bool checkedPush(const T& elem) {
-    if __expect_false(end() == __cap)
-      return false;
-    (void) C::construct_at(end(), elem);
-    ++__size;
-    return true;
-  }
-
-  T* end() __noexcept {
-    return __data + __size;
-  }
-
-private:
-  T* __data = nullptr;
-  T* __cap  = nullptr;
-  usize& __size;
-};
-
-template <typename Obj>
-SizedHandle(Obj&) -> SizedHandle<typename Obj::Type>;
-
-template <typename T, usize N>
-void print_vec(C::StaticVec<T, N>& V) {
-  for(auto&& E : V)
-    std::cout << E << ' ';
-  std::cout << std::endl;
-}
-
 int main() {
-  dump_exports("ntdll.dll");
+  // dump_exports("ntdll.dll");
   // dump_exports(L"KERNEL32.DLL");
   // dump_exports("msvcrt.dll");
-  auto V = $vec("a", "b", "c", "d", "e");
-  auto S = $vec("g", "h", "f");
-  while(SizedHandle(V).checkedPush(
-   S.popBack().valueOr("."))) {
-    print_vec(V);
-  }
 }

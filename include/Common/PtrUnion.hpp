@@ -26,6 +26,7 @@
 #include "Fundamental.hpp"
 #include "Traits.hpp"
 
+#define $PUnion(tys...) ::hc::common::PtrUnion<tys>
 #define $extract_member(name, ty...) visitR<ty>([](auto* p) { return p->name; })
 
 namespace hc::common {
@@ -203,4 +204,6 @@ namespace hc::common {
     uptr __addr : __ptrunion_addr_size = 0;
     uptr __tag  : __ptrunion_tag_size  = 0;
   };
+
+  using DualString = PtrUnion<const char, const wchar_t>;
 } // namespace hc::common

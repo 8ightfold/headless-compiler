@@ -21,7 +21,7 @@
 
 using namespace hc::binfmt;
 namespace C  = hc::common;
-namespace BF = hc::binfmt;
+namespace F = hc::binfmt;
 
 template <usize N>
 static inline bool __starts_with(C::AddrRange data, const char(&str)[N]) {
@@ -29,7 +29,7 @@ static inline bool __starts_with(C::AddrRange data, const char(&str)[N]) {
   return C::__memcmp(data.intoRange<char>().data(), str, N - 1) == 0;
 }
 
-MMagic BF::MMagic::Match(C::AddrRange binary) {
+MMagic F::MMagic::Match(C::AddrRange binary) {
   if (binary.size() < 2) return Detail::Unknown;
   const auto binstr = binary.intoRange<char>();
   switch ((u8)binstr[0]) {
