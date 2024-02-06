@@ -27,6 +27,7 @@
 #include <Common/Fundamental.hpp>
 #include <Common/DynAlloc.hpp>
 #include <BinaryFormat/Consumer.hpp>
+#include <Bootstrap/UnicodeString.hpp>
 
 // For more info:
 // "Finding Kernel32 Base and Function Addresses in Shellcode"
@@ -43,15 +44,6 @@ namespace hc::bootstrap {
   using Win64AddrRange  = common::AddrRange;
   using Win64Handle     = hc::__void*;
   using Win64Bool       = bool;
-
-  struct Win64UnicodeString {
-    u16 size, size_max;
-    wchar_t*  buffer;
-  public:
-    static Win64UnicodeString New(wchar_t* str);
-    static Win64UnicodeString New(wchar_t* str, usize max);
-    bool isEqual(const Win64UnicodeString& rhs) const;
-  };
 
   struct Win64ListEntryNode {
     Win64ListEntryNode*   __prev;
@@ -129,15 +121,15 @@ namespace hc::bootstrap {
 
     //=== General ===//
 
-    Win64LDRDataTableEntry* findModule(const wchar_t* str, bool ignore_extension = false) const {
+    Win64LDRDataTableEntry* findModule(const wchar_t* S, bool ignore_extension = false) const {
       (void)ignore_extension;
-      if __expect_false(!str) 
+      if __expect_false(!S) 
         return nullptr;
       SelfType* curr = this->asMutable();
       if __expect_false(curr->isSentinel())
         curr = curr->next();
       // This is evil... buuut we never modify the buffer so it's ok ;)
-      const auto ustr = Win64UnicodeString::New(const_cast<wchar_t*>(str));
+      const auto ustr = Win64UnicodeString::New(const_cast<wchar_t*>(S));
       while (!curr->isSentinel()) {
         const auto tbl = curr->asLDRDataTableEntry();
         const Win64UnicodeString& dll_ustr = tbl->base_dll_name;
@@ -147,15 +139,14 @@ namespace hc::bootstrap {
       return nullptr;
     }
 
-    Win64LDRDataTableEntry* findModule(const char* str, bool ignore_extension = false) const {
-      if __expect_false(!str) 
+    Win64LDRDataTableEntry* findModule(
+     const char* S, bool ignore_extension = false) const {
+      if __expect_false(!S) 
         return nullptr;
-      // return findModule(wconvert(str)?, ignore_extension);
-      const usize len = __builtin_strlen(str);
-      auto wstr = $dynalloc(len + 1, wchar_t).zeroMemory();
-      for (usize I = 0; I < len; ++I)
-        wstr[I] = static_cast<wchar_t>(str[I]);
-      return findModule(wstr.data(), ignore_extension);
+      return this->findModule(
+        $to_wstr(S).data(), 
+        ignore_extension
+      );
     }
 
     //=== Observers ===//

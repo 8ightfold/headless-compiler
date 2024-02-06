@@ -96,12 +96,32 @@ namespace hc::common {
      __tag(data ? _ID<U> : 0U) { }
     
     template <typename U>
+    requires __any_same<const U, TT...> PtrUnion(const U* data) 
+     : __addr(reinterpret_cast<uptr>(data)), 
+     __tag(data ? _ID<const U> : 0U) { }
+    
+    template <typename U>
     requires __any_same<U, TT...> 
     PtrUnion& operator=(U* data) __noexcept {
       return this->set(data);
     }
 
+    template <typename U>
+    requires __any_same<const U, TT...> 
+    PtrUnion& operator=(const U* data) __noexcept {
+      return this->set(data);
+    }
+
   public:
+    template <typename U>
+    static SelfType New(U* data) {
+      return { data };
+    }
+
+    static SelfType New() {
+      return { nullptr };
+    }
+
     template <typename U>
     requires __any_same<U, TT...>
     SelfType& set(U* data) __noexcept {

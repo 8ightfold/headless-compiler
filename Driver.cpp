@@ -44,10 +44,16 @@
 #include <BinaryFormat/Consumer.hpp>
 #include <BinaryFormat/MagicMatcher.hpp>
 
+#if _HC_DEBUG
+# undef NDEBUG
+#endif
+
 #include <cstddef>
 #include <cassert>
 #include <cstdio>
 #include <iostream>
+
+#include <windows.h>
 
 #undef GetModuleHandle
 
@@ -215,16 +221,10 @@ static void dump_module(B::DualString name) {
   }
 }
 
-static void dump_exports(B::DualString name) {
+static void dump_exports(B::COFFModule& M) {
   using hc::dyn_cast;
   namespace COFF = B::COFF;
-  if (name.isEmpty()) {
-    std::printf("ERROR: Name cannot be NULL.\n");
-    return;
-  }
-  auto O = B::ModuleParser::GetParsedModule(name);
-  if(O.isNone()) return;
-  B::COFFModule& M = O.some();
+  const auto name = M.getName();
   auto& T = M.getTables();
   if (u32 extbl_RVA = T.data_dirs[COFF::eDirectoryExportTable].RVA) {
     std::cout << "|===================================|\n\n";
@@ -238,11 +238,21 @@ static void dump_exports(B::DualString name) {
       std::printf("Exported names for `%s`:\n", S);
     for (auto off : NPT) {
       auto S = C::StrRef::NewRaw(M->getRVA<char>(off));
-      // if (S.beginsWith("Ldr") || S.beginsWith("Nt") || S.beginsWith("Zw"))
-      std::cout << S << '\n';
+      if (S.beginsWith("Nt"))
+        std::cout << S << '\n';
     }
     std::cout << std::endl;
   }
+}
+
+static void dump_exports(B::DualString name) {
+  if (name.isEmpty()) {
+    std::printf("ERROR: Name cannot be NULL.\n");
+    return;
+  }
+  auto O = B::ModuleParser::GetParsedModule(name);
+  if(O.isNone()) return;
+  dump_exports(O.some());
 }
 
 static void list_modules() {
@@ -252,29 +262,15 @@ static void list_modules() {
     dump_data(P->asLDRDataTableEntry());
 }
 
-
-$Enum((WindowsSubsystemType, u16),
-  (eSubsystemUnknown,    0),
-  (eSubsystemNative,     1),
-  (eSubsystemWindowsGUI, 2),
-  (eSubsystemWindowsCUI, 3),
-  (eSubsystemPosixCUI,   7),
-  // ...
-  (eSubsystemEFIApp,     10),
-  (eSubsystemEFIBoot,    11),
-  (eSubsystemEFIRuntime, 12),
-  (eSubsystemEFIROM,     13)
-  // ...
-);
-
-$MarkPrefix(WindowsSubsystemType, "eSubsystem")
+using TAType = long(&__stdcall)(void);
 
 int main() {
-  constexpr auto R = $reflexpr(WindowsSubsystemType);
-  std::cout << R.Name() << ":\n";
-  constexpr auto& F = R.Fields();
-  std::cout << "Field Count: " << F.Count() << '\n';
-  std::cout << F.Name(eSubsystemEFIApp) << '\n';
-  std::cout << F.Name(F[2]) << '\n';
-  std::cout << F.NameAt(3) << '\n';
+  auto O = B::ModuleParser::GetParsedModule("ntdll.dll");
+  if (O.isNone()) return 1;
+  B::COFFModule& M = O.some();
+  auto& F = M.resolveExport<int(int)>("isupper").some();
+  __hc_assert(F('A') && !F('a'));
+  TAType NtTestAlert = M.resolveExport<long(void)>("NtTestAlert").some();
+  NtTestAlert();
+  // dump_exports(M);
 }

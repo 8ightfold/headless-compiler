@@ -51,9 +51,7 @@ namespace hc::common {
     StrRef(StrRef&&) = default;
     StrRef(nullptr_t) = delete;
     StrRef(BaseType B) : BaseType(B) { }
-    
-    explicit StrRef(PtrType S) 
-     : BaseType(StrRef::NewRaw(S)) { }
+    StrRef(PtrType S) : BaseType(StrRef::NewRaw(S)) { }
     
     template <__strref_compatible T>
     StrRef(PtrRange<T> P) : StrRef(SelfType::New(P)) { }

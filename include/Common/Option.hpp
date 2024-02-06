@@ -202,4 +202,113 @@ namespace hc::common {
       return const_cast<U*>(S->__dyn_cast<U>());
     }
   };
+
+  template <typename T>
+  struct Option<T&> {
+    using SelfType = Option;
+  public:
+    /// Default construct.
+    constexpr Option() = default;
+    /// Copy construct.
+    constexpr Option(const Option& O) : __data(O.__data) {}
+    /// Move construct.
+    constexpr Option(Option&& O) : __data(O.__data) {}
+    // Null construct.
+    constexpr Option(Nullopt) : Option() { }
+
+    constexpr Option(T& t) : Option() {
+      if constexpr (__is_object(T))
+        this->__data = common::__addressof(t);
+      else
+        this->__data = &t;
+    }
+
+    constexpr ~Option() = default;
+
+    /// Copy assign.
+    constexpr Option& operator=(const Option& O) __noexcept {
+      this->__data = O.__data;
+      return *this;
+    }
+    /// Move assign.
+    constexpr Option& operator=(Option&& O) noexcept {
+      this->__data = O.__data;
+      return *this;
+    }
+
+    constexpr Option& operator=(Nullopt) __noexcept {
+      this->__data = nullptr;
+      return *this;
+    }
+  
+  public:
+    constexpr static SelfType Some(T& t) {
+      return SelfType(t);
+    }
+
+    constexpr static SelfType None() {
+      return SelfType(nullopt);
+    }
+
+    //=== Accessors ===//
+
+    constexpr T& some() const {
+      __hc_invariant(isSome());
+      return *this->__data; 
+    }
+
+    constexpr T& operator*() const {
+      __hc_invariant(isSome());
+      return this->some();
+    }
+
+    constexpr T* operator->() const {
+      __hc_invariant(isSome());
+      return this->__data;
+    }
+
+    //=== Observers ===//
+
+    constexpr bool isSome() const __noexcept {
+      return !!this->__data;
+    }
+
+    constexpr bool isNone() const __noexcept {
+      return !this->__data;
+    }
+
+    constexpr operator bool() const __noexcept {
+      return !!this->__data;
+    }
+
+    //=== Monads ===//
+
+    constexpr T& valueOr(T& t) const& {
+      if(this->isSome()) 
+        return some();
+      else
+        return t;
+    }
+
+    //=== Internals ===//
+
+    template <typename U>
+    [[gnu::always_inline, gnu::nodebug]]
+    constexpr bool __isa() const __noexcept {
+      if constexpr (__is_same(T, U))
+        return this->isSome();
+      return false;
+    }
+
+    template <typename U>
+    [[gnu::nodebug]]
+    constexpr U* __dyn_cast() const __noexcept {
+      if constexpr (__is_same(T, U))
+        return isSome() ? this->__data : nullptr;
+      return nullptr;
+    }
+  
+  private:
+    T* __data = nullptr;
+  };
 } // namespace hc::common

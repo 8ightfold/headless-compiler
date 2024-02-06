@@ -75,10 +75,12 @@ namespace hc::common {
 
   template <usize N> using intn_t  = typename _IntN<N>::type;
   template <usize N> using uintn_t = typename _UIntN<N>::type;
+  template <typename T> using intty_t  = intn_t<sizeof(T)>;
+  template <typename T> using uintty_t = uintn_t<sizeof(T)>;
 } // namespace hc::common
 
-using iptr = hc::common::intn_t<sizeof(void*)>;
-using uptr = __make_unsigned(iptr);
+using iptr = hc::common::intty_t<void*>;
+using uptr = hc::common::uintty_t<void*>;
 
 using ihalfptr = hc::common::intn_t<sizeof(void*) / 2>;
 using uhalfptr = __make_unsigned(ihalfptr);

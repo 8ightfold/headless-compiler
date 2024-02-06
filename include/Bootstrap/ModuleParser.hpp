@@ -28,6 +28,9 @@
 #include <Common/Option.hpp>
 #include <Common/PtrRange.hpp>
 #include <Common/PtrUnion.hpp>
+#include <Common/StrRef.hpp>
+
+#define $COFFEntry(name) COFFDirectoryEntry<COFF::name>
 
 namespace hc::binfmt {
   struct Consumer;
@@ -41,6 +44,10 @@ namespace hc::binfmt {
 
     template <usize> 
     struct OptPEWindowsHeader;
+
+    enum DataDirectories : u32;
+    struct ExportDirectoryTable;
+    struct ImportDirectoryTable;
 
     using OptPEHeader = $PUnion(OptPE64Header, OptPE32Header);
     using PEWindowsHeader = $PUnion(OptPEWindowsHeader<8>, OptPEWindowsHeader<4>);
@@ -68,6 +75,18 @@ namespace hc::bootstrap {
     COFF::SectionTable sections;
   };
 
+  template <typename TableType>
+  struct COFFDirectoryEntry {
+    using Type = TableType;
+    TableType* entry = nullptr;
+  public:
+    bool isEmpty() const { return !this->entry; }
+    explicit operator bool() const { return !isEmpty(); }
+  };
+
+  using COFFExports = $COFFEntry(ExportDirectoryTable);
+  using COFFImports = $COFFEntry(ImportDirectoryTable);
+
   class COFFModule {
     friend class ModuleParser;
     COFFModule() = default;
@@ -78,9 +97,27 @@ namespace hc::bootstrap {
     COFFModule& operator=(const COFFModule&) = default;
     COFFModule& operator=(COFFModule&&) = default;
   public:
+    template <typename F>
+    auto resolveExport(common::StrRef S) const {
+      static_assert(__is_function(F));
+      using Opt = common::Option<F&>;
+      if (auto addr = resolveExportRaw(S)) {
+        auto* f = reinterpret_cast<F*>(addr);
+        return Opt::Some(*f);
+      }
+      return Opt::None();
+    }
+
+    // Resolvers
+    void* resolveExportRaw(common::StrRef S) const;
+    void* resolveImportRaw(common::StrRef S) const;
+    // Getters
+    [[gnu::always_inline, gnu::nodebug, gnu::const]]
+    inline const COFFModule& self() const { return *this; }
     const COFFHeader& getHeader() const& { return __header; }
     const COFFTables& getTables() const& { return __tables; }
     common::AddrRange getImageRange() const;
+    DualString getName() const;
     ModuleHandle operator->() const;
   private:
     COFFHeader   __header;
@@ -109,3 +146,5 @@ namespace hc::bootstrap {
     ImageConsumer& IC;
   };
 } // namespace hc::bootstrap
+
+#undef $COFFEntry

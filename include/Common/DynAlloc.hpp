@@ -30,6 +30,14 @@
 #include "Memory.hpp"
 #include "PtrRange.hpp"
 
+#define $to_wstr(S) ({ \
+  const usize __len = __builtin_strlen(S); \
+  auto __wstr = $zdynalloc(__len + 1, wchar_t); \
+  for (usize I = 0; I < __len; ++I) \
+    __wstr[I] = static_cast<wchar_t>(S[I]); \
+  __wstr; \
+})
+
 #define $dynalloc(sz, ty...) ({ using __ty = \
  ::hc::common::DynAllocation<ty>; \
  auto* __local_alloc = __hc_typed_alloca(sz, __ty); \
