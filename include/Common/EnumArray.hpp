@@ -1,4 +1,4 @@
-//===- Common/Array.hpp ---------------------------------------------===//
+//===- Common/EnumArray.hpp -----------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -15,46 +15,40 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
+//
+//  An object which can be indexed using enums. Use when enum values
+//  are relatively contiguous, otherwise you get a lot of empty slots.
+//
+//===----------------------------------------------------------------===//
 
 #pragma once
 
 #include "Fundamental.hpp"
 
 namespace hc::common {
-  template <typename T, usize N>
-  struct Array {
+  template <typename T, typename E,
+    E MaxValue = E::MaxValue,
+    typename UType = __underlying_type(E),
+    UType N = static_cast<UType>(MaxValue) + 1>
+  struct EnumArray {
+    using Enum = E;
     using Type = T;
-    static constexpr usize __size = N;
+    static constexpr UType __size = N;
   public:
-    static constexpr usize Size() 
+    static constexpr UType Size() 
     { return __size; }
 
-    constexpr T& operator[](usize I) {
-      __hc_invariant(I < N);
-      return this->__data[I];
+    constexpr T& operator[](E I) {
+      __hc_invariant(UType(I) < N);
+      return this->__data[UType(I)];
     }
 
-    constexpr const T& operator[](usize I) const {
-      __hc_invariant(I < N);
-      return this->__data[I];
+    constexpr const T& operator[](E I) const {
+      __hc_invariant(UType(I) < N);
+      return this->__data[UType(I)];
     }
 
   public:
     T __data[N] { };
   };
-
-  template <typename T>
-  struct Array<T, 0> {
-    using Type = T;
-    static constexpr usize __size = 0;
-  public:
-    static constexpr usize Size() {
-      return __size;
-    }
-  };
-
-  template <typename T, typename...TT>
-  Array(T&&, TT&&...) -> Array<__decay(T), sizeof...(TT) + 1>;
-
-  Array() -> Array<void, 0>;
 } // namespace hc::common

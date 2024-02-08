@@ -192,7 +192,7 @@ namespace hc::common {
 
     // isOk, isErr
 
-    constexpr operator bool() const __noexcept 
+    explicit constexpr operator bool() const __noexcept 
     { return BaseType::__is_value; }
 
     //=== Internals ===//

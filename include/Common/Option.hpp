@@ -155,7 +155,7 @@ namespace hc::common {
       return !BaseType::__is_value;
     }
 
-    constexpr operator bool() const __noexcept {
+    explicit constexpr operator bool() const __noexcept {
       return BaseType::__is_value;
     }
 
@@ -277,7 +277,7 @@ namespace hc::common {
       return !this->__data;
     }
 
-    constexpr operator bool() const __noexcept {
+    explicit constexpr operator bool() const __noexcept {
       return !!this->__data;
     }
 

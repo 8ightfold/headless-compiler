@@ -71,8 +71,9 @@ namespace {
   }
 
   StubResult do_parsing(const u8* bytes) {
+    static constexpr auto invalid_syscall = ~u32(0);
     Instruction I = Instruction::Unknown;
-    SyscallValue call = ~u32(0);
+    SyscallValue call = invalid_syscall;
     bool did_syscall = false;
     while (I != Instruction::Retn) {
       I = get_instruction(bytes);
@@ -86,7 +87,7 @@ namespace {
         did_syscall = true;
       bytes += instruction_size(I);
     }
-    if __expect_false(call == ~u32(0) || !did_syscall)
+    if __expect_false(call == invalid_syscall || !did_syscall)
       return $StubErr(SyscallNotFound);
     return $Ok(call);
   }

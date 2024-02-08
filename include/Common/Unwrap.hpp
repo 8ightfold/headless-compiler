@@ -27,7 +27,7 @@
 #define $unwrap(obj, on_err...) ({ \
   if __expect_false(!obj) \
     return ::hc::__unwrap_fail(obj, ##on_err); \
-  *obj; })
+  ::hc::_FwdWrapper{*obj}; }).get()
 
 //=== Forward Decls ===//
 namespace hc::common {
@@ -70,6 +70,21 @@ namespace hc {
 
   template <typename...TT>
   _Wrapper(TT&&...) -> _Wrapper<TT...>;
+
+  template <typename T>
+  struct _FwdWrapper {
+    constexpr operator T() {
+      return static_cast<T>(__data);
+    }
+    constexpr T get() {
+      return static_cast<T>(__data);
+    }
+  public:
+    T __data;
+  };
+
+  template <typename T>
+  _FwdWrapper(T&&) -> _FwdWrapper<T>;
 
   [[gnu::always_inline, gnu::nodebug]]
   inline constexpr auto __unwrap_fail(auto&&, auto&&...args) __noexcept {

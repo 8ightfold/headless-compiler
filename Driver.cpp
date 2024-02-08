@@ -20,6 +20,7 @@
 #include <Common/Array.hpp>
 #include <Common/Casting.hpp>
 #include <Common/DynAlloc.hpp>
+#include <Common/EnumArray.hpp>
 #include <Common/Fundamental.hpp>
 #include <Common/Location.hpp>
 #include <Common/Memory.hpp>
@@ -86,6 +87,15 @@ static constexpr const char* RVA_names[] = {
 
 std::ostream& operator<<(std::ostream& os, C::StrRef S) {
   return os.write(S.data(), S.size());
+}
+
+template <typename T>
+std::ostream& operator<<(std::ostream& os, const C::Option<T>& O) {
+  if constexpr (C::__has_binary_shl<std::ostream&, const T&>) {
+    if (O.isSome()) 
+      return os << O.some();
+  }
+  return os << "<null>";
 }
 
 void __dump_introspect(
@@ -226,7 +236,7 @@ static void dump_module(B::DualString name) {
   }
 }
 
-static void dump_exports(B::COFFModule& M) {
+static void dump_exports(B::COFFModule& M, bool dump_body = false) {
   using hc::dyn_cast;
   namespace COFF = B::COFF;
   const auto name = M.getName();
@@ -243,21 +253,25 @@ static void dump_exports(B::COFFModule& M) {
       std::printf("Exported names for `%s`:\n", S);
     for (auto off : NPT) {
       auto S = C::StrRef::NewRaw(M->getRVA<char>(off));
-      if (S.beginsWith("Nt"))
-        dump_nt_function(S);
+      if (S.beginsWith("Nt")) {
+        if (dump_body) 
+          dump_nt_function(S);
+        else
+          std::cout << S << '\n';
+      }
     }
     std::cout << std::endl;
   }
 }
 
-static void dump_exports(B::DualString name) {
+static void dump_exports(B::DualString name, bool dump_body = false) {
   if (name.isEmpty()) {
     std::printf("ERROR: Name cannot be NULL.\n");
     return;
   }
   auto O = B::ModuleParser::GetParsedModule(name);
   if(O.isNone()) return;
-  dump_exports(O.some());
+  dump_exports(O.some(), dump_body);
 }
 
 static void list_modules() {
@@ -307,16 +321,74 @@ void dump_nt_function(C::StrRef S) {
   std::cout << std::endl;
 }
 
+#undef __stdcall
+
 template <typename Ret, typename...Args>
-using Stdcall = long(&__stdcall)(Args...);
+using StdCall = Ret(&__stdcall)(Args...);
+
+using NtReturn = long;
+
+template <typename...Args>
+using NtCall = StdCall<NtReturn, Args...>;
+
+enum class Syscall : u32 {
+  GetCurrentProcessorNumber = 0,
+  TestAlert,
+  MaxValue = TestAlert
+};
+
+inline C::EnumArray<B::SyscallValue, Syscall> __syscalls_ {};
+
+
+template <Syscall C, typename Ret = NtReturn, typename...Args>
+[[gnu::noinline, gnu::naked]]
+inline Ret __stdcall invoke_syscall(Args...args) {
+  __asm__ volatile ("movq %%rcx, %%r10;\n"::);
+  __asm__ volatile (
+    "mov %[val], %%eax;\n"
+    "syscall;\n"
+    "retn;\n"
+    :: [val] "r"(__syscalls_.__data[u32(C)])
+  );
+}
+
+template <Syscall C>
+void print_syscall(const char* name) {
+  std::printf("%s: %x\n", name, __syscalls_.__data[u32(C)]);
+}
+
+#define $AssignSyscall(name) __syscalls_[Syscall::name] = $unwrap(B::parse_stub($stringify(Nt##name)))
+#define $PrintSyscall(name) print_syscall<Syscall::name>(#name)
+
+#include <winternl.h>
 
 int main() {
   auto O = B::ModuleParser::GetParsedModule("ntdll.dll");
-  if (O.isNone()) return 1;
-  B::COFFModule& M = O.some();
-  Stdcall<long> NtTestAlert = M.resolveExport<long(void)>("NtTestAlert").some();
-  NtTestAlert();
-  dump_exports(M);
+  B::COFFModule& M = $unwrap(O, 1);
+  NtCall<> NtTestAlert = M.resolveExport<long(void)>("NtTestAlert").some();
+  StdCall<ULONG> NtGetCurrentProcessorNumber 
+    = M.resolveExport<ULONG(void)>("NtGetCurrentProcessorNumber").some();
+  // dump_exports(M, true);
+
+  $AssignSyscall(TestAlert);
+  $AssignSyscall(GetCurrentProcessorNumber);
+
+  auto F = &invoke_syscall<Syscall::TestAlert>;
+  auto P = reinterpret_cast<const u8*>(F);
+  std::printf("invoke_syscall<...> [%p]:\n", P);
+  do {
+    std::printf("%.2X ", u32(*P));
+  } while (check_ret(P));
+  std::cout << std::endl;
+
+  auto TA = invoke_syscall<Syscall::TestAlert>();
+  if (auto nTA = NtTestAlert(); TA != nTA)
+    return std::printf("Failed TestAlert: 0x%x [0x%x]\n", TA, nTA);
+
+  auto CPN = invoke_syscall<Syscall::GetCurrentProcessorNumber, ULONG>();
+  if (auto nCPN = NtGetCurrentProcessorNumber(); CPN != nCPN)
+    return std::printf("Failed GetCurrentProcessorNumber: %u [%u]\n", CPN, nCPN);
+  std::printf("Processor Number: %u\n", CPN);
   
   // dump_nt_function("NtOpenFile");
   // dump_nt_function("NtFsControlFile");
