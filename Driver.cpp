@@ -333,6 +333,7 @@ using NtCall = StdCall<NtReturn, Args...>;
 
 enum class Syscall : u32 {
   GetCurrentProcessorNumber = 0,
+  Close,
   TestAlert,
   MaxValue = TestAlert
 };
@@ -357,10 +358,21 @@ void print_syscall(const char* name) {
   std::printf("%s: %x\n", name, __syscalls_.__data[u32(C)]);
 }
 
-#define $AssignSyscall(name) __syscalls_[Syscall::name] = $unwrap(B::parse_stub($stringify(Nt##name)))
+#define $AssignSyscall(name) __syscalls_[Syscall::name] = $unwrap(B::parse_stub($stringify(Nt##name)), -1)
 #define $PrintSyscall(name) print_syscall<Syscall::name>(#name)
 
 #include <winternl.h>
+
+template <Syscall C, typename Ret = NtReturn, typename...Args>
+void dump_syscall(Args...) {
+  auto F = &invoke_syscall<Syscall::TestAlert, Ret, Args...>;
+  auto P = reinterpret_cast<const u8*>(F);
+  std::printf("invoke_syscall<...> [%p]:\n", P);
+  do {
+    std::printf("%.2X ", u32(*P));
+  } while (check_ret(P));
+  std::cout << std::endl;
+}
 
 int main() {
   auto O = B::ModuleParser::GetParsedModule("ntdll.dll");
@@ -371,24 +383,30 @@ int main() {
   // dump_exports(M, true);
 
   $AssignSyscall(TestAlert);
+  $AssignSyscall(Close);
   $AssignSyscall(GetCurrentProcessorNumber);
 
-  auto F = &invoke_syscall<Syscall::TestAlert>;
-  auto P = reinterpret_cast<const u8*>(F);
-  std::printf("invoke_syscall<...> [%p]:\n", P);
-  do {
-    std::printf("%.2X ", u32(*P));
-  } while (check_ret(P));
-  std::cout << std::endl;
+  dump_syscall<Syscall::TestAlert>();
 
   auto TA = invoke_syscall<Syscall::TestAlert>();
   if (auto nTA = NtTestAlert(); TA != nTA)
-    return std::printf("Failed TestAlert: 0x%x [0x%x]\n", TA, nTA);
+    return std::fprintf(stderr, "Failed TestAlert: 0x%x [0x%x]\n", TA, nTA);
 
   auto CPN = invoke_syscall<Syscall::GetCurrentProcessorNumber, ULONG>();
   if (auto nCPN = NtGetCurrentProcessorNumber(); CPN != nCPN)
-    return std::printf("Failed GetCurrentProcessorNumber: %u [%u]\n", CPN, nCPN);
+    return std::fprintf(stderr, "Failed GetCurrentProcessorNumber: %u [%u]\n", CPN, nCPN);
   std::printf("Processor Number: %u\n", CPN);
+
+  HANDLE file = CreateFileA("contents.txt", GENERIC_READ, 0,
+    nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+  if (file == nullptr)
+    return std::fprintf(stderr, "Failed to open `contents.txt`\n");
+  std::printf("Opened `contents.txt`\n");
+
+  auto C = invoke_syscall<Syscall::Close>(file);
+  if (C != 0x00000000)
+    return std::fprintf(stderr, "Failed Close: %i\n", C);
+  std::printf("Closed `contents.txt`\n");
   
   // dump_nt_function("NtOpenFile");
   // dump_nt_function("NtFsControlFile");
