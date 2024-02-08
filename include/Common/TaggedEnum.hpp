@@ -29,12 +29,12 @@ __cldiag(push)
 __cldiag(ignored "-Wvariadic-macros")
 
 #define $MarkPrefix(type, prefix) \
-inline constexpr usize __refl_markprefix(type) { \
+inline constexpr usize __refl_markprefix(enum type) { \
   return sizeof(prefix) - 1; \
 }
 
 #define $MarkName(type) \
-inline constexpr auto& __refl_markname(type) { \
+inline constexpr auto& __refl_markname(enum type) { \
   return __hc_stringify(type); \
 }
 
@@ -53,7 +53,7 @@ inline constexpr auto& __refl_markname(type) { \
 #define __Enum_cases(n_vs...) $PP_map(__Enum_case, n_vs)
 
 #define $EnumFieldNames(name, fields...) \
-constexpr const char* __refl_fieldname(name E) { \
+constexpr const char* __refl_fieldname(enum name E) { \
   using Ty = name; \
   switch (E) { \
     __Enum_cases(fields) \
@@ -66,7 +66,7 @@ constexpr const char* __refl_fieldname(name E) { \
 #define __Enum_idxs(n_vs...) $PP_map(__Enum_idx, n_vs)
 
 #define $EnumFieldArray(name, fields...) \
-inline constexpr auto& __refl_fieldarray(name) { \
+inline constexpr auto& __refl_fieldarray(enum name) { \
   using Ty = name; \
   static constexpr name A[] { \
     __Enum_idxs(fields) \

@@ -195,6 +195,24 @@ namespace hc::common {
     explicit constexpr operator bool() const __noexcept 
     { return BaseType::__is_value; }
 
+    //=== Monads ===//
+
+    template <typename U>
+    constexpr _T valueOr(U&& u) const& {
+      if(this->isOk()) 
+        return ok();
+      else
+        return _T{__hc_fwd(u)};
+    }
+
+    template <typename U>
+    constexpr _T valueOr(U&& u)&& {
+      if(this->isOk()) 
+        return __hc_move(ok());
+      else
+        return _T{__hc_fwd(u)};
+    }
+
     //=== Internals ===//
 
     template <typename U>

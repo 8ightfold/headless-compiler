@@ -1,4 +1,4 @@
-//===- Driver.cpp ---------------------------------------------------===//
+//===- SyscallDumper.cpp --------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -15,6 +15,8 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
+
+// TODO: Finish implementation
 
 #include <Common/Align.hpp>
 #include <Common/Array.hpp>
@@ -56,6 +58,10 @@
 #include <cassert>
 #include <cstdio>
 #include <iostream>
+
+#include <windows.h>
+
+#undef GetModuleHandle
 
 namespace C = hc::common;
 namespace F = hc::binfmt;
@@ -234,7 +240,7 @@ static void dump_exports(B::COFFModule& M, bool dump_body = false) {
         if (dump_body) 
           dump_nt_function(S);
         else
-          std::cout << S.dropFront(2) << '\n';
+          std::cout << S << '\n';
       }
     }
     std::cout << std::endl;
@@ -308,6 +314,8 @@ void print_syscall() {
 
 #define $PrintSyscall(name) print_syscall<Syscall::name>()
 
+#include <winternl.h>
+
 template <B::Syscall C, typename Ret = B::NtReturn, typename...Args>
 void dump_syscall(Args...) {
   auto F = &B::__syscall<C, Ret, Args...>;
@@ -321,37 +329,15 @@ void dump_syscall(Args...) {
   std::cout << '\n' << std::endl;
 }
 
-B::WinHandleRaw __create_file(const char* S);
-
-void check_syscalls() {
-  static constexpr auto R = $reflexpr(B::Syscall);
-  const auto& F = R.Fields();
-  bool none_unset = true;
-  std::printf("Unset syscalls:\n");
-  for (auto I = 0; I < F.Count(); ++I) {
-    const auto C = B::Syscall(I);
-    if (B::__syscalls_[C] == ~0UL) {
-      std::printf("Nt%s\n", F.NameAt(I));
-      none_unset = false;
-    }
-  }
-  if (none_unset)
-    std::printf("All loaded!\n");
-  std::cout << std::endl;
-}
-
 int main() {
   auto O = B::ModuleParser::GetParsedModule("ntdll.dll");
   B::COFFModule& M = $unwrap(O, 1);
   B::NtCall<> NtTestAlert = M.resolveExport<long(void)>("NtTestAlert").some();
-  B::StdCall<B::ULong> NtGetCurrentProcessorNumber 
-    = M.resolveExport<B::ULong(void)>("NtGetCurrentProcessorNumber").some();
-  auto DbgPrint = M.resolveExport<B::NtReturn(const char*, ...)>("DbgPrint").some();
+  B::StdCall<ULONG> NtGetCurrentProcessorNumber 
+    = M.resolveExport<ULONG(void)>("NtGetCurrentProcessorNumber").some();
 
   using B::Syscall;
   using B::__syscall;
-  using B::__checked_syscall;
-  check_syscalls();
   dump_syscall<Syscall::TestAlert>();
   dump_syscall<Syscall::Close>();
   dump_syscall<Syscall::GetCurrentProcessorNumber>();
@@ -360,29 +346,21 @@ int main() {
   if (auto nTA = NtTestAlert(); TA != nTA)
     return std::fprintf(stderr, "Failed TestAlert: 0x%x [0x%x]\n", TA, nTA);
 
-  auto CPN = __syscall<Syscall::GetCurrentProcessorNumber, B::ULong>();
+  auto CPN = __syscall<Syscall::GetCurrentProcessorNumber, ULONG>();
   if (auto nCPN = NtGetCurrentProcessorNumber(); CPN != nCPN)
     return std::fprintf(stderr, "Failed GetCurrentProcessorNumber: %u [%u]\n", CPN, nCPN);
   std::printf("Processor Number: %u\n", CPN);
 
-  B::WinHandleRaw file = __create_file("contents.txt");
+  HANDLE file = CreateFileA("contents.txt", GENERIC_READ, 0,
+    nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
   if (file == nullptr)
     return std::fprintf(stderr, "Failed to open `contents.txt`\n");
   std::printf("Opened `contents.txt`\n");
 
-  auto C = __checked_syscall<Syscall::Close>(file);
+  auto C = __syscall<Syscall::Close>(file);
   if (C != 0x00000000)
     return std::fprintf(stderr, "Failed Close: %i\n", C);
   std::printf("Closed `contents.txt`\n\n");
 
   dump_exports(M);
-}
-
-
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <winternl.h>
-
-B::WinHandleRaw __create_file(const char* S) {
-  return (B::WinHandleRaw)CreateFileA("contents.txt", 0x80000000L, 0, nullptr, 3, 0x80, nullptr);
 }

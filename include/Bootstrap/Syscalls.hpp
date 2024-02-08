@@ -24,9 +24,16 @@
 
 #include <Common/Fundamental.hpp>
 #include <Common/EnumArray.hpp>
+#include <Common/TaggedEnum.hpp>
+
+// For more info:
+// http://undocumented.ntinternals.net
+// https://www.geoffchappell.com/studies/windows/win32/ntdll/api/native.htm
 
 namespace hc::bootstrap {
   using NtReturn = long;
+  using ULong = unsigned long;
+  using WinHandleRaw = __void*;
 
   template <typename Ret, typename...Args>
   using StdCall = Ret(&)(Args...);
@@ -35,13 +42,32 @@ namespace hc::bootstrap {
   using NtCall = StdCall<NtReturn, Args...>;
 
   enum class Syscall : u32 {
-    GetCurrentProcessorNumber = 0,
-    Close,
-    TestAlert,
+#  define $NtGen(name) name,
+#  include "Syscalls.mac"
     MaxValue = TestAlert
   };
 
-  inline C::EnumArray<B::SyscallValue, Syscall> __syscalls_ {};
+  $MarkName(Syscall);
+
+  constexpr const char* __refl_fieldname(Syscall E) { \
+    switch (E) {
+#    define $NtGen(name) \
+      case Syscall::name: return $stringify(name);
+#    include "Syscalls.mac"
+      default: return nullptr;
+    }
+  }
+
+  inline constexpr auto& __refl_fieldarray(Syscall) { \
+    static constexpr Syscall A[] {
+#    define $NtGen(name) Syscall::name,
+#    include "Syscalls.mac"
+      Syscall::MaxValue
+    };
+    return A;
+  }
+
+  inline common::EnumArray<u32, Syscall> __syscalls_ {};
 
   /// Ensure `__syscalls_` has been initialized, otherwise you'll
   /// just have random nigh-undebuggable errors.
@@ -56,4 +82,18 @@ namespace hc::bootstrap {
       :: [val] "r"(__syscalls_.__data[u32(C)])
     );
   }
+
+  template <Syscall C, typename Ret = NtReturn, typename...Args>
+  [[gnu::always_inline, gnu::artificial]]
+  inline Ret __stdcall __checked_syscall(Args...args) {
+    __hc_assert(__syscalls_[C] != ~0UL);
+    $tail_return __syscall<C, Ret>(args...);
+  }
+
+  static struct _SyscallLoader {
+    _SyscallLoader();
+  } __sys_loader_ {};
+
+  void force_syscall_reload();
+  bool are_syscalls_loaded();
 } // namespace hc::bootstrap

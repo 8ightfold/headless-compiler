@@ -22,6 +22,9 @@
 #include <Common/Refl.hpp>
 #include <Common/Traits.hpp>
 
+#undef $StubErr
+#undef $MatchInstr
+
 #define $StubErr(ty) $Err(StubError::ty)
 #define $MatchInstr(I, e) \
 if (primaryOpcode<Instruction::I> == e) \
@@ -30,29 +33,6 @@ if (primaryOpcode<Instruction::I> == e) \
 using namespace hc::bootstrap;
 namespace C = hc::common;
 namespace B = hc::bootstrap;
-
-/*
-  $Enum((Instruction, u32),
-    (MovImmToEax,     0xB8),
-    (MovImmToEcx,     0xB9),
-    (MovImmToEdx,     0xBA),
-    (Retn16,          0xC2),
-    (Retn,            0xC3),
-    (CallImm,         0xE8),
-    // 2 Byte
-    (XorEcx,          0x33'C9),
-    (MovEspToEdx,     0x8B'D4),
-    (CallEdx,         0xFF'D2),
-    (Sysenter,        0x0F'34),
-    (Syscall,         0x0F'05),
-    // 3+ Byte
-    (MovRcxToR10,     0x4C'8B'D1),
-    (LeaEspOffToEdx,  0x8D'54'24),
-    (CallLargePtr,    0x64'FF'15),
-    (Unknown)
-  );
-*/
-
 
 namespace {
   COFFModule& NtModule() __noexcept {
@@ -83,7 +63,7 @@ namespace {
         return $StubErr(UnexpectedC2Retn);
       if (I == Instruction::MovImmToEax)
         call = extract_syscall(bytes);
-      else if (I == Instruction::Syscall)
+      else if (I == Instruction::SysCall)
         did_syscall = true;
       bytes += instruction_size(I);
     }
@@ -95,7 +75,7 @@ namespace {
 
 Instruction B::get_instruction(const u8* bytes) {
     const u8 primary = *bytes;
-    $MatchInstr(Syscall, primary)
+    $MatchInstr(SysCall, primary)
     else $MatchInstr(MovRcxToR10, primary)
     else $MatchInstr(Jne, primary)
     else $MatchInstr(Retn, primary)
@@ -108,7 +88,7 @@ Instruction B::get_instruction(const u8* bytes) {
     else $MatchInstr(XorEcx, primary)
     else $MatchInstr(MovEspToEdx, primary)
     else $MatchInstr(CallEdx, primary)
-    else $MatchInstr(Sysenter, primary)
+    else $MatchInstr(SysEnter, primary)
     else $MatchInstr(LeaEspOffToEdx, primary)
     else $MatchInstr(CallLargePtr, primary)
     return Instruction::Unknown;

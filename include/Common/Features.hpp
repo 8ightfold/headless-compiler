@@ -147,7 +147,7 @@ extern "C" {
 # if __has_builtin(__builtin_frame_address)
     return __builtin_frame_address(0);
 # else
-    char byte_aligned = 0;
+    char byte_aligned = 1;
     // Force optimization barrier
     char* volatile ptr = &byte_aligned;
     return ptr;
@@ -162,4 +162,7 @@ extern "C" {
     }
     __builtin_unreachable();
   }
+
+  __attribute__((cold, noreturn, format(__printf__, 1, 2)))
+  int __hc_raw_panic(const char fmt[], ...);
 }
