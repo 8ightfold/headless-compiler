@@ -42,7 +42,7 @@
 #include <Bootstrap/Win64KernelDefs.hpp>
 #include <Bootstrap/ModuleParser.hpp>
 #include <Bootstrap/StubParser.hpp>
-#include <Bootstrap/Syscalls.hpp>
+// #include <Bootstrap/Syscalls.hpp>
 
 #include <BinaryFormat/COFF.hpp>
 #include <BinaryFormat/Consumer.hpp>
@@ -321,8 +321,6 @@ void dump_nt_function(C::StrRef S) {
   std::cout << std::endl;
 }
 
-#undef __stdcall
-
 template <typename Ret, typename...Args>
 using StdCall = Ret(&__stdcall)(Args...);
 
@@ -331,15 +329,14 @@ using NtReturn = long;
 template <typename...Args>
 using NtCall = StdCall<NtReturn, Args...>;
 
-enum class Syscall : u32 {
-  GetCurrentProcessorNumber = 0,
-  Close,
-  TestAlert,
-  MaxValue = TestAlert
-};
+$StrongEnum((Syscall, u32),
+  (GetCurrentProcessorNumber, 0),
+  (Close),
+  (TestAlert),
+  (MaxValue)
+);
 
 inline C::EnumArray<B::SyscallValue, Syscall> __syscalls_ {};
-
 
 template <Syscall C, typename Ret = NtReturn, typename...Args>
 [[gnu::noinline, gnu::naked]]
@@ -367,11 +364,13 @@ template <Syscall C, typename Ret = NtReturn, typename...Args>
 void dump_syscall(Args...) {
   auto F = &invoke_syscall<Syscall::TestAlert, Ret, Args...>;
   auto P = reinterpret_cast<const u8*>(F);
-  std::printf("invoke_syscall<...> [%p]:\n", P);
+  std::printf("invoke_syscall<%s, ...> [%p]:\n",
+    $reflexpr(Syscall).Fields().Name(C), P);
+  std::printf("value: 0x%.3x\n", __syscalls_[C]);
   do {
     std::printf("%.2X ", u32(*P));
   } while (check_ret(P));
-  std::cout << std::endl;
+  std::cout << '\n' << std::endl;
 }
 
 int main() {
@@ -380,13 +379,14 @@ int main() {
   NtCall<> NtTestAlert = M.resolveExport<long(void)>("NtTestAlert").some();
   StdCall<ULONG> NtGetCurrentProcessorNumber 
     = M.resolveExport<ULONG(void)>("NtGetCurrentProcessorNumber").some();
-  // dump_exports(M, true);
 
   $AssignSyscall(TestAlert);
   $AssignSyscall(Close);
   $AssignSyscall(GetCurrentProcessorNumber);
 
   dump_syscall<Syscall::TestAlert>();
+  dump_syscall<Syscall::Close>();
+  dump_syscall<Syscall::GetCurrentProcessorNumber>();
 
   auto TA = invoke_syscall<Syscall::TestAlert>();
   if (auto nTA = NtTestAlert(); TA != nTA)
@@ -407,10 +407,4 @@ int main() {
   if (C != 0x00000000)
     return std::fprintf(stderr, "Failed Close: %i\n", C);
   std::printf("Closed `contents.txt`\n");
-  
-  // dump_nt_function("NtOpenFile");
-  // dump_nt_function("NtFsControlFile");
-  // dump_nt_function("NtTestAlert");
-  // dump_nt_function("NtFakeFunction");
-  // dump_nt_function("ZwCreateKey");
 }
