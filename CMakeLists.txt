@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 23)
 
 project(
   headless-compiler
-  VERSION 0.1.8
+  VERSION 0.1.9
   LANGUAGES CXX
 )
 
@@ -44,6 +44,7 @@ add_executable(driver Driver.cpp
   src/Bootstrap/Win64KernelDefs.cpp
   src/Bootstrap/ModuleParser.cpp
   src/Bootstrap/COFFModule.cpp
+  src/Bootstrap/StubParser.cpp
 )
 target_include_directories(driver PUBLIC include)
 target_link_options(driver PUBLIC -Wl,--stack,0xF42400)

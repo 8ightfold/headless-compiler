@@ -40,6 +40,9 @@
 
 #include <Bootstrap/Win64KernelDefs.hpp>
 #include <Bootstrap/ModuleParser.hpp>
+#include <Bootstrap/StubParser.hpp>
+#include <Bootstrap/Syscalls.hpp>
+
 #include <BinaryFormat/COFF.hpp>
 #include <BinaryFormat/Consumer.hpp>
 #include <BinaryFormat/MagicMatcher.hpp>
@@ -171,6 +174,8 @@ void dumpLDRModule(EntryType* entry) {
   std::cout << std::endl;
 }
 
+static void dump_nt_function(C::StrRef S);
+
 static void dump_module(B::DualString name) {
   using hc::dyn_cast;
   namespace COFF = B::COFF;
@@ -239,7 +244,7 @@ static void dump_exports(B::COFFModule& M) {
     for (auto off : NPT) {
       auto S = C::StrRef::NewRaw(M->getRVA<char>(off));
       if (S.beginsWith("Nt"))
-        std::cout << S << '\n';
+        dump_nt_function(S);
     }
     std::cout << std::endl;
   }
@@ -262,15 +267,60 @@ static void list_modules() {
     dump_data(P->asLDRDataTableEntry());
 }
 
-using TAType = long(&__stdcall)(void);
+static bool check_ret(const u8*& P) {
+  const u8 I = *P++;
+  if (I == 0xC2) {
+    std::printf("%.2X ", u32(*++P));
+    std::printf("%.2X ", u32(*++P));
+    return false;
+  }
+  return (I != 0xC2) && (I != 0xC3);
+}
+
+void dump_nt_function(C::StrRef S) {
+  static thread_local auto O = 
+    B::ModuleParser::GetParsedModule("ntdll.dll");
+  B::COFFModule& M = O.some();
+  if __expect_false(!S.beginsWith("Nt")) {
+    std::cout << "Non NT function `" << S << "`" << std::endl;
+    return;
+  }
+  auto* P = hc::ptr_cast<const u8>(M.resolveExportRaw(S));
+  if __expect_false(!P) {
+    std::cout << "Invalid Function `" << S << "`" << std::endl;
+    return;
+  }
+  
+  std::printf("%s [%p]:\n", S.data(), P);
+  do {
+    std::printf("%.2X ", u32(*P));
+  } while (check_ret(P));
+  std::cout << '\n';
+
+  auto R = B::parse_stub(S);
+  if (R.isOk()) {
+    std::printf("syscall: 0x%.3X\n", R.ok());
+  } else {
+    static constexpr auto E = $reflexpr(B::StubError);
+    std::printf("syscall-err: %s\n", E.Fields().Name(R.err()));
+  }
+  std::cout << std::endl;
+}
+
+template <typename Ret, typename...Args>
+using Stdcall = long(&__stdcall)(Args...);
 
 int main() {
   auto O = B::ModuleParser::GetParsedModule("ntdll.dll");
   if (O.isNone()) return 1;
   B::COFFModule& M = O.some();
-  auto& F = M.resolveExport<int(int)>("isupper").some();
-  __hc_assert(F('A') && !F('a'));
-  TAType NtTestAlert = M.resolveExport<long(void)>("NtTestAlert").some();
+  Stdcall<long> NtTestAlert = M.resolveExport<long(void)>("NtTestAlert").some();
   NtTestAlert();
-  // dump_exports(M);
+  dump_exports(M);
+  
+  // dump_nt_function("NtOpenFile");
+  // dump_nt_function("NtFsControlFile");
+  // dump_nt_function("NtTestAlert");
+  // dump_nt_function("NtFakeFunction");
+  // dump_nt_function("ZwCreateKey");
 }
