@@ -73,7 +73,8 @@
 #define __cldiag(args...) __clpragma(diagnostic args)
 #define __cldebug(...) __clpragma(__debug __VA_ARGS__)
 
-#define __always_inline __attribute__((always_inline)) inline
+#define __always_inline __attribute__((always_inline, artificial)) inline
+#define __ndbg_inline   __attribute__((always_inline, nodebug))    inline
 #define __visibility(ty) __attribute__((__visibility__(#ty)))
 #define __aligned(n) __attribute__((aligned(n)))
 
@@ -126,6 +127,8 @@ constexpr __remove_reference_t(T)&& __hc_move(T&& t) __noexcept {
 
 #define $tail_return [[clang::musttail]] return
 #define $unreachable __builtin_unreachable()
+
+#define $flag(n...) (1ULL << (n))
 
 #pragma clang final(__always_inline)
 #pragma clang final(__global)

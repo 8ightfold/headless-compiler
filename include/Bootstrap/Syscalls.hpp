@@ -33,7 +33,6 @@
 namespace hc::bootstrap {
   using NtReturn = long;
   using ULong = unsigned long;
-  using WinHandleRaw = __void*;
 
   template <typename Ret, typename...Args>
   using StdCall = Ret(&)(Args...);
@@ -49,7 +48,7 @@ namespace hc::bootstrap {
 
   $MarkName(Syscall);
 
-  constexpr const char* __refl_fieldname(Syscall E) { \
+  constexpr const char* __refl_fieldname(Syscall E) {
     switch (E) {
 #    define $NtGen(name) \
       case Syscall::name: return $stringify(name);

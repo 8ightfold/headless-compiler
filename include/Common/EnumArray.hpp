@@ -24,6 +24,7 @@
 #pragma once
 
 #include "Fundamental.hpp"
+#include "PtrRange.hpp"
 
 namespace hc::common {
   template <typename T, typename E,
@@ -31,21 +32,57 @@ namespace hc::common {
     typename UType = __underlying_type(E),
     UType N = static_cast<UType>(MaxValue) + 1>
   struct EnumArray {
-    using Enum = E;
     using Type = T;
+    using SelfType = EnumArray;
+    using UnderlyingType = UType;
+    using Enumeration = E;
     static constexpr UType __size = N;
+    static constexpr UType __true_size = bool(N) ? N : 1;
   public:
-    static constexpr UType Size() 
-    { return __size; }
-
-    constexpr T& operator[](E I) {
-      __hc_invariant(UType(I) < N);
-      return this->__data[UType(I)];
+    constexpr T& operator[](Enumeration idx) {
+      const auto IX = static_cast<UType>(idx);
+      __hc_invariant(IX >= 0 && IX < N);
+      return this->__data[IX];
     }
 
-    constexpr const T& operator[](E I) const {
-      __hc_invariant(UType(I) < N);
-      return this->__data[UType(I)];
+    constexpr const T& operator[](Enumeration idx) const {
+      const auto IX = static_cast<UType>(idx);
+      __hc_invariant(IX >= 0 && IX < N);
+      return this->__data[IX];
+    }
+
+    //=== Observers ===//
+
+    [[nodiscard, gnu::const]]
+    constexpr T* data() const __noexcept {
+      return this->__data;
+    }
+
+    static constexpr UType Size() __noexcept {
+      return __size;
+    }
+
+    static constexpr UType SizeInBytes() __noexcept {
+      return __size * __sizeof(T);
+    }
+
+    [[nodiscard]]
+    PtrRange<T> toPtrRange() const __noexcept {
+      return { begin(), end() };
+    }
+
+    [[nodiscard, gnu::const]]
+    constexpr T* begin() const __noexcept {
+      return data();
+    }
+
+    [[nodiscard, gnu::const]]
+    constexpr T* end() const __noexcept {
+      return data() + Size();
+    }
+
+    static constexpr bool IsEmpty() __noexcept {
+      return Size() == 0;
     }
 
   public:

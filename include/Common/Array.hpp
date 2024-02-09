@@ -19,24 +19,57 @@
 #pragma once
 
 #include "Fundamental.hpp"
+#include "PtrRange.hpp"
 
 namespace hc::common {
   template <typename T, usize N>
   struct Array {
     using Type = T;
+    using SelfType = Array<T, N>;
     static constexpr usize __size = N;
   public:
-    static constexpr usize Size() 
-    { return __size; }
-
-    constexpr T& operator[](usize I) {
-      __hc_invariant(I < N);
-      return this->__data[I];
+    constexpr T& operator[](usize IX) {
+      __hc_invariant(IX < N);
+      return this->__data[IX];
     }
 
-    constexpr const T& operator[](usize I) const {
-      __hc_invariant(I < N);
-      return this->__data[I];
+    constexpr const T& operator[](usize IX) const {
+      __hc_invariant(IX < N);
+      return this->__data[IX];
+    }
+
+    //=== Observers ===//
+
+    [[nodiscard, gnu::const]]
+    constexpr T* data() const __noexcept {
+      return this->__data;
+    }
+
+    static constexpr usize Size() __noexcept {
+      return __size;
+    }
+
+    static constexpr usize SizeInBytes() __noexcept {
+      return __size * __sizeof(T);
+    }
+
+    [[nodiscard]]
+    PtrRange<T> toPtrRange() const __noexcept {
+      return { begin(), end() };
+    }
+
+    [[nodiscard, gnu::const]]
+    constexpr T* begin() const __noexcept {
+      return data();
+    }
+
+    [[nodiscard, gnu::const]]
+    constexpr T* end() const __noexcept {
+      return data() + Size();
+    }
+
+    static constexpr bool IsEmpty() __noexcept {
+      return Size() == 0;
     }
 
   public:
@@ -48,8 +81,36 @@ namespace hc::common {
     using Type = T;
     static constexpr usize __size = 0;
   public:
-    static constexpr usize Size() {
-      return __size;
+    [[nodiscard, gnu::const]]
+    constexpr T* data() const __noexcept {
+      return nullptr;
+    }
+
+    static constexpr usize Size() __noexcept {
+      return 0;
+    }
+
+    static constexpr usize SizeInBytes() __noexcept {
+      return 0;
+    }
+
+    [[nodiscard]]
+    PtrRange<T> toPtrRange() const __noexcept {
+      return { };
+    }
+
+    [[nodiscard, gnu::const]]
+    constexpr T* begin() const __noexcept {
+      return nullptr;
+    }
+
+    [[nodiscard, gnu::const]]
+    constexpr T* end() const __noexcept {
+      return nullptr;
+    }
+
+    static constexpr bool IsEmpty() __noexcept {
+      return true;
     }
   };
 

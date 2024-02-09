@@ -33,6 +33,16 @@
 
 #define $PP_expand(args...) args
 #define $PP_eat(...)
+#define $PP_eat2(...) $PP_eat
+
+#define __$test_emptyP(...) __VA_OPT__(0,) 1
+#define __$test_emptyI1(n, ...) n
+#define __$test_emptyI0(...) __$test_emptyI1(__VA_ARGS__)
+#define $PP_is_empty(...) __$test_emptyI0(__$test_emptyP(__VA_ARGS__))
+
+#define __$eat_empty_(f) $PP_eat
+#define __$eat_empty_X(f) f
+#define $PP_invoke_valued(f, ...) __hc_2cat(__$eat_empty_, __VA_OPT__(X))(f)(__VA_ARGS__)
 
 #define __$count(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, count, ...) count
 #define $PP_count(args...) __$count(0, ##__args, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
@@ -54,14 +64,16 @@
 #define __$pprobe(ex...) (), 0,
 #define __$parens(ex...) __$pchk(__$pprobe ex)
 
-#define __$not_0 __$PROBE__
+#define __$not_0     __$PROBE__
 #define __$not_false __$PROBE__
 #define $PP_not(ex) __$chk(__hc_2cat(__$not_, ex))
 
 #define $PP_bool(ex) $PP_compl($PP_not(ex))
 #define $PP_parens(ex...) $PP_not(__$parens(ex))
 #define $PP_if(cond) $PP_iif($PP_bool(cond))
-#define $PP_ifps(ex...) $PP_iif($PP_not(__$parens(ex)))
+#define $PP_if_parens(ex...) $PP_iif($PP_not(__$parens(ex)))
+#define $PP_if_valued(ex...) $PP_iif($PP_not($PP_is_empty(ex)))
+#define $PP_rm_parens(ex...) $PP_if_parens(ex)($PP_expand,) ex
 
 #define __$eval0(...) __VA_ARGS__
 #define __$eval1(...) __$eval0(__$eval0(__$eval0(__VA_ARGS__)))
@@ -86,5 +98,8 @@
 #define __$mapL0(f, x, peek, args...) f(x) __$mapL_nxt(peek, __$mapL1)(f, peek, args)
 #define __$mapL1(f, x, peek, args...) f(x) __$mapL_nxt(peek, __$mapL0)(f, peek, args)
 
-#define $PP_map(f, args...) $PP_eval(__$map1(f, args, ()()(), ()()(), ()()(), 0))
+#define $PP_map(f, args...)  $PP_eval(__$map1(f, args, ()()(), ()()(), ()()(), 0))
 #define $PP_mapL(f, args...) $PP_eval(__$mapL1(f, args, ()()(), ()()(), ()()(), 0))
+
+#define $PP_mapC(f, args...)  $PP_if_valued(args)($PP_map, $PP_eat)(f, args)
+#define $PP_mapCL(f, args...) $PP_if_valued(args)($PP_mapL, $PP_eat)(f, args)

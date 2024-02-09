@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 23)
 
 project(
   headless-compiler
-  VERSION 0.1.10
+  VERSION 0.1.11
   LANGUAGES CXX
 )
 
@@ -38,7 +38,8 @@ option(HC_ENABLE_LTO "Enable interprocedural optimization." OFF)
 message("invariant checking: ${HC_ENABLE_LTO}")
 message("interprocedural optimization: ${HC_ENABLE_LTO}")
 
-add_executable(driver Driver.cpp 
+add_executable(driver 
+  Driver.cpp 
   src/Common/Memory.cpp
   src/BinaryFormat/MagicMatcher.cpp
   src/Bootstrap/Win64KernelDefs.cpp

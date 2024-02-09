@@ -159,9 +159,9 @@ namespace hc::common {
 
     template <typename U = T, usize N>
     [[gnu::always_inline, gnu::const]]
-    static PtrRange<U> New(U(&arr)[N])
+    static PtrRange<U> New(U(&A)[N])
      requires(!__is_void(U)) {
-      return { arr, arr + N };
+      return { A, A + N };
     }
 
     //=== Observers ===//

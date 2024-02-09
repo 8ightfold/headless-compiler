@@ -47,6 +47,9 @@ bool B::are_syscalls_loaded() {
 
 B::_SyscallLoader::_SyscallLoader() {
   const bool R = are_syscalls_loaded();
-  if __expect_false(!R)
+  if __expect_false(!R) {
+    /// Would rather have it panic, but since io isn't loaded,
+    /// we obviously can't print here... 
     __builtin_trap();
+  }
 }

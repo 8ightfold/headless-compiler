@@ -61,3 +61,34 @@ namespace hc {
     return __hc_fwd(B).template __dyn_cast<To>();
   }
 } // namespace hc
+
+//=== Handles ===//
+namespace hc {
+
+  template <typename T, 
+    typename ID, typename...AA>
+  struct Handle;
+
+  template <typename To, typename From,
+    typename ID, typename...AA>
+  __ndbg_inline constexpr To
+   handle_cast(const Handle<From, ID, AA...>& from) {
+    static_assert(__is_convertible(From, To),
+      "Underlying type is not convertible.");
+    return static_cast<To>(from.__data);
+  }
+} // namespace hc
+
+//=== Underlying ===//
+namespace hc {
+  template <typename E>
+  requires(__is_enum(E))
+  __always_inline constexpr auto underlying_cast(E e) {
+    return static_cast<__underlying_type(E)>(e);
+  }
+
+  template <typename T>
+  __always_inline constexpr T underlying_cast(T&& t) {
+    return __hc_fwd(t);
+  }
+} // namespace hc

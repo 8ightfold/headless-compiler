@@ -22,6 +22,7 @@
 #include <Common/DynAlloc.hpp>
 #include <Common/EnumArray.hpp>
 #include <Common/Fundamental.hpp>
+#include <Common/Handle.hpp>
 #include <Common/Location.hpp>
 #include <Common/Memory.hpp>
 #include <Common/PtrUnion.hpp>
@@ -42,11 +43,11 @@
 #include <Bootstrap/Win64KernelDefs.hpp>
 #include <Bootstrap/ModuleParser.hpp>
 #include <Bootstrap/StubParser.hpp>
-#include <Bootstrap/Syscalls.hpp>
-
 #include <BinaryFormat/COFF.hpp>
-#include <BinaryFormat/Consumer.hpp>
-#include <BinaryFormat/MagicMatcher.hpp>
+
+#include <Bootstrap/Syscalls.hpp>
+#include <Sys/Windows/NtStructs.hpp>
+#include <Sys/Windows/NtFilesystem.hpp>
 
 #if _HC_DEBUG
 # undef NDEBUG
@@ -61,6 +62,9 @@ namespace C = hc::common;
 namespace F = hc::binfmt;
 namespace B = hc::bootstrap;
 namespace P = hc::parcel;
+
+namespace S = hc::sys;
+namespace W = hc::sys::win;
 
 std::ostream& operator<<(std::ostream& os, C::StrRef S) {
   return os.write(S.data(), S.size());
@@ -146,74 +150,7 @@ void multidump(auto&&...args) {
   ((dump_data(args)), ...);
 }
 
-template <B::__is_win64_list_entry EntryType>
-void dumpLDRModule(EntryType* entry) {
-  std::cout << "\n|=============================================|\n" << std::endl;
-  if __expect_false(entry->isSentinel()) {
-    std::cout << "<sentinel>" << std::endl;
-    return;
-  }
-  auto* tbl = entry->asLDRDataTableEntry();
-  dump_data(tbl);
-  // ...
-  u32 lc = 0;
-  __builtin_dump_struct(tbl, &__dump_args, lc);
-  std::cout << std::endl;
-}
-
-static void dump_nt_function(C::StrRef S);
-
-static void dump_module(B::DualString name) {
-  using hc::dyn_cast;
-  namespace COFF = B::COFF;
-  if (name.isEmpty()) {
-    std::printf("ERROR: Name cannot be NULL.\n");
-    return;
-  }
-  auto O = B::ModuleParser::GetParsedModule(name);
-  if(O.isNone()) {
-    if (auto* WS = dyn_cast<const wchar_t>(name))
-      std::printf("ERROR: Unable to find module `%ls`.\n", WS);
-    if (auto* S  = dyn_cast<const char>(name))
-      std::printf("ERROR: Unable to find module `%s`.\n", S);
-    return;
-  }
-  B::COFFModule M = O.some();
-  auto& H = M.getHeader();
-  auto& T = M.getTables();
-
-  multidump(H.dos, H.file, H.opt, H.win);
-  const auto RVA_count = T.data_dirs.size();
-  std::cout << "RVA Count: " << RVA_count << "\n\n";
-  for (int I = 0; I < RVA_count; ++I) {
-    std::cout << "|===================================|\n\n";
-    static constexpr auto R = $reflexpr(F::COFF::DataDirectories);
-    std::cout << R.Fields().NameAt(I) << ":\n";
-    dump_data(T.data_dirs[I]);
-  }
-  std::cout << "Section Count: " << T.sections.size() << "\n\n";
-  for (const auto& S : T.sections) {
-    std::cout << "|===================================|\n\n";
-    std::cout << C::StrRef(S.name) << ":\n";
-    dump_data(S);
-  }
-  if (u32 extbl_RVA = T.data_dirs[COFF::eDirectoryExportTable].RVA) {
-    std::cout << "|===================================|\n\n";
-    auto* EDT = M->getRVA<COFF::ExportDirectoryTable>(extbl_RVA);
-    dump_data(EDT);
-    auto NPT = M->getRangeFromRVA(EDT->name_pointer_table_RVA)
-      .intoRange<COFF::NamePointerType>()
-      .takeFront(EDT->name_pointer_table_count);
-    std::cout << "Exported names:\n";
-    for (auto off : NPT) {
-      auto S = C::StrRef::NewRaw(M->getRVA<char>(off));
-      std::cout << S << '\n';
-    }
-    std::cout << std::endl;
-  }
-}
-
-static void dump_exports(B::COFFModule& M, bool dump_body = false) {
+static void dump_exports(B::COFFModule& M, [[maybe_unused]] bool dump_body = false) {
   using hc::dyn_cast;
   namespace COFF = B::COFF;
   const auto name = M.getName();
@@ -230,12 +167,8 @@ static void dump_exports(B::COFFModule& M, bool dump_body = false) {
       std::printf("Exported names for `%s`:\n", S);
     for (auto off : NPT) {
       auto S = C::StrRef::NewRaw(M->getRVA<char>(off));
-      if (S.beginsWith("Nt")) {
-        if (dump_body) 
-          dump_nt_function(S);
-        else
-          std::cout << S.dropFront(2) << '\n';
-      }
+      if (S.beginsWith("Nt"))
+        std::cout << S.dropFront(2) << '\n';
     }
     std::cout << std::endl;
   }
@@ -268,46 +201,6 @@ static bool check_ret(const u8*& P) {
   return (I != 0xC2) && (I != 0xC3);
 }
 
-void dump_nt_function(C::StrRef S) {
-  static thread_local auto O = 
-    B::ModuleParser::GetParsedModule("ntdll.dll");
-  B::COFFModule& M = O.some();
-  if __expect_false(!S.beginsWith("Nt")) {
-    std::cout << "Non NT function `" << S << "`" << std::endl;
-    return;
-  }
-  auto* P = hc::ptr_cast<const u8>(M.resolveExportRaw(S));
-  if __expect_false(!P) {
-    std::cout << "Invalid Function `" << S << "`" << std::endl;
-    return;
-  }
-  
-  std::printf("%s [%p]:\n", S.data(), P);
-  do {
-    std::printf("%.2X ", u32(*P));
-  } while (check_ret(P));
-  std::cout << '\n';
-
-  auto R = B::parse_stub(S);
-  if (R.isOk()) {
-    std::printf("syscall: 0x%.3X\n", R.ok());
-  } else {
-    static constexpr auto E = $reflexpr(B::StubError);
-    std::printf("syscall-err: %s\n", E.Fields().Name(R.err()));
-  }
-  std::cout << std::endl;
-}
-
-template <B::Syscall C>
-void print_syscall() {
-  std::printf("%s: %x\n", 
-    $reflexpr(B::Syscall).Fields().Name(C),
-    B::__syscalls_[C]
-  );
-}
-
-#define $PrintSyscall(name) print_syscall<Syscall::name>()
-
 template <B::Syscall C, typename Ret = B::NtReturn, typename...Args>
 void dump_syscall(Args...) {
   auto F = &B::__syscall<C, Ret, Args...>;
@@ -320,8 +213,6 @@ void dump_syscall(Args...) {
   } while (check_ret(P));
   std::cout << '\n' << std::endl;
 }
-
-B::WinHandleRaw __create_file(const char* S);
 
 void check_syscalls() {
   static constexpr auto R = $reflexpr(B::Syscall);
@@ -340,49 +231,28 @@ void check_syscalls() {
   std::cout << std::endl;
 }
 
+namespace hc::sys {
+  __always_inline win::FileHandle __stdcall open_file(
+   NtAccessMask mask, NtObjAttribMask& attr,
+   win::IoStatusBlock& io, win::LargeInt* alloc_size,
+   NtFileAttribMask file_attr, win::ULong share_access,
+   win::ULong create_disposition, win::ULong create_opts,
+   void* ea_buffer = nullptr, win::ULong ea_len = 0UL)
+  {
+    win::FileHandle hout;
+    auto S = B::__syscall<B::Syscall::CreateFile, win::NtStatus>(
+      &hout, mask, &attr, &io, alloc_size, 
+      file_attr, share_access, 
+      create_disposition, create_opts,
+      ea_buffer, ea_len
+    );
+    return hout;
+  }
+} // namespace hc::sys
+
 int main() {
-  auto O = B::ModuleParser::GetParsedModule("ntdll.dll");
-  B::COFFModule& M = $unwrap(O, 1);
-  B::NtCall<> NtTestAlert = M.resolveExport<long(void)>("NtTestAlert").some();
-  B::StdCall<B::ULong> NtGetCurrentProcessorNumber 
-    = M.resolveExport<B::ULong(void)>("NtGetCurrentProcessorNumber").some();
-  auto DbgPrint = M.resolveExport<B::NtReturn(const char*, ...)>("DbgPrint").some();
-
-  using B::Syscall;
-  using B::__syscall;
-  using B::__checked_syscall;
+  
+  
   check_syscalls();
-  dump_syscall<Syscall::TestAlert>();
-  dump_syscall<Syscall::Close>();
-  dump_syscall<Syscall::GetCurrentProcessorNumber>();
-
-  auto TA = __syscall<Syscall::TestAlert>();
-  if (auto nTA = NtTestAlert(); TA != nTA)
-    return std::fprintf(stderr, "Failed TestAlert: 0x%x [0x%x]\n", TA, nTA);
-
-  auto CPN = __syscall<Syscall::GetCurrentProcessorNumber, B::ULong>();
-  if (auto nCPN = NtGetCurrentProcessorNumber(); CPN != nCPN)
-    return std::fprintf(stderr, "Failed GetCurrentProcessorNumber: %u [%u]\n", CPN, nCPN);
-  std::printf("Processor Number: %u\n", CPN);
-
-  B::WinHandleRaw file = __create_file("contents.txt");
-  if (file == nullptr)
-    return std::fprintf(stderr, "Failed to open `contents.txt`\n");
-  std::printf("Opened `contents.txt`\n");
-
-  auto C = __checked_syscall<Syscall::Close>(file);
-  if (C != 0x00000000)
-    return std::fprintf(stderr, "Failed Close: %i\n", C);
-  std::printf("Closed `contents.txt`\n\n");
-
-  dump_exports(M);
-}
-
-
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <winternl.h>
-
-B::WinHandleRaw __create_file(const char* S) {
-  return (B::WinHandleRaw)CreateFileA("contents.txt", 0x80000000L, 0, nullptr, 3, 0x80, nullptr);
+  // dump_exports(M);
 }

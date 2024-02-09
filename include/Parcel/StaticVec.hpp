@@ -195,7 +195,7 @@ namespace hc::parcel {
 
     [[nodiscard]]
     CC::PtrRange<T> toPtrRange() const __noexcept {
-      return { .__begin = begin(), .__end = end() };
+      return { begin(), end() };
     }
 
     [[nodiscard, gnu::const]]
