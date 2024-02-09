@@ -94,7 +94,6 @@ namespace hc::sys::win {
   using IOHandle      = SelectiveHandle<IO_HANDLE>;
   using IPCHandle     = SelectiveHandle<IPC_HANDLE>;
   using SyncHandle    = SelectiveHandle<SYNC_HANDLE>;
-
 } // namespace hc::sys::win
 
 #undef _HC_NTHANDLE_GROUP

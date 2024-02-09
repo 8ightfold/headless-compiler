@@ -19,9 +19,9 @@
 #pragma once
 
 #include <Bootstrap/UnicodeString.hpp>
+#include <Bootstrap/Syscalls.hpp>
 #include <Common/Fundamental.hpp>
 
-// TODO: $Nt[Status|Info|Warning|Error](...)
 #define __$NtRange(ex, L, H) (((u64)ex >= (L##ULL)) && ((u64)ex <= (H##ULL)))
 #define $NtOk(ex...)   __$NtRange((ex), 0x00000000, 0x3FFFFFFF)
 #define $NtInfo(ex...) __$NtRange((ex), 0x40000000, 0x7FFFFFFF)
@@ -62,3 +62,16 @@ namespace hc::sys::win {
     };
   };
 } // namespace hc::sys::win
+
+namespace hc::sys {
+  using NtSyscall = bootstrap::Syscall;
+  using win::NtStatus;
+
+  template <NtSyscall C, typename Ret = NtStatus>
+  inline Ret __stdcall isyscall(auto...args) {
+    if constexpr (_HC_DEBUG)
+      $tail_return bootstrap::__checked_syscall<C, Ret>(args...);
+    else
+      $tail_return bootstrap::__syscall<C, Ret>(args...);
+  }
+} // namespace hc::sys

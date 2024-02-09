@@ -84,8 +84,7 @@ namespace hc::bootstrap {
   }
 
   template <Syscall C, typename Ret = NtReturn, typename...Args>
-  [[gnu::always_inline, gnu::artificial]]
-  inline Ret __stdcall __checked_syscall(Args...args) {
+  __always_inline Ret __stdcall __checked_syscall(Args...args) {
     __hc_assert(__syscalls_[C] != ~0UL);
     $tail_return __syscall<C, Ret>(args...);
   }

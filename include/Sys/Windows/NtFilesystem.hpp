@@ -190,3 +190,60 @@ namespace hc::sys::win {
     uptr  alignment;
   };
 } // namespace hc::sys::win
+
+namespace hc::sys {
+  using ReadBuffer = common::PtrRange<char>;
+
+  inline win::FileObjHandle __stdcall open_file(
+   NtAccessMask mask, win::ObjectAttributes& attr,
+   win::IoStatusBlock& io, win::LargeInt* alloc_size,
+   NtFileAttribMask file_attr, win::ULong share_access,
+   win::ULong create_disposition, win::ULong create_opts,
+   void* ea_buffer = nullptr, win::ULong ea_len = 0UL)
+  {
+    win::FileObjHandle hout;
+    win::NtStatus S = isyscall<NtSyscall::CreateFile>(
+      &hout, mask, &attr, &io, alloc_size, 
+      file_attr, share_access, 
+      create_disposition, create_opts,
+      ea_buffer, ea_len
+    );
+    return hout;
+  }
+
+  inline win::NtStatus __stdcall read_file(
+   win::FileHandle handle, win::EventHandle event,
+   win::IOAPCRoutinePtr apc, void* apc_ctx,
+   win::IoStatusBlock& io, ReadBuffer buf, 
+   win::LargeInt* offset = nullptr, 
+   win::ULong* key = nullptr)
+  {
+    if (!handle) return -1;
+    const usize buf_size = buf.size();
+    return isyscall<NtSyscall::ReadFile>(
+      handle.__data, event, apc, apc_ctx,
+      &io, buf.data(), win::ULong(!buf_size ? 0 : (buf_size - 1)),
+      offset, key
+    );
+  }
+
+  __always_inline win::NtStatus __stdcall read_file(
+   win::FileHandle handle, 
+   win::IoStatusBlock& io, ReadBuffer buf, 
+   win::LargeInt* offset = nullptr,
+   win::ULong* key = nullptr) 
+  {
+    return read_file(
+      handle, win::EventHandle::New(nullptr),
+      win::IOAPCRoutinePtr(nullptr), nullptr, 
+      io, buf, 
+      offset, key
+    );
+  }
+
+  __always_inline win::NtStatus __stdcall
+   close(win::FileObjHandle handle) {
+    if (!handle) return -1;
+    return isyscall<NtSyscall::Close>(handle.__data);
+  }
+} // namespace hc::sys

@@ -39,7 +39,7 @@ message("invariant checking: ${HC_ENABLE_LTO}")
 message("interprocedural optimization: ${HC_ENABLE_LTO}")
 
 add_executable(driver 
-  Driver.cpp 
+  Driver.cpp
   src/Common/Memory.cpp
   src/BinaryFormat/MagicMatcher.cpp
   src/Bootstrap/Win64KernelDefs.cpp

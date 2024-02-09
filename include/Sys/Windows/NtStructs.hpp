@@ -30,9 +30,9 @@ namespace hc::sys::win {
   enum class ObjAttribMask      : ULong;
   enum class FileInfoClass;
   enum class FilesystemInfoClass;
-  struct IoStatusBlock;
-  struct BasicFileInfo;
-  union  FileSegmentElement;
+  struct     IoStatusBlock;
+  struct     BasicFileInfo;
+  union      FileSegmentElement;
 } // namespace hc::sys::win
 
 namespace hc::sys {
