@@ -63,9 +63,6 @@ namespace F = hc::binfmt;
 namespace B = hc::bootstrap;
 namespace P = hc::parcel;
 
-namespace S = hc::sys;
-namespace W = hc::sys::win;
-
 std::ostream& operator<<(std::ostream& os, C::StrRef S) {
   return os.write(S.data(), S.size());
 }
@@ -232,27 +229,100 @@ void check_syscalls() {
 }
 
 namespace hc::sys {
-  __always_inline win::FileHandle __stdcall open_file(
-   NtAccessMask mask, NtObjAttribMask& attr,
+  using NtSyscall  = B::Syscall;
+  using ReadBuffer = C::PtrRange<char>;
+
+  inline win::FileObjHandle __stdcall open_file(
+   NtAccessMask mask, win::ObjectAttributes& attr,
    win::IoStatusBlock& io, win::LargeInt* alloc_size,
    NtFileAttribMask file_attr, win::ULong share_access,
    win::ULong create_disposition, win::ULong create_opts,
    void* ea_buffer = nullptr, win::ULong ea_len = 0UL)
   {
-    win::FileHandle hout;
-    auto S = B::__syscall<B::Syscall::CreateFile, win::NtStatus>(
+    win::FileObjHandle hout;
+    win::NtStatus S = B::__syscall<NtSyscall::CreateFile>(
       &hout, mask, &attr, &io, alloc_size, 
       file_attr, share_access, 
       create_disposition, create_opts,
       ea_buffer, ea_len
     );
+    if (S != 0x0)
+      std::printf("Opening failed!\n");
     return hout;
+  }
+
+  inline win::NtStatus __stdcall read_file(
+   win::FileHandle handle, win::EventHandle event,
+   win::IOAPCRoutinePtr apc, void* apc_ctx,
+   win::IoStatusBlock& io, ReadBuffer buf, 
+   win::LargeInt* offset = nullptr, 
+   win::ULong* key = nullptr)
+  {
+    if (!handle) return -1;
+    const usize buf_size = buf.size();
+    return B::__syscall<NtSyscall::ReadFile>(
+      handle.__data, event, apc, apc_ctx,
+      &io, buf.data(), win::ULong(!buf_size ? 0 : (buf_size - 1)),
+      offset, key
+    );
+  }
+
+  __always_inline win::NtStatus __stdcall read_file(
+   win::FileHandle handle, 
+   win::IoStatusBlock& io, ReadBuffer buf, 
+   win::LargeInt* offset = nullptr,
+   win::ULong* key = nullptr) 
+  {
+    return read_file(
+      handle, win::EventHandle::New(nullptr),
+      win::IOAPCRoutinePtr(nullptr), nullptr, 
+      io, buf, 
+      offset, key
+    );
+  }
+
+  __always_inline win::NtStatus __stdcall
+   close(win::FileObjHandle handle) {
+    if (!handle) return -1;
+    return B::__syscall<NtSyscall::Close>(handle.__data);
   }
 } // namespace hc::sys
 
+namespace S = hc::sys;
+namespace W = hc::sys::win;
+
 int main() {
-  
-  
-  check_syscalls();
-  // dump_exports(M);
+  wchar_t raw_name[] = L"\\??\\C:\\krita-dev\\krita\\README.md";
+  auto name = W::UnicodeString::New(raw_name);
+  auto mask = 
+     W::AccessMask::StdRightsRead
+   | W::AccessMask::ReadData
+   | W::AccessMask::ReadAttributes
+   | W::AccessMask::ReadEA
+   | W::AccessMask::Sync;
+  W::ObjectAttributes obj_attr { .object_name = &name };
+  W::IoStatusBlock io {};
+  auto file_attr = W::FileAttribMask::Normal;
+  W::ULong share      = 0x00; // FILE_SHARE_READ
+  W::ULong createDis  = 0x01; // FILE_OPEN
+  W::ULong createOpt  = 0x40; // FILE_NON_DIRECTORY_FILE
+
+  W::FileHandle handle = S::open_file(
+    mask, obj_attr, io, nullptr, 
+    file_attr, share, createDis, createOpt
+  );
+  std::printf("Opened file `%ls`.\n", name.buffer);
+
+  auto buf = $dynalloc(2048, char).zeroMemory();
+  W::LargeInt offset {};
+  if (auto S = S::read_file(handle, io, buf.toPtrRange(), &offset); $NtFail(S)) {
+    std::printf("Read failed! [0x%.8X]\n", S);
+    return S::close(handle);
+  }
+  std::printf("Buffer contents:\n%.128s...\n", buf.data());
+
+  if (W::NtStatus S = S::close(handle); $NtFail(S)) {
+    std::printf("Closing failed! [0x%.8X]\n", S);
+    return S;
+  }
 }

@@ -26,7 +26,7 @@
 
 #define _HC_NTHANDLE_GROUP(name) InGroup<name>
 #define $DefHANDLE(name, groups...) \
- $Handle(name##Handle, const void*, Boolean, Equality, \
+ $Handle(name##Handle, void*, Boolean, Equality, \
   $PP_mapL(_HC_NTHANDLE_GROUP, HANDLE, ##groups))
 
 namespace hc::sys::win {
@@ -57,13 +57,14 @@ namespace hc::sys::win {
 
   struct GenericHandle {
     GenericHandle() = default;
-    template <__is_HANDLE H> 
-    GenericHandle(H h) : __data(h.__data) { }
 
-    template <typename H>
-    requires __is_HANDLE<H>
+    template <__is_HANDLE H> 
+    __always_inline GenericHandle(H h) : __data(h.__data) { }
+
+    template <__is_HANDLE H>
     explicit operator H() const { return H::New(__data); }
 
+    explicit operator bool() const { return !!__data; }
     void* get() const { return this->__data; }
   public:
     void* __data = nullptr;
@@ -72,6 +73,7 @@ namespace hc::sys::win {
   template <typename GroupRestriction>
   struct SelectiveHandle {
     SelectiveHandle() = default;
+    SelectiveHandle(nullptr_t) : SelectiveHandle() { }
     explicit SelectiveHandle(GenericHandle h) : __data(h.__data) { }
 
     template <typename H>
@@ -80,8 +82,9 @@ namespace hc::sys::win {
 
     template <typename H>
     requires handle_in_group<H, GroupRestriction>
-    explicit operator H() const { return H::New(__data); }
+    /* TODO: explicit */ operator H() const { return H::New(__data); }
 
+    explicit operator bool() const { return !!__data; }
     void* get() const { return this->__data; }
   public:
     void* __data = nullptr;

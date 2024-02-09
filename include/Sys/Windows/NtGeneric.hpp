@@ -22,6 +22,14 @@
 #include <Common/Fundamental.hpp>
 
 // TODO: $Nt[Status|Info|Warning|Error](...)
+#define __$NtRange(ex, L, H) (((u64)ex >= (L##ULL)) && ((u64)ex <= (H##ULL)))
+#define $NtOk(ex...)   __$NtRange((ex), 0x00000000, 0x3FFFFFFF)
+#define $NtInfo(ex...) __$NtRange((ex), 0x40000000, 0x7FFFFFFF)
+#define $NtWarn(ex...) __$NtRange((ex), 0x80000000, 0xBFFFFFFF)
+#define $NtErr(ex...)  __$NtRange((ex), 0xC0000000, 0xFFFFFFFF)
+
+#define $NtSuccess(ex...) ($NtOk(ex) || $NtInfo(ex))
+#define $NtFail(ex...)    ($NtWarn(ex) || $NtErr(ex))
 
 namespace hc::sys::win {
   using UnicodeString = bootstrap::Win64UnicodeString;
@@ -35,7 +43,7 @@ namespace hc::sys::win {
       return this->quad;
     }
   public:
-    i64 quad;
+    i64 quad = 0L;
     struct {
       u32 low;
       i32 high;
@@ -47,7 +55,7 @@ namespace hc::sys::win {
       return this->quad;
     }
   public:
-    u64 quad;
+    u64 quad = 0UL;
     struct {
       u32 low;
       u32 high;

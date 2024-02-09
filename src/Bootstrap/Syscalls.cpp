@@ -50,6 +50,7 @@ B::_SyscallLoader::_SyscallLoader() {
   if __expect_false(!R) {
     /// Would rather have it panic, but since io isn't loaded,
     /// we obviously can't print here... 
+    /// TODO: Find better alternative
     __builtin_trap();
   }
 }

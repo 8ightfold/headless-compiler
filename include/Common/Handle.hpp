@@ -45,7 +45,13 @@ __cldiag(ignored "-Wvariadic-macros")
 __cldiag(pop)
 
 namespace hc {
-  struct _HandleGID;
+  template <typename GroupID>
+  struct _HandleGroup {
+    using GroupType = GroupID;
+    static constexpr bool __isGroup = true;
+  };
+
+  $HandleGroup(AllHandles);
 
   struct HandleAttr {
     struct Boolean;
@@ -69,12 +75,6 @@ namespace hc {
   __ndbg_inline constexpr const D& __href_cast(const B* base) {
     return static_cast<const D&>(*base);
   }
-
-  template <typename GroupID>
-  struct _HandleGroup {
-    using GroupType = GroupID;
-    static constexpr bool __isGroup = true;
-  };
 
   template <typename Base, typename A>
   struct _HandleAttr;
@@ -157,7 +157,7 @@ namespace hc {
   /// A wrapper type used to differentiate objects for type safety.
   /// @tparam T The underlying type of the handle.
   /// @tparam ID The unique identifier for the type.
-  template <typename T, typename ID = _HandleGID, typename...AA>
+  template <typename T, typename ID = struct _HandleGID, typename...AA>
   struct Handle : _HandleAttr<Handle<T, ID, AA...>, AA>... {
     using SelfType = Handle;
     using Type = T;
@@ -188,8 +188,7 @@ namespace hc {
 
   template <typename H, typename Group>
   concept handle_in_group = requires(H& h) {
-    typename Group::GroupType;
-    h.__ingroup(Group{});
+    static_cast<_HandleAttr<H, HandleAttr::InGroup<Group>>&>(h);
   };
 
   $Handle(__eg_handle_, void*, Boolean, Pointer);

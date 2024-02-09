@@ -24,10 +24,19 @@
 
 namespace hc::sys::win {
   enum class AccessMask : ULong {
-    Delete            = 0x010000UL,
+    ReadData          = 0x000001UL,
+    ReadEA            = 0x000008UL,
+    ReadAttributes    = 0x000080UL,
     ReadControl       = 0x020000UL,
+
+    WriteData         = 0x000002UL,
+    WriteEA           = 0x000010UL,
     WriteDAC          = 0x040000UL,
     WriteOwner        = 0x080000UL,
+
+    Delete            = 0x010000UL,
+    Execute           = 0x000020UL,
+    Sync              = 0x100000UL,
 
     StdRightsRequired = 0x0F0000UL,
     StdRightsRead     = ReadControl,
@@ -148,7 +157,10 @@ namespace hc::sys::win {
   //=== Misc. ===//
 
   struct IoStatusBlock {
-    NtStatus status;
+    union {
+      NtStatus status;
+      void*    pad;
+    };
     uptr info;
   };
 
@@ -158,11 +170,11 @@ namespace hc::sys::win {
 
   struct ObjectAttributes {
     ULong length  = sizeof(ObjectAttributes);
-    FileObjHandle   root_directory;
+    FileObjHandle   root_directory = nullptr;
     UnicodeString*  object_name = nullptr;
-    ObjAttribMask   attributes;
-    void*           security_descriptor; // TODO: Define
-    void*           security_QOS;
+    ObjAttribMask   attributes = ObjAttribMask::CaseInsensitive;
+    void*           security_descriptor = nullptr;
+    void*           security_QOS = nullptr;
   };
 
   struct BasicFileInfo {

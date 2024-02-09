@@ -41,7 +41,12 @@ namespace hc::common {
     //=== Observers ===//
 
     [[nodiscard, gnu::const]]
-    constexpr T* data() const __noexcept {
+    constexpr T* data() __noexcept {
+      return this->__data;
+    }
+
+    [[nodiscard, gnu::const]]
+    constexpr const T* data() const __noexcept {
       return this->__data;
     }
 
@@ -54,13 +59,28 @@ namespace hc::common {
     }
 
     [[nodiscard]]
-    PtrRange<T> toPtrRange() const __noexcept {
+    PtrRange<T> toPtrRange() __noexcept {
       return { begin(), end() };
+    }
+
+    [[nodiscard]]
+    PtrRange<const T> toPtrRange() const __noexcept {
+      return { begin(), end() };
+    }
+
+    [[nodiscard, gnu::const]]
+    constexpr T* begin() __noexcept {
+      return data();
     }
 
     [[nodiscard, gnu::const]]
     constexpr T* begin() const __noexcept {
       return data();
+    }
+
+    [[nodiscard, gnu::const]]
+    constexpr T* end() __noexcept {
+      return data() + Size();
     }
 
     [[nodiscard, gnu::const]]

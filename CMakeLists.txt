@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 23)
 
 project(
   headless-compiler
-  VERSION 0.1.11
+  VERSION 0.1.12
   LANGUAGES CXX
 )
 
