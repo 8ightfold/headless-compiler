@@ -228,6 +228,20 @@ namespace hc::bootstrap {
     }
   };
 
+  struct Win64ProcParams {
+    u32         allocation_size;
+    u32         size;
+    u32         flags;
+    u32         debug_flags;
+    Win64Handle console_handle;
+    u32         console_flags;
+    Win64Handle std_in;
+    Win64Handle std_out;
+    Win64Handle std_err;
+    // ...
+    HC_MARK_DELETED(Win64ProcParams);
+  };
+
   struct Win64PEB {
     Win64Bool         is_inherited_addr_space;
     Win64Bool         image_file_exec_options;
@@ -243,6 +257,7 @@ namespace hc::bootstrap {
     Win64Handle       mutant;
     Win64Handle       image_base_addr;
     Win64PEBLDRData*  LDR_data;
+    Win64ProcParams*  proccess_params;
     // ...
     HC_MARK_DELETED(Win64PEB);
   public:

@@ -16,200 +16,26 @@
 //
 //===----------------------------------------------------------------===//
 
-#include <Common/Align.hpp>
-#include <Common/Array.hpp>
-#include <Common/Casting.hpp>
-#include <Common/DynAlloc.hpp>
-#include <Common/EnumArray.hpp>
-#include <Common/Fundamental.hpp>
-#include <Common/Handle.hpp>
-#include <Common/Location.hpp>
-#include <Common/Memory.hpp>
-#include <Common/PtrUnion.hpp>
-#include <Common/Strings.hpp>
-#include <Common/StrRef.hpp>
-
-#include <Common/Option.hpp>
-#include <Common/Result.hpp>
 #include <Common/Unwrap.hpp>
-
-#include <Common/Intrusive.hpp>
-#include <Parcel/StaticVec.hpp>
-
-#include <Common/Preproc.hpp>
 #include <Common/Refl.hpp>
-#include <Common/TaggedEnum.hpp>
-
 #include <Bootstrap/Win64KernelDefs.hpp>
-#include <Bootstrap/ModuleParser.hpp>
 #include <Bootstrap/StubParser.hpp>
-#include <BinaryFormat/COFF.hpp>
-
 #include <Bootstrap/Syscalls.hpp>
+#include <Parcel/StaticVec.hpp>
 #include <Sys/Windows/NtStructs.hpp>
 #include <Sys/Windows/NtFilesystem.hpp>
 
-#if _HC_DEBUG
-# undef NDEBUG
-#endif
-
-#include <cstddef>
+#pragma push_macro("NDEBUG")
+#undef NDEBUG
 #include <cassert>
 #include <cstdio>
-#include <iostream>
+#pragma pop_macro("NDEBUG")
 
-namespace C = hc::common;
-namespace F = hc::binfmt;
 namespace B = hc::bootstrap;
+namespace C = hc::common;
 namespace P = hc::parcel;
-
-std::ostream& operator<<(std::ostream& os, C::StrRef S) {
-  return os.write(S.data(), S.size());
-}
-
-template <typename T>
-std::ostream& operator<<(std::ostream& os, const C::Option<T>& O) {
-  if constexpr (C::__has_binary_shl<std::ostream&, const T&>) {
-    if (O.isSome()) 
-      return os << O.some();
-  }
-  return os << "<null>";
-}
-
-void __dump_introspect(
- u32& count, const char* fmt, auto&&...args) {
-  ++count;
-  std::printf("%u: ", count);
-  std::printf(fmt, args...);
-  if (fmt[hc::common::__strlen(fmt) - 1] != '\n') std::puts("\\n");
-  std::fflush(stdout);
-}
-
-void __dump_args(
- u32& count, const char* fmt, auto&&...args) {
-  ++count;
-  const auto arg_count = unsigned(sizeof...(args));
-  const usize fmt_len = hc::common::__strlen(fmt) + 1;
-  void* saddr_prev = nullptr, *saddr_post = nullptr;
-  saddr_prev = __builtin_stack_address();
-  auto local_fmt = $dynalloc(fmt_len, char).zeroMemory();
-  saddr_post = __builtin_stack_address();
-  assert(saddr_prev != saddr_post);
-  if __expect_false(!local_fmt) {
-    std::printf("%u: ALLOC_ERROR\n", count);
-    std::fflush(stdout);
-    return;
-  }
-  for (usize I = 0, E = fmt_len; I < E; ++I) {
-    const char c = fmt[I];
-    if __expect_false(c == '\0') break;
-    else if(c < ' ' || c > '~') local_fmt[I] = '\\';
-    else local_fmt[I] = c;
-  }
-  std::printf("%u: `%s` [%u]\n", count, local_fmt.data(), arg_count);
-  std::fflush(stdout);
-}
-
-u32 dump_introspect(auto* p) {
-  u32 count = 0;
-  __builtin_dump_struct(p, &__dump_introspect, count);
-  std::cout << std::endl;
-  count = 0;
-  __builtin_dump_struct(p, &__dump_args, count);
-  std::cout << std::endl;
-  return count;
-}
-
-u32 dump_introspect(const auto& v) {
-  return dump_introspect(&v);
-}
-
-void dump_data(auto* p) {
-  if __expect_false(!p) return;
-  __builtin_dump_struct(p, &std::printf);
-  std::cout << std::endl;
-}
-
-void dump_data(const auto& v) { 
-  dump_data(&v);
-}
-
-template <typename...TT>
-void dump_data(C::PtrUnion<TT...> data) {
-  data.visit([] <typename P> (P* p) {
-    if constexpr (__is_class(P)) {
-      dump_data(p);
-    }
-  });
-}
-
-void multidump(auto&&...args) {
-  ((dump_data(args)), ...);
-}
-
-static void dump_exports(B::COFFModule& M, [[maybe_unused]] bool dump_body = false) {
-  using hc::dyn_cast;
-  namespace COFF = B::COFF;
-  const auto name = M.getName();
-  auto& T = M.getTables();
-  if (u32 extbl_RVA = T.data_dirs[COFF::eDirectoryExportTable].RVA) {
-    std::cout << "|===================================|\n\n";
-    auto* EDT = M->getRVA<COFF::ExportDirectoryTable>(extbl_RVA);
-    auto NPT = M->getRangeFromRVA(EDT->name_pointer_table_RVA)
-      .intoRange<COFF::NamePointerType>()
-      .takeFront(EDT->name_pointer_table_count);
-    if (auto* WS = dyn_cast<const wchar_t>(name))
-      std::printf("Exported names for `%ls`:\n", WS);
-    if (auto* S  = dyn_cast<const char>(name))
-      std::printf("Exported names for `%s`:\n", S);
-    for (auto off : NPT) {
-      auto S = C::StrRef::NewRaw(M->getRVA<char>(off));
-      if (S.beginsWith("Nt"))
-        std::cout << S.dropFront(2) << '\n';
-    }
-    std::cout << std::endl;
-  }
-}
-
-static void dump_exports(B::DualString name, bool dump_body = false) {
-  if (name.isEmpty()) {
-    std::printf("ERROR: Name cannot be NULL.\n");
-    return;
-  }
-  auto O = B::ModuleParser::GetParsedModule(name);
-  if(O.isNone()) return;
-  dump_exports(O.some(), dump_body);
-}
-
-static void list_modules() {
-  B::Win64PEB* ppeb = B::Win64TEB::LoadTEBFromGS()->getPEB();
-  const auto modules = ppeb->getLDRModulesInMemOrder();
-  for (auto* P = modules->prev(); !P->isSentinel(); P = P->prev())
-    dump_data(P->asLDRDataTableEntry());
-}
-
-static bool check_ret(const u8*& P) {
-  const u8 I = *P++;
-  if (I == 0xC2) {
-    std::printf("%.2X ", u32(*++P));
-    std::printf("%.2X ", u32(*++P));
-    return false;
-  }
-  return (I != 0xC2) && (I != 0xC3);
-}
-
-template <B::Syscall C, typename Ret = B::NtReturn, typename...Args>
-void dump_syscall(Args...) {
-  auto F = &B::__syscall<C, Ret, Args...>;
-  auto P = reinterpret_cast<const u8*>(F);
-  std::printf("__syscall<%s, ...> [%p]:\n",
-    $reflexpr(B::Syscall).Fields().Name(C), P);
-  std::printf("value: 0x%.3x\n", B::__syscalls_[C]);
-  do {
-    std::printf("%.2X ", u32(*P));
-  } while (check_ret(P));
-  std::cout << '\n' << std::endl;
-}
+namespace S = hc::sys;
+namespace W = hc::sys::win;
 
 void check_syscalls() {
   static constexpr auto R = $reflexpr(B::Syscall);
@@ -225,11 +51,8 @@ void check_syscalls() {
   }
   if (none_unset)
     std::printf("All loaded!\n");
-  std::cout << std::endl;
+  std::fflush(stdout);
 }
-
-namespace S = hc::sys;
-namespace W = hc::sys::win;
 
 int main() {
   wchar_t raw_name[] = L"\\??\\C:\\krita-dev\\krita\\README.md";
