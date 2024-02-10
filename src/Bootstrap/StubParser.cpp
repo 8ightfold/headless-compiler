@@ -42,7 +42,7 @@ namespace {
   }
 
   template <Instruction I>
-  __global u8 primaryOpcode = u32(I) & 0xFF;
+  static constexpr u8 primaryOpcode = u32(I) & 0xFF;
 
   u32 extract_syscall(const u8* bytes) {
     // Sanity checking
@@ -63,7 +63,7 @@ namespace {
         return $StubErr(UnexpectedC2Retn);
       if (I == Instruction::MovImmToEax)
         call = extract_syscall(bytes);
-      else if (I == Instruction::SysCall)
+      else if (I == Instruction::KCall)
         did_syscall = true;
       bytes += instruction_size(I);
     }
@@ -73,9 +73,16 @@ namespace {
   }
 } // namespace `anonymous`
 
+namespace hc::bootstrap {
+  /// Also used in `Syscalls.cpp`.
+  COFFModule& __NtModule() {
+    return NtModule();
+  }
+} // namespace hc::bootstrap
+
 Instruction B::get_instruction(const u8* bytes) {
     const u8 primary = *bytes;
-    $MatchInstr(SysCall, primary)
+    $MatchInstr(KCall, primary)
     else $MatchInstr(MovRcxToR10, primary)
     else $MatchInstr(Jne, primary)
     else $MatchInstr(Retn, primary)
@@ -88,7 +95,7 @@ Instruction B::get_instruction(const u8* bytes) {
     else $MatchInstr(XorEcx, primary)
     else $MatchInstr(MovEspToEdx, primary)
     else $MatchInstr(CallEdx, primary)
-    else $MatchInstr(SysEnter, primary)
+    else $MatchInstr(KEnter, primary)
     else $MatchInstr(LeaEspOffToEdx, primary)
     else $MatchInstr(CallLargePtr, primary)
     return Instruction::Unknown;

@@ -75,6 +75,10 @@ using __hc_tyident_ = T;
 # define _HC_DEBUG 0
 #endif
 
+#ifndef _HC_TRUE_DEBUG
+# define _HC_TRUE_DEBUG 0
+#endif
+
 #define _HC_RELEASE (!_HC_DEBUG)
 
 #if _HC_DEBUG && _HC_ENABLE_LTO

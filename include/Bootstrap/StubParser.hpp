@@ -41,8 +41,8 @@ namespace hc::bootstrap {
     (XorEcx,          0xC9'33),     // xor ecx, ecx
     (MovEspToEdx,     0xD4'8B),     // mov edx, esp
     (CallEdx,         0xD2'FF),     // call edx
-    (SysEnter,        0x34'0F),     // sysenter
-    (SysCall,         0x05'0F),     // syscall
+    (KEnter,          0x34'0F),     // sysenter
+    (KCall,           0x05'0F),     // syscall
     // 3+ Byte
     (MovRcxToR10,     0xD1'8B'4C),  // mov r10, rcx
     (LeaEspOffToEdx,  0x24'54'8D),  // lea edx, [esp+??]
@@ -52,6 +52,7 @@ namespace hc::bootstrap {
   );
 
   $StrongEnum((StubError),
+    (Success),
     (IllegalInstruction),
     (UnexpectedC2Retn),
     (UnknownFunction),
@@ -72,8 +73,8 @@ namespace hc::bootstrap {
      case XorEcx:
      case MovEspToEdx:
      case CallEdx:
-     case SysEnter:
-     case SysCall:        return 2;
+     case KEnter:
+     case KCall:          return 2;
      // 3+ Byte
      case MovRcxToR10:    return 3;
      case LeaEspOffToEdx: return 4;

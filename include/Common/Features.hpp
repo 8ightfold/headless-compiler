@@ -105,11 +105,17 @@ constexpr __remove_reference_t(T)&& __hc_move(T&& t) __noexcept {
 # define __hc_unreachable(...) $unreachable
 #endif // __hc_unreachable
 
+#if _HC_TRUE_DEBUG
+# define __hc_trap() __builtin_debugtrap()
+#else
+# define __hc_trap() __builtin_trap()
+#endif
+
 #if _HC_DEBUG
 # define __hc_assert(expr...) \
   [&] () __attribute__((always_inline, artificial)) { \
     if __expect_false(!bool(expr)) \
-      __builtin_debugtrap();       \
+      __hc_trap();                 \
   }();
 #else
 # define __hc_assert(...) (void)(0)
@@ -161,7 +167,7 @@ extern "C" {
   __attribute__((cold, noreturn))
   inline void __hc_dbg_unreachable(void) {
     if constexpr(_HC_DEBUG) {
-      __builtin_debugtrap();
+      __hc_trap();
     }
     __builtin_unreachable();
   }

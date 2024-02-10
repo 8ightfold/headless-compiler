@@ -37,7 +37,7 @@ namespace hc {
     static constexpr auto Name(const T& V) {
       auto field_name = __refl_fieldname(V);
       if __expect_false(!field_name) 
-        return "<invalid>";
+        return "??";
       if constexpr (requires { __refl_markprefix(V); }) {
         return field_name + __refl_markprefix(V);
       } else {

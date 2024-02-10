@@ -43,9 +43,8 @@ namespace hc::bootstrap {
   enum class Syscall : u32 {
 #  define $NtGen(name) name,
 #  include "Syscalls.mac"
-    MaxValue = TestAlert
+    MaxValue
   };
-
   $MarkName(Syscall);
 
   constexpr const char* __refl_fieldname(Syscall E) {
@@ -66,7 +65,8 @@ namespace hc::bootstrap {
     return A;
   }
 
-  inline common::EnumArray<u32, Syscall> __syscalls_ {};
+  static constexpr u32 __invalid_syscall_ = ~0UL;
+  extern constinit common::EnumArray<u32, Syscall> __syscalls_;
 
   /// Ensure `__syscalls_` has been initialized, otherwise you'll
   /// just have random nigh-undebuggable errors.
@@ -85,7 +85,7 @@ namespace hc::bootstrap {
 
   template <Syscall C, typename Ret = NtReturn, typename...Args>
   __always_inline Ret __stdcall __checked_syscall(Args...args) {
-    __hc_assert(__syscalls_[C] != ~0UL);
+    __hc_assert(__syscalls_[C] != __invalid_syscall_);
     $tail_return __syscall<C, Ret>(args...);
   }
 

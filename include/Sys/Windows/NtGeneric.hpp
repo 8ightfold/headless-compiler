@@ -69,7 +69,7 @@ namespace hc::sys {
 
   template <NtSyscall C, typename Ret = NtStatus>
   inline Ret __stdcall isyscall(auto...args) {
-    if constexpr (_HC_DEBUG)
+    if constexpr (_HC_TRUE_DEBUG)
       $tail_return bootstrap::__checked_syscall<C, Ret>(args...);
     else
       $tail_return bootstrap::__syscall<C, Ret>(args...);
