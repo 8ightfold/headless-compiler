@@ -25,26 +25,24 @@ $Once { ::Y = 4; };
 $Once { ::Z = 8; };
 
 int main() {
-// int main(int V, char* A[]) {
-  return X + Y + Z;
+  return X + Y + Z; // Returns 14!!
 }
 
-extern "C" {
-  extern void __do_global_ctors(void);
-  extern void __do_global_dtors(void);
+#if defined(_WINMAIN_) || defined(WPRFLAG) || defined(_MANAGED_MAIN)
+# error Invalid main signature! Only mainCRTStartup is supported.
+#endif
 
-  // [[gnu::force_align_arg_pointer, gnu::used]]
-  // void _start(void) {
-  //   int R = main();
-  //   __do_global_dtors();
-  // }
+extern "C" {
+  void __do_global_dtors(void);
+  void __hc_stk_probe(void);
 
   [[gnu::force_align_arg_pointer]]
   int mainCRTStartup(void) {
     int ret = 255;
-    // __stk_probe();
-    // __security_init_cookie ();
-    // ret = __tmainCRTStartup ();
-    return 255;
+    // __hc_stk_probe();
+    // TODO: Make some other internal dispatcher
+    ret = main();
+    __do_global_dtors();
+    return ret;
   }
 }

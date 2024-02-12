@@ -66,6 +66,6 @@ target_internal_flags(driver PUBLIC HC_TRUE_DEBUG)
 target_internal_flags(driver PUBLIC HC_CHECK_INVARIANTS)
 target_internal_flags(driver PUBLIC HC_ENABLE_LTO)
 
-add_executable(nostartup NoStartup.cpp hc-rt/startup/GccMain.cpp)
+add_executable(nostartup NoStartup.cpp hc-rt/startup/Main2.cpp)
 target_compile_options(nostartup PUBLIC -fno-exceptions -nostdinc++)
-target_link_options(nostartup PUBLIC -v -nostdlib++ -nostartfiles)
+target_link_options(nostartup PUBLIC -v -nostdlib++ -nostartfiles -Wl,-e,mainCRTStartup)
