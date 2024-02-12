@@ -33,9 +33,18 @@ extern "C" {
   extern void __do_global_ctors(void);
   extern void __do_global_dtors(void);
 
-  [[gnu::force_align_arg_pointer, gnu::used]]
-  void _start(void) {
-    int R = main();
-    __do_global_dtors();
+  // [[gnu::force_align_arg_pointer, gnu::used]]
+  // void _start(void) {
+  //   int R = main();
+  //   __do_global_dtors();
+  // }
+
+  [[gnu::force_align_arg_pointer]]
+  int mainCRTStartup(void) {
+    int ret = 255;
+    // __stk_probe();
+    // __security_init_cookie ();
+    // ret = __tmainCRTStartup ();
+    return 255;
   }
 }

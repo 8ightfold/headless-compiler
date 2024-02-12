@@ -72,7 +72,6 @@ namespace hc::bootstrap {
   /// just have random nigh-undebuggable errors.
   template <Syscall C, typename Ret = NtReturn, typename...Args>
   [[gnu::noinline, gnu::naked]]
-  
   inline Ret __stdcall __syscall(Args...args) {
     __asm__ volatile ("movq %%rcx, %%r10;\n"::);
     __asm__ volatile (

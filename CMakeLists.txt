@@ -47,15 +47,15 @@ message(STATUS "invariant checking: ${HC_ENABLE_LTO}")
 message(STATUS "IPO/LTO: ${HC_ENABLE_LTO}")
 
 add_executable(driver Driver.cpp
-  hc/src/Common/Memory.cpp
-  hc/src/BinaryFormat/MagicMatcher.cpp
-  hc/src/Bootstrap/Win64KernelDefs.cpp
-  hc/src/Bootstrap/ModuleParser.cpp
-  hc/src/Bootstrap/COFFModule.cpp
-  hc/src/Bootstrap/StubParser.cpp
-  hc/src/Bootstrap/Syscalls.cpp
+  hc-rt/src/Common/Memory.cpp
+  hc-rt/src/BinaryFormat/MagicMatcher.cpp
+  hc-rt/src/Bootstrap/Win64KernelDefs.cpp
+  hc-rt/src/Bootstrap/ModuleParser.cpp
+  hc-rt/src/Bootstrap/COFFModule.cpp
+  hc-rt/src/Bootstrap/StubParser.cpp
+  hc-rt/src/Bootstrap/Syscalls.cpp
 )
-target_include_directories(driver PUBLIC hc/include PRIVATE hc/src)
+target_include_directories(driver PUBLIC hc-rt/include PRIVATE hc-rt/src)
 target_compile_definitions(driver PRIVATE -D__HC_INTERNAL__=1)
 # target_compile_options(driver PUBLIC -nostdinc++)
 target_compile_options(driver PUBLIC -fno-exceptions)
@@ -66,12 +66,6 @@ target_internal_flags(driver PUBLIC HC_TRUE_DEBUG)
 target_internal_flags(driver PUBLIC HC_CHECK_INVARIANTS)
 target_internal_flags(driver PUBLIC HC_ENABLE_LTO)
 
-# add_library(rt-begin STATIC hc/runtime/RtBegin.cpp)
-# set_target_properties(rt-begin PROPERTIES PREFIX "" OUTPUT_NAME "crtbegin" SUFFIX ".o")
-# add_library(rt-end STATIC hc/runtime/RtBegin.cpp)
-# set_target_properties(rt-end PROPERTIES PREFIX "" OUTPUT_NAME "crtend" SUFFIX ".o")
-
-add_executable(nostartup NoStartup.cpp hc/runtime/GccMain.cpp)
-target_compile_options(nostartup PUBLIC -fno-exceptions -nostdinc -nostdinc++)
-target_link_options(nostartup PUBLIC -v -nostdlib++ -nostdlib -nostartfiles)
-# target_link_libraries(nostartup PUBLIC rt-begin rt-end)
+add_executable(nostartup NoStartup.cpp hc-rt/startup/GccMain.cpp)
+target_compile_options(nostartup PUBLIC -fno-exceptions -nostdinc++)
+target_link_options(nostartup PUBLIC -v -nostdlib++ -nostartfiles)
