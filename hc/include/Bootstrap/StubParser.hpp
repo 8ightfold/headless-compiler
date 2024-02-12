@@ -60,7 +60,7 @@ namespace hc::bootstrap {
     (SyscallNotFound)
   );
 
-  constexpr usize instruction_size(Instruction I) {
+  [[gnu::hot]] constexpr usize instruction_size(Instruction I) {
     switch (I) {
      case Jne:            return 2;
      case MovImmToEax:

@@ -27,7 +27,8 @@
 #define $unwrap(obj, on_err...) ({ \
   if __expect_false(!obj) \
     return ::hc::__unwrap_fail(obj, ##on_err); \
-  ::hc::_FwdWrapper{*obj}; }).get()
+  ::hc::_FwdWrapper{*obj}; \
+}).get()
 
 //=== Forward Decls ===//
 namespace hc::common {

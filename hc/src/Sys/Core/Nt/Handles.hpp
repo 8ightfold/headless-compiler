@@ -1,4 +1,4 @@
-//===- Sys/Windows/NtHandles.hpp ------------------------------------===//
+//===- Sys/Core/Nt/Handles.hpp --------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -25,9 +25,19 @@
 #include <Common/Handle.hpp>
 
 #define _HC_NTHANDLE_GROUP(name) InGroup<name>
+
+/// Define and check validity of handle.
 #define $DefHANDLE(name, groups...) \
- $Handle(name##Handle, void*, Boolean, Equality, \
-  $PP_mapL(_HC_NTHANDLE_GROUP, HANDLE, ##groups))
+$Handle(name##Handle, void*, Boolean, Equality, \
+ $PP_mapL(_HC_NTHANDLE_GROUP, HANDLE, ##groups)); \
+static_assert(sizeof(name##Handle) == sizeof(void*))
+
+/// Extracts `__data` or returns `INVALID_HANDLE`.
+#define $unwrap_handle(H) ({ \
+  if __expect_false(!H) \
+    return 0xC0000008; \
+  H.__data; \
+})
 
 namespace hc::sys::win {
   $HandleGroup(HANDLE);
@@ -55,7 +65,7 @@ namespace hc::sys::win {
   template <typename H>
   concept __is_HANDLE = handle_in_group<H, HANDLE>;
 
-  struct GenericHandle {
+  struct [[gsl::Pointer]] GenericHandle {
     GenericHandle() = default;
 
     template <__is_HANDLE H> 
@@ -71,7 +81,7 @@ namespace hc::sys::win {
   };
 
   template <typename GroupRestriction>
-  struct SelectiveHandle {
+  struct [[gsl::Pointer]] SelectiveHandle {
     SelectiveHandle() = default;
     SelectiveHandle(nullptr_t) : SelectiveHandle() { }
     explicit SelectiveHandle(GenericHandle h) : __data(h.__data) { }
@@ -82,7 +92,7 @@ namespace hc::sys::win {
 
     template <typename H>
     requires handle_in_group<H, GroupRestriction>
-    /* TODO: explicit */ operator H() const { return H::New(__data); }
+    operator H() const { return H::New(__data); }
 
     explicit operator bool() const { return !!__data; }
     void* get() const { return this->__data; }

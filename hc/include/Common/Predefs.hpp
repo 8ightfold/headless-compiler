@@ -103,6 +103,23 @@ using __hc_tyident_ = T;
 # define HC_PLATFORM_LINUX 0
 #endif
 
+#undef __cdecl
+#undef __fastcall
+#undef __stdcall
+#undef __thiscall
+
+#if HC_PLATFORM_WIN64
+# define __cdecl    __attribute__((__cdedl__))
+# define __fastcall __attribute__((__fastcall__))
+# define __stdcall  __attribute__((__stdcall__))
+# define __thiscall __attribute__((__thiscall__))
+#else
+# define __cdecl
+# define __fastcall
+# define __stdcall
+# define __thiscall
+#endif
+
 //=== Architecture Macros ===//
 
 #if defined(__i386__) || defined(__i386)

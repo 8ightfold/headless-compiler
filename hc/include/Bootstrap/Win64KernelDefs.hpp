@@ -301,6 +301,7 @@ namespace hc::bootstrap {
     HC_MARK_DELETED(Win64TEB);
   public:
     static Win64TEB* LoadTEBFromGS();
+    static Win64PEB* LoadPEBFromGS();
     Win64AddrRange getStackRange();
     uptr getProcessId() const;
     uptr getThreadId() const;

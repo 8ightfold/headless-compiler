@@ -1,4 +1,4 @@
-//===- Sys/Windows/NtFilesystem.hpp ---------------------------------===//
+//===- Sys/Core/Nt/Filesystem.hpp -----------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -19,32 +19,33 @@
 #pragma once
 
 #include <Common/EnumBitwise.hpp>
-#include "NtGeneric.hpp"
-#include "NtHandles.hpp"
+#include "Generic.hpp"
+#include "Handles.hpp"
 
 namespace hc::sys::win {
   enum class AccessMask : ULong {
-    ReadData          = 0x000001UL,
-    ReadEA            = 0x000008UL,
-    ReadAttributes    = 0x000080UL,
-    ReadControl       = 0x020000UL,
+    ReadData          = 0x000001,
+    ReadAttributes    = 0x000080,
+    ReadEA            = 0x000008,
+    ReadControl       = 0x020000,
 
-    WriteData         = 0x000002UL,
-    WriteEA           = 0x000010UL,
-    WriteDAC          = 0x040000UL,
-    WriteOwner        = 0x080000UL,
+    WriteData         = 0x000002,
+    WriteAttributes   = 0x000100,
+    WriteEA           = 0x000010,
+    WriteDAC          = 0x040000,
+    WriteOwner        = 0x080000,
 
-    Delete            = 0x010000UL,
-    Execute           = 0x000020UL,
-    Sync              = 0x100000UL,
+    Delete            = 0x010000,
+    Execute           = 0x000020,
+    Sync              = 0x100000,
 
-    StdRightsRequired = 0x0F0000UL,
+    StdRightsRequired = 0x0F0000,
     StdRightsRead     = ReadControl,
     StdRightsWrite    = ReadControl,
     StdRightsExec     = ReadControl,
 
-    StdRightsAll      = 0x1F0000UL,
-    SpRightsAll       = 0x00FFFFUL,
+    StdRightsAll      = 0x1F0000,
+    SpRightsAll       = 0x00FFFF,
   };
 
   struct AccessMaskSpecific {
@@ -59,10 +60,34 @@ namespace hc::sys::win {
       return this->data;
     }
   public:
-    ULong data = max;
+    ULong data = 0UL;
+  };
+
+  enum class CreateDisposition : ULong {
+    Supersede           = 0x00000,
+    Open                = 0x00001,
+    Create              = 0x00010,
+    OpenIf              = 0x00011,
+    Overwrite           = 0x00100,
+    OverwriteIf         = 0x00101,
+    MaxValue            = OverwriteIf,
+  };
+
+  enum class CreateOptsMask : ULong {
+    IsDirectory         = 0x000001,
+    IsFile              = 0x000040,
+    SequentialOnly      = 0x000004,
+    RandomAccess        = 0x000800,
+    WriteThrough        = 0x000002,
+    NoBuffering         = 0x000008,
+    SyncIOAlert         = 0x000010,
+    SyncIONoAlert       = 0x000020,
+    DeleteOnClose       = 0x001000,
+    ReserveOplock       = 0x100000,
   };
 
   enum class FileAttribMask : ULong {
+    None                = 0x00000,
     ReadOnly            = 0x00001,
     Hidden              = 0x00002,
     System              = 0x00004,
@@ -81,24 +106,46 @@ namespace hc::sys::win {
     NoScrubData         = 0x20000,
   };
 
+  enum class FileShareMask : ULong {
+    None                = 0b00000,
+    Read                = 0b00001,
+    Write               = 0b00010,
+    Delete              = 0b00100,
+    All                 = 0b00111,
+  };
+
   enum class ObjAttribMask : ULong {
-    Inherit             = 0x0002UL,
-    Permanent           = 0x0010UL,
-    Exclusive           = 0x0020UL,
-    CaseInsensitive     = 0x0040UL,
-    OpenIf              = 0x0080UL,
-    OpenLink            = 0x0100UL,
-    KernelHandle        = 0x0200UL,
-    ForceAccessCheck    = 0x0400UL,
-    IgnoreImpDeviceMap  = 0x0800UL,
-    DoNotReparse        = 0x1000UL,
-    __ValidAttributes   = 0x1FF2UL,
+    Inherit             = 0x00002,
+    Permanent           = 0x00010,
+    Exclusive           = 0x00020,
+    CaseInsensitive     = 0x00040,
+    OpenIf              = 0x00080,
+    OpenLink            = 0x00100,
+    KernelHandle        = 0x00200,
+    ForceAccessCheck    = 0x00400,
+    IgnoreImpDeviceMap  = 0x00800,
+    DoNotReparse        = 0x01000,
+    __ValidAttributes   = 0x01FF2,
   };
 
   $MarkBitwise(AccessMask)
+  $MarkBitwise(CreateOptsMask)
   $MarkBitwise(FileAttribMask)
+  $MarkBitwise(FileShareMask)
   $MarkBitwise(ObjAttribMask)
   $MarkBitwiseEx(AccessMaskSpecific, ULong)
+
+  inline constexpr AccessMask GenericReadAccess =
+    AccessMask::StdRightsRead | AccessMask::ReadData 
+   | AccessMask::ReadAttributes | AccessMask::ReadEA | AccessMask::Sync;
+
+  inline constexpr AccessMask GenericWriteAccess =
+    AccessMask::StdRightsWrite | AccessMask::WriteData 
+   | AccessMask::WriteAttributes | AccessMask::WriteEA | AccessMask::Sync;
+  
+  inline constexpr AccessMask GenericExecAccess =
+    AccessMask::StdRightsExec | AccessMask::Execute
+   | AccessMask::ReadAttributes | AccessMask::Sync;
 
   //=== Info Classes ===//
 
@@ -157,6 +204,10 @@ namespace hc::sys::win {
   //=== Misc. ===//
 
   struct IoStatusBlock {
+    explicit operator bool() const {
+      return $NtSuccess(this->status);
+    }
+  public:
     union {
       NtStatus status;
       void*    pad;
@@ -190,60 +241,3 @@ namespace hc::sys::win {
     uptr  alignment;
   };
 } // namespace hc::sys::win
-
-namespace hc::sys {
-  using ReadBuffer = common::PtrRange<char>;
-
-  inline win::FileObjHandle __stdcall open_file(
-   NtAccessMask mask, win::ObjectAttributes& attr,
-   win::IoStatusBlock& io, win::LargeInt* alloc_size,
-   NtFileAttribMask file_attr, win::ULong share_access,
-   win::ULong create_disposition, win::ULong create_opts,
-   void* ea_buffer = nullptr, win::ULong ea_len = 0UL)
-  {
-    win::FileObjHandle hout;
-    win::NtStatus S = isyscall<NtSyscall::CreateFile>(
-      &hout, mask, &attr, &io, alloc_size, 
-      file_attr, share_access, 
-      create_disposition, create_opts,
-      ea_buffer, ea_len
-    );
-    return hout;
-  }
-
-  inline win::NtStatus __stdcall read_file(
-   win::FileHandle handle, win::EventHandle event,
-   win::IOAPCRoutinePtr apc, void* apc_ctx,
-   win::IoStatusBlock& io, ReadBuffer buf, 
-   win::LargeInt* offset = nullptr, 
-   win::ULong* key = nullptr)
-  {
-    if (!handle) return -1;
-    const usize buf_size = buf.size();
-    return isyscall<NtSyscall::ReadFile>(
-      handle.__data, event, apc, apc_ctx,
-      &io, buf.data(), win::ULong(!buf_size ? 0 : (buf_size - 1)),
-      offset, key
-    );
-  }
-
-  __always_inline win::NtStatus __stdcall read_file(
-   win::FileHandle handle, 
-   win::IoStatusBlock& io, ReadBuffer buf, 
-   win::LargeInt* offset = nullptr,
-   win::ULong* key = nullptr) 
-  {
-    return read_file(
-      handle, win::EventHandle::New(nullptr),
-      win::IOAPCRoutinePtr(nullptr), nullptr, 
-      io, buf, 
-      offset, key
-    );
-  }
-
-  __always_inline win::NtStatus __stdcall
-   close(win::FileObjHandle handle) {
-    if (!handle) return -1;
-    return isyscall<NtSyscall::Close>(handle.__data);
-  }
-} // namespace hc::sys

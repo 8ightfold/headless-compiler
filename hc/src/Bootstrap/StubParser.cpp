@@ -75,31 +75,29 @@ namespace {
 
 namespace hc::bootstrap {
   /// Also used in `Syscalls.cpp`.
-  COFFModule& __NtModule() {
-    return NtModule();
-  }
+  COFFModule& __NtModule() { return NtModule(); }
 } // namespace hc::bootstrap
 
-Instruction B::get_instruction(const u8* bytes) {
-    const u8 primary = *bytes;
-    $MatchInstr(KCall, primary)
-    else $MatchInstr(MovRcxToR10, primary)
-    else $MatchInstr(Jne, primary)
-    else $MatchInstr(Retn, primary)
-    else $MatchInstr(MovImmToEax, primary)
-    else $MatchInstr(MovImmToEcx, primary)
-    else $MatchInstr(MovImmToEdx, primary)
-    else $MatchInstr(BitnessCheck, primary)
-    else $MatchInstr(Retn16, primary)
-    else $MatchInstr(CallImm, primary)
-    else $MatchInstr(XorEcx, primary)
-    else $MatchInstr(MovEspToEdx, primary)
-    else $MatchInstr(CallEdx, primary)
-    else $MatchInstr(KEnter, primary)
-    else $MatchInstr(LeaEspOffToEdx, primary)
-    else $MatchInstr(CallLargePtr, primary)
-    return Instruction::Unknown;
-  }
+[[gnu::hot]] Instruction B::get_instruction(const u8* bytes) {
+  const u8 primary = *bytes;
+  $MatchInstr(KCall, primary)
+  else $MatchInstr(MovRcxToR10, primary)
+  else $MatchInstr(Jne, primary)
+  else $MatchInstr(Retn, primary)
+  else $MatchInstr(MovImmToEax, primary)
+  else $MatchInstr(MovImmToEcx, primary)
+  else $MatchInstr(MovImmToEdx, primary)
+  else $MatchInstr(BitnessCheck, primary)
+  else $MatchInstr(Retn16, primary)
+  else $MatchInstr(CallImm, primary)
+  else $MatchInstr(XorEcx, primary)
+  else $MatchInstr(MovEspToEdx, primary)
+  else $MatchInstr(CallEdx, primary)
+  else $MatchInstr(KEnter, primary)
+  else $MatchInstr(LeaEspOffToEdx, primary)
+  else $MatchInstr(CallLargePtr, primary)
+  return Instruction::Unknown;
+}
 
 StubResult B::parse_stub(C::StrRef S) {
   if (!S.beginsWith("Nt"))

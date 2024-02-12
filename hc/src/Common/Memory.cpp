@@ -36,6 +36,7 @@
 #define _HC_COPY_BLOCK(size, args...) \
  __copy_block<size>(args, len)
 
+using namespace hc;
 using namespace hc::common;
 namespace C = hc::common;
 
@@ -113,11 +114,27 @@ namespace {
 
 void* C::Mem::VCopy(void* __restrict dst, const void* __restrict src, usize len) {
   if __expect_false(!dst || !src) return nullptr;
-  __memcpy_dispatch(ptr_cast<char>(dst), ptr_cast<const char>(src), len);
+  __memcpy_dispatch(
+    ptr_cast<char>(dst), 
+    ptr_cast<const char>(src), 
+    len
+  );
   return dst;
 }
 
 void* C::Mem::VSet(void* dst, int ch, usize len) {
   if __expect_false(!dst) return nullptr;
   return dst;
+}
+
+extern "C" {
+  __attribute__((weak))
+  void* memcpy(void* __dst, const void* __src, usize __len) {
+    __memcpy_dispatch(
+      ptr_cast<char>(__dst), 
+      ptr_cast<const char>(__src), 
+      __len
+    );
+    return __dst;
+  }
 }

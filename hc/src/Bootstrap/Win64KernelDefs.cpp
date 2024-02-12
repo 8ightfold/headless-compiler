@@ -119,3 +119,7 @@ uptr B::Win64TEB::getThreadId() const {
 Win64PEB* B::Win64TEB::getPEB() const {
   return static_cast<Win64PEB*>(this->PEB_addr);
 }
+
+Win64PEB* B::Win64TEB::LoadPEBFromGS() {
+  return LoadTEBFromGS()->getPEB();
+}

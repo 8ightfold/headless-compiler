@@ -31,7 +31,7 @@ namespace hc::common {
   concept __strref_compatible = 
     __char_type<__remove_const(T)>;
 
-  struct StrRef : PtrRange<const char> {
+  struct [[gsl::Pointer]] StrRef : PtrRange<const char> {
     using Type     = const char;
     using BaseType = PtrRange<Type>;
     using PtrType  = BaseType::PtrType;

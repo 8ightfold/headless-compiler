@@ -1,4 +1,4 @@
-//===- Sys/Windows/NtStructs.hpp ------------------------------------===//
+//===- Sys/Core/Nt/Structs.hpp --------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "NtGeneric.hpp"
+#include "Generic.hpp"
 
 #define $NtExtract(name) using Nt##name = win::name
 
@@ -26,7 +26,10 @@ namespace hc::sys::win {
   // Filesystem
   enum class AccessMask         : ULong;
   struct     AccessMaskSpecific;
+  enum class CreateDisposition  : ULong;
+  enum class CreateOptsMask     : ULong;
   enum class FileAttribMask     : ULong;
+  enum class FileShareMask      : ULong;
   enum class ObjAttribMask      : ULong;
   enum class FileInfoClass;
   enum class FilesystemInfoClass;
@@ -39,7 +42,10 @@ namespace hc::sys {
   // Filesystem
   $NtExtract(AccessMask);
   $NtExtract(AccessMaskSpecific);
+  $NtExtract(CreateDisposition);
+  $NtExtract(CreateOptsMask);
   $NtExtract(FileAttribMask);
+  $NtExtract(FileShareMask);
   $NtExtract(ObjAttribMask);
   $NtExtract(FileInfoClass);
   $NtExtract(FilesystemInfoClass);

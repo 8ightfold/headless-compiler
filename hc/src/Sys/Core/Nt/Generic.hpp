@@ -1,4 +1,4 @@
-//===- Sys/Windows/NtGeneric.hpp ------------------------------------===//
+//===- Sys/Core/Nt/Generic.hpp --------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -22,7 +22,7 @@
 #include <Bootstrap/Syscalls.hpp>
 #include <Common/Fundamental.hpp>
 
-#define __$NtRange(ex, L, H) (((u64)ex >= (L##ULL)) && ((u64)ex <= (H##ULL)))
+#define __$NtRange(ex, L, H) (((u32)ex >= (L##ULL)) && ((u32)ex <= (H##ULL)))
 #define $NtOk(ex...)   __$NtRange((ex), 0x00000000, 0x3FFFFFFF)
 #define $NtInfo(ex...) __$NtRange((ex), 0x40000000, 0x7FFFFFFF)
 #define $NtWarn(ex...) __$NtRange((ex), 0x80000000, 0xBFFFFFFF)
@@ -68,7 +68,8 @@ namespace hc::sys {
   using win::NtStatus;
 
   template <NtSyscall C, typename Ret = NtStatus>
-  inline Ret __stdcall isyscall(auto...args) {
+  [[gnu::force_align_arg_pointer]]
+  __always_inline Ret __stdcall isyscall(auto...args) {
     if constexpr (_HC_TRUE_DEBUG)
       $tail_return bootstrap::__checked_syscall<C, Ret>(args...);
     else
