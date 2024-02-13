@@ -163,7 +163,7 @@ namespace hc::common {
   struct Mem {
     static void* VCopy(void* __restrict dst, const void* __restrict src, usize len);
     // TODO: This! lol!
-    static void* VSet(void* dst, int ch, usize len);
+    static void* VSet(void* __restrict dst, int ch, usize len);
 
     template <typename T>
     requires(__is_trivially_copyable(T))

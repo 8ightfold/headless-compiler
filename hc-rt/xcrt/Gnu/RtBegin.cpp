@@ -1,4 +1,4 @@
-//===- Main2.cpp ----------------------------------------------------===//
+//===- Gnu/RtBegin.cpp ----------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -19,17 +19,28 @@
 #include "GlobalXtors.hpp"
 
 extern "C" {
+  [[gnu::visibility("hidden")]]
+  void* __dso_handle = nullptr;
+
+  [[gnu::weak]]
+  extern void __cxa_finalize(void*);
+
+  [[gnu::section(".ctors"), gnu::aligned(8), gnu::used]]
+  XtorFunc __CTOR_LIST__[] = {(XtorFunc)-1};
+  
+  [[gnu::section(".dtors"), gnu::aligned(8), gnu::used]]
+  XtorFunc __DTOR_LIST__[] = {(XtorFunc)-1};
+
+  extern XtorFunc __CTOR_END__[];
+  extern XtorFunc __DTOR_END__[];
+
   [[gnu::used]] void __do_global_ctors(void) {
     static bool __did_init = false;
     if (__builtin_expect(__did_init, 0))
       return;
     __did_init = true;
-
-    auto N = reinterpret_cast<unsigned long long>(__CTOR_LIST__[0]);
-    if (N == static_cast<unsigned long long>(-1)) {
-      for (N = 0; __CTOR_LIST__[N + 1] != 0; ++N);
-    }
-    for (unsigned I = (unsigned)N; I >= 1; --I)
+    const unsigned N = __CTOR_END__ - __CTOR_LIST__ - 1;
+    for (unsigned I = N; I >= 1; --I)
       __CTOR_LIST__[I]();
   }
 
@@ -39,18 +50,11 @@ extern "C" {
       return;
     __did_fini = true;
 
-    const XtorFunc* D = __DTOR_LIST__ + 1;
-    while (*D) {
-      (*D)();
-      ++D;
-    }
-  }
+    if (__cxa_finalize)
+      __cxa_finalize(__dso_handle);
 
-  [[gnu::used]] void __main(void) {
-    static bool __did_init = false;
-    if (!__did_init) {
-      __did_init = true;
-      __do_global_ctors();
-    } 
+    const unsigned N = __DTOR_END__ - __DTOR_LIST__ - 1;
+    for (unsigned I = 1; I <= N; ++I)
+      __DTOR_LIST__[I]();
   }
 } // extern "C"

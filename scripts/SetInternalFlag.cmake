@@ -1,6 +1,10 @@
 include_guard(DIRECTORY)
 
 macro(target_internal_flags tgt vis flag)
+  if(NOT DEFINED ${flag})
+    message(WARNING "`${flag}` is NOT defined! Defaulting to OFF.")
+    set(${flag} OFF)
+  endif()
   if(${flag})
     target_compile_definitions(${tgt} ${vis} "_${flag}=1")
   else()

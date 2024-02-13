@@ -93,7 +93,7 @@ namespace hc::common {
     }
 
   public:
-    T __data[N] { };
+    T __data[N];
   };
 
   template <typename T>

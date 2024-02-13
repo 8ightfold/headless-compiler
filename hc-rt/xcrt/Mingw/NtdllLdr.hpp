@@ -1,4 +1,4 @@
-//===- RtEnd.cpp ----------------------------------------------------===//
+//===- NtdllLdr.hpp -------------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -15,13 +15,20 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
+//
+//  Attempts to load a function from ntdll.dll.
+//
+//===----------------------------------------------------------------===//
 
-#include "GlobalXtors.hpp"
+#pragma once
 
-extern "C" {
-  [[gnu::section(".ctors"), gnu::used]]
-  XtorFunc __CTOR_END__[] = {0};
+#include <Common/Fundamental.hpp>
 
-  [[gnu::section(".dtors"), gnu::used]]
-  XtorFunc __DTOR_END__[] = {0};
-} // extern "C"
+extern "C" void* __xcrt_load_ntdll_func(const char* sym);
+
+namespace xcrt {
+  template <typename F>
+  __always_inline F* __load_ntdll_func(const char* sym) {
+    return reinterpret_cast<F*>(::__xcrt_load_ntdll_func(sym));
+  }
+} // namespace xcrt

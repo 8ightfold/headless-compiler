@@ -3,16 +3,17 @@ include_guard(DIRECTORY)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 23)
 
 project(
   headless-compiler
-  VERSION 0.1.12
+  VERSION 0.1.1
   LANGUAGES CXX C
 )
 
-include(scripts/SetInternalFlag.cmake)
+include(SetInternalFlag)
 include(CheckIPOSupported)
 check_ipo_supported(RESULT hc_ipo_supported LANGUAGES CXX)
 
@@ -41,31 +42,19 @@ elseif(NOT hc_ipo_supported) # Currently broken on Windows :(
 endif()
 
 option(HC_CHECK_INVARIANTS "Enable invariant checking." OFF)
+option(HC_SOFTWARE_PREFETCH "Enable software prefetching." ON)
 option(HC_ENABLE_LTO "Enable IPO/LTO." ON)
 
 message(STATUS "invariant checking: ${HC_ENABLE_LTO}")
 message(STATUS "IPO/LTO: ${HC_ENABLE_LTO}")
 
-add_executable(driver Driver.cpp
-  hc-rt/src/Common/Memory.cpp
-  hc-rt/src/BinaryFormat/MagicMatcher.cpp
-  hc-rt/src/Bootstrap/Win64KernelDefs.cpp
-  hc-rt/src/Bootstrap/ModuleParser.cpp
-  hc-rt/src/Bootstrap/COFFModule.cpp
-  hc-rt/src/Bootstrap/StubParser.cpp
-  hc-rt/src/Bootstrap/Syscalls.cpp
-)
-target_include_directories(driver PUBLIC hc-rt/include PRIVATE hc-rt/src)
-target_compile_definitions(driver PRIVATE -D__HC_INTERNAL__=1)
-# target_compile_options(driver PUBLIC -nostdinc++)
-target_compile_options(driver PUBLIC -fno-exceptions)
-target_link_options(driver PUBLIC -Wl,--stack,0xF42400 -nostdlib++)
-set_property(TARGET driver PROPERTY INTERPROCEDURAL_OPTIMIZATION ${HC_ENABLE_LTO})
-target_internal_flags(driver PUBLIC HC_DEBUG)
-target_internal_flags(driver PUBLIC HC_TRUE_DEBUG)
-target_internal_flags(driver PUBLIC HC_CHECK_INVARIANTS)
-target_internal_flags(driver PUBLIC HC_ENABLE_LTO)
+add_subdirectory(hc-rt)
 
-add_executable(nostartup NoStartup.cpp hc-rt/startup/Main2.cpp)
-target_compile_options(nostartup PUBLIC -fno-exceptions -nostdinc++)
-target_link_options(nostartup PUBLIC -v -nostdlib++ -nostartfiles -Wl,-e,mainCRTStartup)
+# add_executable(driver Driver.cpp)
+# target_link_libraries(driver PRIVATE hcrt::dev)
+# target_include_directories(driver PRIVATE hc-rt/src)
+# target_compile_definitions(driver PRIVATE -D__HC_INTERNAL__=1)
+
+add_executable(nostartup NoStartup.cpp)
+target_link_libraries(nostartup PUBLIC hc::runtime)
+target_link_options(nostartup PUBLIC -v)

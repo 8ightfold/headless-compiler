@@ -1,4 +1,4 @@
-//===- GlobalXtors.hpp ----------------------------------------------===//
+//===- Startup.hpp --------------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -18,12 +18,17 @@
 
 #pragma once
 
+#include <GlobalXtors.hpp>
+#include <Common/Fundamental.hpp>
+
+#define __IMP(sym) __imp_##sym
+
 extern "C" {
-  typedef void(*XtorFunc)(void);
+  using VVFunc = void(*)(void);
+  using IVFunc = int(*)(void);
+  using VIFunc = void(*)(int);
 
-  extern XtorFunc __CTOR_LIST__[];
-  extern XtorFunc __DTOR_LIST__[];
-
-  extern void __do_global_ctors(void);
-  extern void __do_global_dtors(void);
+  extern int main(int V, char* A[]);
+  extern void __security_init_cookie(void);
+  extern void __emutils_setup(void);
 } // extern "C"
