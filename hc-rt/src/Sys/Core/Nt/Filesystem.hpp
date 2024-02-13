@@ -18,51 +18,10 @@
 
 #pragma once
 
-#include <Common/EnumBitwise.hpp>
 #include "Generic.hpp"
 #include "Handles.hpp"
 
 namespace hc::sys::win {
-  enum class AccessMask : ULong {
-    ReadData          = 0x000001,
-    ReadAttributes    = 0x000080,
-    ReadEA            = 0x000008,
-    ReadControl       = 0x020000,
-
-    WriteData         = 0x000002,
-    WriteAttributes   = 0x000100,
-    WriteEA           = 0x000010,
-    WriteDAC          = 0x040000,
-    WriteOwner        = 0x080000,
-
-    Delete            = 0x010000,
-    Execute           = 0x000020,
-    Sync              = 0x100000,
-
-    StdRightsRequired = 0x0F0000,
-    StdRightsRead     = ReadControl,
-    StdRightsWrite    = ReadControl,
-    StdRightsExec     = ReadControl,
-
-    StdRightsAll      = 0x1F0000,
-    SpRightsAll       = 0x00FFFF,
-  };
-
-  struct AccessMaskSpecific {
-    static constexpr ULong max = ULong(AccessMask::SpRightsAll);
-    static constexpr ULong npos = max + 1;
-  public:
-    __always_inline constexpr operator AccessMask() const {
-      __hc_invariant(data < npos);
-      return AccessMask(this->data);
-    }
-    __ndbg_inline explicit constexpr operator ULong() const {
-      return this->data;
-    }
-  public:
-    ULong data = 0UL;
-  };
-
   enum class CreateDisposition : ULong {
     Supersede           = 0x00000,
     Open                = 0x00001,
@@ -114,26 +73,9 @@ namespace hc::sys::win {
     All                 = 0b00111,
   };
 
-  enum class ObjAttribMask : ULong {
-    Inherit             = 0x00002,
-    Permanent           = 0x00010,
-    Exclusive           = 0x00020,
-    CaseInsensitive     = 0x00040,
-    OpenIf              = 0x00080,
-    OpenLink            = 0x00100,
-    KernelHandle        = 0x00200,
-    ForceAccessCheck    = 0x00400,
-    IgnoreImpDeviceMap  = 0x00800,
-    DoNotReparse        = 0x01000,
-    __ValidAttributes   = 0x01FF2,
-  };
-
-  $MarkBitwise(AccessMask)
   $MarkBitwise(CreateOptsMask)
   $MarkBitwise(FileAttribMask)
   $MarkBitwise(FileShareMask)
-  $MarkBitwise(ObjAttribMask)
-  $MarkBitwiseEx(AccessMaskSpecific, ULong)
 
   inline constexpr AccessMask GenericReadAccess =
     AccessMask::StdRightsRead | AccessMask::ReadData 
@@ -218,15 +160,6 @@ namespace hc::sys::win {
   /// Reserved in most Nt functions.
   using IOAPCRoutinePtr = void(__stdcall*)(
     void* apc_ctx, IoStatusBlock* status, ULong);
-
-  struct ObjectAttributes {
-    ULong length  = sizeof(ObjectAttributes);
-    FileObjHandle   root_directory = nullptr;
-    UnicodeString*  object_name = nullptr;
-    ObjAttribMask   attributes = ObjAttribMask::CaseInsensitive;
-    void*           security_descriptor = nullptr;
-    void*           security_QOS = nullptr;
-  };
 
   struct BasicFileInfo {
     LargeInt        creation_time;

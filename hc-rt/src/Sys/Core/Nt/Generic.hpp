@@ -20,7 +20,9 @@
 
 #include <Bootstrap/UnicodeString.hpp>
 #include <Bootstrap/Syscalls.hpp>
+#include <Common/EnumBitwise.hpp>
 #include <Common/Fundamental.hpp>
+#include "Handles.hpp"
 
 #define __$NtRange(ex, L, H) (((u32)ex >= (L##ULL)) && ((u32)ex <= (H##ULL)))
 #define $NtOk(ex...)   __$NtRange((ex), 0x00000000, 0x3FFFFFFF)
@@ -61,6 +63,76 @@ namespace hc::sys::win {
       u32 high;
     };
   };
+
+  //=== Enumerations ===//
+
+  enum class AccessMask : ULong {
+    ReadData          = 0x000001,
+    ReadAttributes    = 0x000080,
+    ReadEA            = 0x000008,
+    ReadControl       = 0x020000,
+
+    WriteData         = 0x000002,
+    WriteAttributes   = 0x000100,
+    WriteEA           = 0x000010,
+    WriteDAC          = 0x040000,
+    WriteOwner        = 0x080000,
+
+    Delete            = 0x010000,
+    Execute           = 0x000020,
+    Sync              = 0x100000,
+
+    StdRightsRequired = 0x0F0000,
+    StdRightsRead     = ReadControl,
+    StdRightsWrite    = ReadControl,
+    StdRightsExec     = ReadControl,
+
+    StdRightsAll      = 0x1F0000,
+    SpRightsAll       = 0x00FFFF,
+  };
+
+  struct AccessMaskSpecific {
+    static constexpr ULong max = ULong(AccessMask::SpRightsAll);
+    static constexpr ULong npos = max + 1;
+  public:
+    __always_inline constexpr operator AccessMask() const {
+      __hc_invariant(data < npos);
+      return AccessMask(this->data);
+    }
+    __ndbg_inline explicit constexpr operator ULong() const {
+      return this->data;
+    }
+  public:
+    ULong data = 0UL;
+  };
+
+  enum class ObjAttribMask : ULong {
+    Inherit             = 0x00002,
+    Permanent           = 0x00010,
+    Exclusive           = 0x00020,
+    CaseInsensitive     = 0x00040,
+    OpenIf              = 0x00080,
+    OpenLink            = 0x00100,
+    KernelHandle        = 0x00200,
+    ForceAccessCheck    = 0x00400,
+    IgnoreImpDeviceMap  = 0x00800,
+    DoNotReparse        = 0x01000,
+    __ValidAttributes   = 0x01FF2,
+  };
+
+
+  $MarkBitwise(AccessMask)
+  $MarkBitwise(ObjAttribMask)
+  $MarkBitwiseEx(AccessMaskSpecific, ULong)
+
+  struct ObjectAttributes {
+    ULong length  = sizeof(ObjectAttributes);
+    FileObjHandle   root_directory = nullptr;
+    UnicodeString*  object_name = nullptr;
+    ObjAttribMask   attributes = ObjAttribMask::CaseInsensitive;
+    void*           security_descriptor = nullptr;
+    void*           security_QOS = nullptr;
+  };
 } // namespace hc::sys::win
 
 namespace hc::sys {
@@ -74,5 +146,11 @@ namespace hc::sys {
       $tail_return bootstrap::__checked_syscall<C, Ret>(args...);
     else
       $tail_return bootstrap::__syscall<C, Ret>(args...);
+  }
+
+  inline win::UnicodeString make_unicode_string(const wchar_t* S) {
+    if __expect_false(!S) 
+      return { };
+    return win::UnicodeString::New(const_cast<wchar_t*>(S));
   }
 } // namespace hc::sys

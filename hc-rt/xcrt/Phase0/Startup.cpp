@@ -20,27 +20,24 @@
 //
 //===----------------------------------------------------------------===//
 
-#include "Startup.hpp"
+#include <GlobalXtors.hpp>
+#include <Common/Fundamental.hpp>
 
 #if defined(_WINMAIN_) || defined(WPRFLAG) || defined(_MANAGED_MAIN)
 # error Invalid main signature! Only mainCRTStartup is supported.
 #endif
 
 extern "C" {
-  [[gnu::noinline]]
-  static int __hcCRTStartup(void) {
-    int __ret = 0;
-    __emutils_setup();
-    __ret = main(0, nullptr);
-    return __ret;
-  }
+  extern void __security_init_cookie(void);
+  extern int  __xcrtCRTStartupPhase1(void);
+} // extern "C"
 
+extern "C" {
   [[gnu::force_align_arg_pointer]]
   int mainCRTStartup(void) {
     int __ret = 255;
     __security_init_cookie();
-    __ret = __hcCRTStartup();
-    __do_global_dtors();
+    __ret = __xcrtCRTStartupPhase1();
     return __ret;
   }
-}
+} // extern "C"

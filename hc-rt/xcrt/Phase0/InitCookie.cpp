@@ -20,7 +20,8 @@
 //
 //===----------------------------------------------------------------===//
 
-#include "Startup.hpp"
+#include <GlobalXtors.hpp>
+#include <Common/Fundamental.hpp>
 #include <Bootstrap/Win64KernelDefs.hpp>
 
 using namespace hc::bootstrap;

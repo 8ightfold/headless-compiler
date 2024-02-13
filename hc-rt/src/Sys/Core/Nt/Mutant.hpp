@@ -1,4 +1,4 @@
-//===- Bootstrap/UnicodeString.hpp ----------------------------------===//
+//===- Sys/Core/Nt/Mutant.hpp ---------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -15,22 +15,26 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
-//
-//  Implementation can be found in Win64KernelDefs.cpp
-//
-//===----------------------------------------------------------------===//
 
 #pragma once
 
-#include <Common/Fundamental.hpp>
+#include <Common/Handle.hpp>
+#include "Generic.hpp"
 
-namespace hc::bootstrap {
-  struct Win64UnicodeString {
-    u16 size = 0, size_max = 0;
-    wchar_t* buffer = nullptr;
-  public:
-    static Win64UnicodeString New(wchar_t* str);
-    static Win64UnicodeString New(wchar_t* str, usize max);
-    bool isEqual(const Win64UnicodeString& rhs) const;
+namespace hc::sys::win {
+  $Handle(MutantHandle, void*, Boolean, Equality);
+
+  enum class MutantInfoClass {
+    Basic, Owner
   };
-} // namespace hc::bootstrap
+
+  struct BasicMutantInfo {
+    i32 current_count = 0;
+    Boolean owned_by_caller;
+    Boolean abandoned_state = false;
+  };
+
+  inline constexpr AccessMask MutantQueryState = AccessMask::ReadData;
+  inline constexpr AccessMask MutantAllAccess = 
+    MutantQueryState | AccessMask::StdRightsRequired | AccessMask::Sync;
+} // namespace hc::sys::win

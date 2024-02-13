@@ -50,11 +50,11 @@ message(STATUS "IPO/LTO: ${HC_ENABLE_LTO}")
 
 add_subdirectory(hc-rt)
 
-# add_executable(driver Driver.cpp)
-# target_link_libraries(driver PRIVATE hcrt::dev)
-# target_include_directories(driver PRIVATE hc-rt/src)
-# target_compile_definitions(driver PRIVATE -D__HC_INTERNAL__=1)
+add_executable(driver Driver.cpp)
+target_link_libraries(driver PRIVATE hcrt::dev)
+target_include_directories(driver PRIVATE hc-rt/src)
+target_compile_definitions(driver PRIVATE -D__HC_INTERNAL__=1)
 
-add_executable(nostartup NoStartup.cpp)
-target_link_libraries(nostartup PUBLIC hc::runtime)
-target_link_options(nostartup PUBLIC -v)
+# add_executable(nostartup NoStartup.cpp)
+# target_link_libraries(nostartup PUBLIC hc::runtime)
+# target_link_options(nostartup PUBLIC -v)

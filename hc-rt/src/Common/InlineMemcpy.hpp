@@ -24,6 +24,7 @@
 #pragma once
 
 #include <Common/Features.hpp>
+#include "IAlign.hpp"
 #include "InlineIntrin.hpp"
 
 // TODO: Use prefetching/SIMD?

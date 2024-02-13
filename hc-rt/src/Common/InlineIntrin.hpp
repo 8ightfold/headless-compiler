@@ -25,6 +25,7 @@
 # define _HC_SOFTWARE_PREFETCH 0
 #endif
 
+//=== Types ===//
 namespace hcrt {
   using Gv128 = u8 __attribute__((__vector_size__(16)));
   using Gv256 = u8 __attribute__((__vector_size__(32)));
@@ -52,7 +53,10 @@ namespace hcrt {
     High = 2,
     Max  = 3,
   };
+} // namespace hcrt
 
+//=== Functions ===//
+namespace hcrt {
   template <PrefetchMode M, Locality L = Locality::Max>
   __always_inline void smart_prefetch(const u8* addr) {
     static constexpr int mode = static_cast<int>(M);
@@ -83,28 +87,5 @@ namespace hcrt {
         out[I] = u;
       return out;
     }
-  }
-
-  template <usize Align>
-  inline uptr offset_from_last_align(const void* ptr) {
-    static_assert((Align & (Align - 1)) == 0,
-      "Align must be a power of 2");
-    return Align - (uptr(ptr) & (Align - 1U));
-  }
-
-
-  template <typename T, typename U>
-  inline void adjust(uptrdiff offset, 
-   T* __restrict& t, U* __restrict& u, usize& len) {
-    t += offset;
-    u += offset;
-    len -= offset;
-  }
-
-  template <usize Align, typename T>
-  inline void align_to_next_boundary(T* __restrict& t, usize& len) {
-    const T* og = t;
-    adjust(offset_from_last_align<Align>(t), t, og, len);
-    t = hc::common::__assume_aligned<Align>(t);
   }
 } // namespace hcrt

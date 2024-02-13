@@ -23,23 +23,25 @@
 #define $NtExtract(name) using Nt##name = win::name
 
 namespace hc::sys::win {
-  // Filesystem
+  // Generic
   enum class AccessMask         : ULong;
   struct     AccessMaskSpecific;
+  enum class ObjAttribMask      : ULong;
+  struct     ObjectAttributes;
+  // Filesystem
   enum class CreateDisposition  : ULong;
   enum class CreateOptsMask     : ULong;
   enum class FileAttribMask     : ULong;
   enum class FileShareMask      : ULong;
-  enum class ObjAttribMask      : ULong;
   enum class FileInfoClass;
   enum class FilesystemInfoClass;
   struct     IoStatusBlock;
   struct     BasicFileInfo;
   union      FileSegmentElement;
+  // Mutant
 } // namespace hc::sys::win
 
 namespace hc::sys {
-  // Filesystem
   $NtExtract(AccessMask);
   $NtExtract(AccessMaskSpecific);
   $NtExtract(CreateDisposition);

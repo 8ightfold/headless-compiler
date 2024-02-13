@@ -1,4 +1,4 @@
-//===- Bootstrap/UnicodeString.hpp ----------------------------------===//
+//===- Phase1/Initialization.hpp ------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -15,22 +15,13 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
-//
-//  Implementation can be found in Win64KernelDefs.cpp
-//
-//===----------------------------------------------------------------===//
 
 #pragma once
 
-#include <Common/Fundamental.hpp>
+extern "C" {
+  using VVFunc = void(*)(void);
+  using IVFunc = int(*)(void);
+  using VIFunc = void(*)(int);
 
-namespace hc::bootstrap {
-  struct Win64UnicodeString {
-    u16 size = 0, size_max = 0;
-    wchar_t* buffer = nullptr;
-  public:
-    static Win64UnicodeString New(wchar_t* str);
-    static Win64UnicodeString New(wchar_t* str, usize max);
-    bool isEqual(const Win64UnicodeString& rhs) const;
-  };
-} // namespace hc::bootstrap
+  extern void __xcrt_emutils_setup(void);
+}

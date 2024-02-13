@@ -1,4 +1,4 @@
-//===- Bootstrap/UnicodeString.hpp ----------------------------------===//
+//===- Phase1/Initialization.cpp ------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -15,22 +15,24 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
-//
-//  Implementation can be found in Win64KernelDefs.cpp
-//
-//===----------------------------------------------------------------===//
 
-#pragma once
-
-#include <Common/Fundamental.hpp>
+#include <Phase1/Initialization.hpp>
 
 namespace hc::bootstrap {
-  struct Win64UnicodeString {
-    u16 size = 0, size_max = 0;
-    wchar_t* buffer = nullptr;
-  public:
-    static Win64UnicodeString New(wchar_t* str);
-    static Win64UnicodeString New(wchar_t* str, usize max);
-    bool isEqual(const Win64UnicodeString& rhs) const;
-  };
+  extern void force_syscall_reload();
+  extern bool are_syscalls_loaded();
 } // namespace hc::bootstrap
+
+namespace B = hc::bootstrap;
+
+extern "C" {
+  /// At this point, constructors still have not been called.
+  /// We need to get everything initialized, especially the syscalls.
+  [[gnu::used, gnu::noinline]]
+  int __xcrtCRTStartupPhase1(void) {
+    B::force_syscall_reload();
+    __xcrt_emutils_setup();
+
+    return 0;
+  }
+}

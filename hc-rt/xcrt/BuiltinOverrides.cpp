@@ -24,24 +24,6 @@
 using namespace hc;
 
 extern "C" {
-  void* memcpy(void* __restrict __dst, const void* __restrict __src, usize __len) {
-    rt::__memcpy_dispatch(
-      ptr_cast<u8>(__dst), 
-      ptr_cast<const u8>(__src), 
-      __len
-    );
-    return __dst;
-  }
-
-  void* memset(void* __restrict __dst, int __ch, usize __len) {
-    rt::__memset_dispatch(
-      ptr_cast<u8>(__dst), 
-      static_cast<u8>(__ch), 
-      __len
-    );
-    return __dst;
-  }
-
   [[gnu::flatten]] usize wcslen(const wchar_t* __str) {
     $tail_return common::__wstrlen(__str);
   }

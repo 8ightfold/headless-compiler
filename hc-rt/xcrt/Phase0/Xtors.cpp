@@ -1,4 +1,4 @@
-//===- Ctors.cpp ----------------------------------------------------===//
+//===- Phase0/Xtors.cpp ---------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -16,14 +16,16 @@
 //
 //===----------------------------------------------------------------===//
 
-#include "Startup.hpp"
+#include <GlobalXtors.hpp>
+#include <Common/Fundamental.hpp>
 
 extern "C" {
+  static constinit bool __did_init_ctors_ = false;
+
   [[gnu::used]] void __do_global_ctors(void) {
-    static bool __did_init = false;
-    if __expect_false(__did_init)
+    if __expect_false(__did_init_ctors_)
       return;
-    __did_init = true;
+    __did_init_ctors_ = true;
 
     auto N = reinterpret_cast<usize>(__CTOR_LIST__[0]);
     if (N == static_cast<usize>(-1)) {
@@ -44,10 +46,9 @@ extern "C" {
   }
 
   [[gnu::used]] void __main(void) {
-    static bool __init = false;
-    if __expect_false(__init)
+    if __expect_false(__did_init_ctors_)
       return;
-    __init = true;
+    __did_init_ctors_ = true;
     __do_global_ctors();
   }
 } // extern "C"

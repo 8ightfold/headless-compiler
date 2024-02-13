@@ -35,12 +35,15 @@ add_library(hc-runtime STATIC
   xcrt/Stub.cpp
   xcrt/BuiltinOverrides.cpp
   src/Common/Memory.cpp
-  # src/BinaryFormat/MagicMatcher.cpp
+  src/BinaryFormat/MagicMatcher.cpp
   src/Bootstrap/Win64KernelDefs.cpp
   src/Bootstrap/ModuleParser.cpp
   src/Bootstrap/COFFModule.cpp
-  # src/Bootstrap/StubParser.cpp
-  # src/Bootstrap/Syscalls.cpp
+  src/Bootstrap/StubParser.cpp
+  src/Bootstrap/Syscalls.cpp
+
+  xcrt/String/Memcpy.cpp
+  xcrt/String/Memset.cpp
 )
 add_library(hc::runtime ALIAS hc-runtime)
 target_include_directories(hc-runtime PUBLIC include PRIVATE src xcrt)
@@ -58,11 +61,12 @@ target_internal_flags(hc-runtime PUBLIC HC_ENABLE_LTO)
 
 if(WIN32)
   target_sources(hc-runtime PRIVATE
-    xcrt/Mingw/Startup.cpp
-    xcrt/Mingw/InitCookie.cpp
-    xcrt/Mingw/Xtors.cpp
+    xcrt/Phase0/Startup.cpp
+    xcrt/Phase0/Xtors.cpp
+    xcrt/Phase0/InitCookie.cpp
+    xcrt/Phase1/Initialization.cpp
+    xcrt/Phase1/Emutils.cpp
     xcrt/Mingw/NtdllLdr.cpp
-    xcrt/Mingw/Emutils.cpp
   )
   target_link_options(hc-runtime PUBLIC -Wl,-e,mainCRTStartup)
 else()

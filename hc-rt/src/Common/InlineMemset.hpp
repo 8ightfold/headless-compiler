@@ -24,6 +24,7 @@
 #pragma once
 
 #include <Common/Array.hpp>
+#include "IAlign.hpp"
 #include "InlineIntrin.hpp"
 
 #define _HC_MEMSET_FN(name) \

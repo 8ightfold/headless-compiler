@@ -1,4 +1,4 @@
-//===- Bootstrap/UnicodeString.hpp ----------------------------------===//
+//===- String/Memset.hpp --------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -15,22 +15,19 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
-//
-//  Implementation can be found in Win64KernelDefs.cpp
-//
-//===----------------------------------------------------------------===//
 
-#pragma once
+#include <Common/Casting.hpp>
+#include <Common/InlineMemset.hpp>
 
-#include <Common/Fundamental.hpp>
+using namespace hc;
 
-namespace hc::bootstrap {
-  struct Win64UnicodeString {
-    u16 size = 0, size_max = 0;
-    wchar_t* buffer = nullptr;
-  public:
-    static Win64UnicodeString New(wchar_t* str);
-    static Win64UnicodeString New(wchar_t* str, usize max);
-    bool isEqual(const Win64UnicodeString& rhs) const;
-  };
-} // namespace hc::bootstrap
+extern "C" {
+  void* memset(void* __restrict __dst, int __ch, usize __len) {
+    rt::__memset_dispatch(
+      ptr_cast<u8>(__dst), 
+      static_cast<u8>(__ch), 
+      __len
+    );
+    return __dst;
+  }
+} // extern "C"

@@ -25,6 +25,7 @@
 
 #include <Sys/Core/Nt/Structs.hpp>
 #include <Sys/IO/Win/Filesystem.hpp>
+#include <Sys/Sync/Win/Mutant.hpp>
 #include <Sys/IOFile.hpp>
 #include <Sys/Mutex.hpp>
 

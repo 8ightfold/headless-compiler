@@ -20,7 +20,7 @@
 
 extern "C" {
   using XtorFunc = void(*)(void); // VVFunc
-
+  
   extern XtorFunc __CTOR_LIST__[];
   extern XtorFunc __DTOR_LIST__[];
 

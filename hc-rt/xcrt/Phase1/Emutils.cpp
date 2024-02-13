@@ -1,4 +1,4 @@
-//===- Emutils.cpp --------------------------------------------------===//
+//===- Phase1/Emutils.cpp -------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -24,7 +24,7 @@
 #include <Common/Fundamental.hpp>
 #include <Common/InlineMemcpy.hpp>
 #include <Common/InlineMemset.hpp>
-#include "TryPrint.hpp"
+#include <Mingw/TryPrint.hpp>
 
 extern "C" {
   void __xcrt_abort(void) throw() {
@@ -48,7 +48,7 @@ namespace xcrt::emutils {
 } // namespace hcrt
 
 extern "C" {
-  void __emutils_setup(void) {
-    
+  void __xcrt_emutils_setup(void) {
+
   }
 }
