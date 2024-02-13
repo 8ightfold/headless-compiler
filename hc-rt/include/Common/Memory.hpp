@@ -76,9 +76,9 @@ namespace hc::common {
   }
 
   template <usize N, typename T>
-  __always_inline T* __zero_memory(T* dst) {
+  __always_inline T* __zero_memory(T& dst) {
     if constexpr (N == 0) return nullptr;
-    return memset<N>(dst, 0);
+    return __memset<N>(__builtin_addressof(dst), 0);
   }
 
   template <usize N, typename T>
@@ -184,17 +184,32 @@ namespace hc::common {
     }
 
     template <typename T>
-    requires(__is_trivially_copyable(T))
+    requires(__is_trivial(T))
     __always_inline static T* 
      Move(T* __restrict dst, T* __restrict src, usize len) {
       return Mem::Copy(dst, src, len);
     }
 
     template <typename T>
-    requires(!__is_trivially_copyable(T))
+    requires(!__is_trivial(T))
     static T* Move(T* __restrict dst, T* __restrict src, usize len) {
       for (usize I = 0; I < len; ++I)
         dst[I] = static_cast<T&&>(src[I]);
+      return dst;
+    }
+
+    template <typename T>
+    requires(__is_trivial(T))
+    __always_inline static T* 
+     Reset(T* __restrict dst, u8 pattern, usize len) {
+      return Mem::VSet(dst, int(pattern), len);
+    }
+
+    template <typename T>
+    requires(!__is_trivial(T))
+    static T* Reset(T* __restrict dst, u8, usize len) {
+      for (usize I = 0; I < len; ++I)
+        dst[I] = T{};
       return dst;
     }
 

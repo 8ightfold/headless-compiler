@@ -21,13 +21,15 @@
 #include <Sys/Core/Nt/Mutant.hpp>
 
 namespace hc::sys {
-  inline win::MutantHandle win_create_mutant(
+  using NtMutexHandle = win::MutantHandle;
+
+  inline NtMutexHandle win_create_mutant(
     win::NtStatus& S,
     NtAccessMask mask = win::MutantAllAccess,
     bool owner = true,
     const wchar_t* name = nullptr
   ) {
-    win::MutantHandle hout;
+    NtMutexHandle hout;
     auto ustr = make_unicode_string(name);
     win::ObjectAttributes attr { .object_name = &ustr };
     S = isyscall<NtSyscall::CreateMutant>(
@@ -39,7 +41,7 @@ namespace hc::sys {
   }
 
   inline win::NtStatus win_query_mutant(
-    win::MutantHandle handle,
+    NtMutexHandle handle,
     win::MutantInfoClass type,
     win::BasicMutantInfo& info,
     win::ULong* result_len = nullptr
@@ -52,7 +54,7 @@ namespace hc::sys {
   }
 
   inline win::NtStatus win_release_mutant(
-    win::MutantHandle handle,
+    NtMutexHandle handle,
     i32* prev_count = nullptr
   ) {
     return isyscall<NtSyscall::ReleaseMutant>(

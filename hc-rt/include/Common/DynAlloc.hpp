@@ -101,9 +101,9 @@ namespace hc::common {
         if __expect_false(this->__active) 
           return *this;
       }
-      if __expect_false(this->isEmpty()) return *this;
-      // TODO: swap this shit out
-      (void)__builtin_memset(data(), 0, this->sizeInBytes());
+      if __expect_false(this->isEmpty())
+        return *this;
+      Mem::VSet(data(), 0, this->sizeInBytes());
       return *this;
     }
 
