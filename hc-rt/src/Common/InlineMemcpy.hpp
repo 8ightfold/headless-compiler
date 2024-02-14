@@ -32,8 +32,6 @@
 #define _HC_MEMCPY_FN(name) \
  inline void name(u8* __restrict dst, \
   const u8* __restrict src, [[maybe_unused]] usize len = 0)
-#define _HC_COPY_BLOCK(size, args...) \
- __copy_block<size>(args, len)
 
 namespace hcrt {
   template <usize BlockSize>
@@ -44,12 +42,12 @@ namespace hcrt {
   template <usize BlockSize>
   _HC_MEMCPY_FN(__copy_last_block) {
     const usize off = len - BlockSize;
-    $tail_return _HC_COPY_BLOCK(BlockSize, dst + off, src + off);
+    $tail_return __copy_block<BlockSize>(dst + off, src + off, len);
   }
 
   template <usize BlockSize>
   _HC_MEMCPY_FN(__copy_overlap_block) {
-    _HC_COPY_BLOCK(BlockSize, dst, src);
+    __copy_block<BlockSize>(dst, src);
     $tail_return __copy_last_block<BlockSize>(dst, src, len);
   }
 
@@ -72,13 +70,13 @@ namespace hcrt {
 
   _HC_MEMCPY_FN(__memcpy_small) {
     if (len == 1)
-      $tail_return _HC_COPY_BLOCK(1, dst, src);
+      $tail_return __copy_block<1>(dst, src, len);
     if (len == 2)
-      $tail_return _HC_COPY_BLOCK(2, dst, src);
+      $tail_return __copy_block<2>(dst, src, len);
     if (len == 3)
-      $tail_return _HC_COPY_BLOCK(3, dst, src);
+      $tail_return __copy_block<3>(dst, src, len);
     // else:
-    $tail_return _HC_COPY_BLOCK(4, dst, src);
+    $tail_return __copy_block<4>(dst, src, len);
   }
 
   [[gnu::always_inline]] static _HC_MEMCPY_FN(__memcpy_dispatch) {
@@ -102,4 +100,3 @@ namespace hcrt {
 } // namespace hcrt
 
 #undef _HC_MEMCPY_FN
-#undef _HC_COPY_BLOCK

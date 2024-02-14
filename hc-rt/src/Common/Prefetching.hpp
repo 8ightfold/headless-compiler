@@ -1,4 +1,4 @@
-//===- Common/InlineIntrin.hpp --------------------------------------===//
+//===- Common/Prefetching.hpp ---------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -20,6 +20,7 @@
 
 #include <Common/Fundamental.hpp>
 #include <Common/Memory.hpp>
+#include "SSEVec.hpp"
 
 #ifndef  _HC_SOFTWARE_PREFETCH
 # define _HC_SOFTWARE_PREFETCH 0
@@ -27,18 +28,6 @@
 
 //=== Types ===//
 namespace hcrt {
-  using Gv128 = u8 __attribute__((__vector_size__(16)));
-  using Gv256 = u8 __attribute__((__vector_size__(32)));
-  using Gv512 = u8 __attribute__((__vector_size__(64)));
-
-  template <typename> struct _IsVector { static constexpr bool value = false; };
-  template <> struct _IsVector<Gv128>  { static constexpr bool value = true; };
-  template <> struct _IsVector<Gv256>  { static constexpr bool value = true; };
-  template <> struct _IsVector<Gv512>  { static constexpr bool value = true; };
-
-  template <typename T>
-  concept __is_vector = _IsVector<T>::value;
-
   template <usize Count = 1>
   static constexpr usize cacheLinesSize = 64 * Count;
 
@@ -53,10 +42,7 @@ namespace hcrt {
     High = 2,
     Max  = 3,
   };
-} // namespace hcrt
 
-//=== Functions ===//
-namespace hcrt {
   template <PrefetchMode M, Locality L = Locality::Max>
   __always_inline void smart_prefetch(const u8* addr) {
     static constexpr int mode = static_cast<int>(M);

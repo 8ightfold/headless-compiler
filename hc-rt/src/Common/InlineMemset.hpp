@@ -25,31 +25,13 @@
 
 #include <Common/Array.hpp>
 #include "IAlign.hpp"
-#include "InlineIntrin.hpp"
+#include "Prefetching.hpp"
 
 #define _HC_MEMSET_FN(name) \
  inline void name(u8* __restrict dst, \
   u8 val, [[maybe_unused]] usize len = 0)
 
 namespace hcrt {
-#if defined(__AVX512F__)
-  using v128 = Gv128;
-  using v256 = Gv256;
-  using v512 = Gv512;
-#elif defined(__AVX__)
-  using v128 = Gv128;
-  using v256 = Gv256;
-  using v512 = hc::common::Array<v256, 2>;
-#elif defined(__SSE2__)
-  using v128 = Gv128;
-  using v256 = hc::common::Array<v128, 2>;
-  using v512 = hc::common::Array<v128, 4>;
-#else
-  using v128 = hc::common::Array<u64, 2>;
-  using v256 = hc::common::Array<u64, 4>;
-  using v512 = hc::common::Array<u64, 8>;
-#endif
-
   static constexpr bool __memset_prefetch_ = _HC_SOFTWARE_PREFETCH;
 
   template <typename BlockType>

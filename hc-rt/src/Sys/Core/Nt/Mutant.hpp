@@ -18,12 +18,10 @@
 
 #pragma once
 
-#include <Common/Handle.hpp>
 #include "Generic.hpp"
+#include "Handles.hpp"
 
 namespace hc::sys::win {
-  $Handle(MutantHandle, void*, Boolean, Equality);
-
   enum class MutantInfoClass {
     Basic, Owner
   };

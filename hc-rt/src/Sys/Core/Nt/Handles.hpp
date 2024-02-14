@@ -26,6 +26,10 @@
 
 #define _HC_NTHANDLE_GROUP(name) InGroup<name>
 
+#define $DefHANDLEEx(name, groups...) \
+$Handle(name##Handle, void*, Boolean, Equality, \
+ $PP_mapCL(_HC_NTHANDLE_GROUP, ##groups)); \
+static_assert(sizeof(name##Handle) == sizeof(void*))
 /// Define and check validity of handle.
 #define $DefHANDLE(name, groups...) \
 $Handle(name##Handle, void*, Boolean, Equality, \
@@ -61,6 +65,8 @@ namespace hc::sys::win {
   $DefHANDLE(Process,     IPC_HANDLE);
   $DefHANDLE(Semaphore,   SYNC_HANDLE);
   $DefHANDLE(Thread,      IPC_HANDLE);
+  // Not closable via NtClose(...)
+  $DefHANDLEEx(Mutant,    SYNC_HANDLE);
 
   template <typename H>
   concept __is_HANDLE = handle_in_group<H, HANDLE>;
