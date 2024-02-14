@@ -1,4 +1,4 @@
-//===- Sys/Sync/Win/Mutant.hpp --------------------------------------===//
+//===- Sys/Win/Mutant.hpp -------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -21,15 +21,13 @@
 #include <Sys/Core/Nt/Mutant.hpp>
 
 namespace hc::sys {
-  using NtMutexHandle = win::MutantHandle;
-
-  inline NtMutexHandle win_create_mutant(
+  inline win::MutexHandle win_create_mutant(
     win::NtStatus& S,
     NtAccessMask mask = win::MutantAllAccess,
-    bool owner = true,
-    const wchar_t* name = nullptr
+    const wchar_t* name = nullptr,
+    bool owner = false
   ) {
-    NtMutexHandle hout;
+    win::MutexHandle hout;
     auto ustr = make_unicode_string(name);
     win::ObjectAttributes attr { .object_name = &ustr };
     S = isyscall<NtSyscall::CreateMutant>(
@@ -41,7 +39,7 @@ namespace hc::sys {
   }
 
   inline win::NtStatus win_query_mutant(
-    NtMutexHandle handle,
+    win::MutexHandle handle,
     win::MutantInfoClass type,
     win::BasicMutantInfo& info,
     win::ULong* result_len = nullptr
@@ -54,11 +52,18 @@ namespace hc::sys {
   }
 
   inline win::NtStatus win_release_mutant(
-    NtMutexHandle handle,
+    win::MutexHandle handle,
     i32* prev_count = nullptr
   ) {
     return isyscall<NtSyscall::ReleaseMutant>(
       $unwrap_handle(handle), prev_count
     );
+  }
+
+  __always_inline win::NtStatus win_close_mutant(
+    win::MutexHandle handle
+  ) {
+    return isyscall<NtSyscall::Close>(
+      $unwrap_handle(handle));
   }
 } // namespace hc::sys

@@ -18,8 +18,7 @@
 
 #pragma once
 
-#include "Generic.hpp"
-#include "Handles.hpp"
+#include "Structs.hpp"
 
 namespace hc::sys::win {
   enum class CreateDisposition : ULong {

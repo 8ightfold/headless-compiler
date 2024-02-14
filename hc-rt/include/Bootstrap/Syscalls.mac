@@ -90,6 +90,8 @@ $NtGen(SetTimer)
 // Misc.
 $NtGen(Close)                       // NtStatus(WinHandle)
 $NtGen(GetCurrentProcessorNumber)   // ULong()
+$NtGen(WaitForSingleObject)
+$NtGen(WaitForMultipleObjects)
 $NtGen(TestAlert)                   // NtStatus()
 
 #undef $NtGen

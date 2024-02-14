@@ -18,8 +18,7 @@
 
 #pragma once
 
-#include "Generic.hpp"
-#include "Handles.hpp"
+#include "Structs.hpp"
 
 namespace hc::sys::win {
   enum class MutantInfoClass {
@@ -28,7 +27,7 @@ namespace hc::sys::win {
 
   struct BasicMutantInfo {
     i32 current_count = 0;
-    Boolean owned_by_caller;
+    Boolean owned_by_caller = true;
     Boolean abandoned_state = false;
   };
 

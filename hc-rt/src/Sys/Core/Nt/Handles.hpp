@@ -49,6 +49,7 @@ namespace hc::sys::win {
   $HandleGroup(IO_HANDLE);
   $HandleGroup(IPC_HANDLE);
   $HandleGroup(SYNC_HANDLE);
+  $HandleGroup(WAIT_HANDLE);
 
   $DefHANDLE(AccessTok);
   $DefHANDLE(Console,     IO_HANDLE);
@@ -65,8 +66,6 @@ namespace hc::sys::win {
   $DefHANDLE(Process,     IPC_HANDLE);
   $DefHANDLE(Semaphore,   SYNC_HANDLE);
   $DefHANDLE(Thread,      IPC_HANDLE);
-  // Not closable via NtClose(...)
-  $DefHANDLEEx(Mutant,    SYNC_HANDLE);
 
   template <typename H>
   concept __is_HANDLE = handle_in_group<H, HANDLE>;
@@ -86,18 +85,18 @@ namespace hc::sys::win {
     void* __data = nullptr;
   };
 
-  template <typename GroupRestriction>
+  template <typename...GroupRestrictions>
   struct [[gsl::Pointer]] SelectiveHandle {
     SelectiveHandle() = default;
     SelectiveHandle(nullptr_t) : SelectiveHandle() { }
     explicit SelectiveHandle(GenericHandle h) : __data(h.__data) { }
 
     template <typename H>
-    requires handle_in_group<H, GroupRestriction>
+    requires handle_in_group<H, GroupRestrictions...>
     SelectiveHandle(H h) : __data(h.__data) { }
 
     template <typename H>
-    requires handle_in_group<H, GroupRestriction>
+    requires handle_in_group<H, GroupRestrictions...>
     operator H() const { return H::New(__data); }
 
     explicit operator bool() const { return !!__data; }
@@ -110,6 +109,7 @@ namespace hc::sys::win {
   using IOHandle      = SelectiveHandle<IO_HANDLE>;
   using IPCHandle     = SelectiveHandle<IPC_HANDLE>;
   using SyncHandle    = SelectiveHandle<SYNC_HANDLE>;
+  using WaitHandle    = SelectiveHandle<SYNC_HANDLE, IPC_HANDLE>;
 } // namespace hc::sys::win
 
 #undef _HC_NTHANDLE_GROUP

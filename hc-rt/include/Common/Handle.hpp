@@ -187,9 +187,12 @@ namespace hc {
   }
 
   template <typename H, typename Group>
-  concept handle_in_group = requires(H& h) {
+  concept __handle_in_group = requires(H& h) {
     static_cast<_HandleAttr<H, HandleAttr::InGroup<Group>>&>(h);
   };
+
+  template <typename H, typename...Groups>
+  concept handle_in_group = (false || ... || __handle_in_group<H, Groups>);
 
   $Handle(__eg_handle_, void*, Boolean, Pointer);
   static_assert(sizeof(__eg_handle_) == sizeof(void*));
