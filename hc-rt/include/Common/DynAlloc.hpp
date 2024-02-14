@@ -47,7 +47,7 @@
 
 #define __hc_typed_alloca(sz, ty) \
  (typename ty::pointer)__builtin_alloca_with_align( \
-  ty::AllocationSize(sz), ty::TotalAlign)
+  ty::AllocationSize(sz), ty::totalAlign)
 
 HC_HAS_BUILTIN(alloca);
 HC_HAS_BUILTIN(alloca_with_align);
@@ -62,7 +62,7 @@ namespace hc::common {
   struct DynAllocation {
     using value_type = T;
     using pointer = T*;
-    static constexpr usize TotalAlign = Align * ::__bitcount;
+    static constexpr usize totalAlign = Align * ::__bitcount;
   public:
     [[nodiscard, gnu::always_inline, gnu::const]]
     static usize AllocationSize(usize size) __noexcept {

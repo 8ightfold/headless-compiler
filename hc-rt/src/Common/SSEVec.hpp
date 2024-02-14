@@ -19,6 +19,7 @@
 #pragma once
 
 #include <Common/Fundamental.hpp>
+#include <Common/Array.hpp>
 
 namespace hcrt {
   using Gv128 = u8 __attribute__((__vector_size__(16)));

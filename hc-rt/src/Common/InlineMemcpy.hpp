@@ -25,7 +25,7 @@
 
 #include <Common/Features.hpp>
 #include "IAlign.hpp"
-#include "InlineIntrin.hpp"
+#include "Prefetching.hpp"
 
 // TODO: Use prefetching/SIMD?
 
