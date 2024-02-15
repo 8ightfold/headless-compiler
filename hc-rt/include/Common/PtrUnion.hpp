@@ -24,7 +24,7 @@
 
 #include "Features.hpp"
 #include "Fundamental.hpp"
-#include "Traits.hpp"
+#include <Meta/ExTraits.hpp>
 
 #define $PUnion(tys...) ::hc::common::PtrUnion<tys>
 #define $extract_member(name, ty...) visitR<ty>([](auto* p) { return p->name; })
@@ -72,7 +72,7 @@ namespace hc::common {
   template <typename...TT>
   struct [[gsl::Pointer]] PtrUnion {
     static_assert(sizeof...(TT) < __ptrunion_max);
-    static_assert(__all_unique<TT...>, "Types cannot repeat.");
+    static_assert(meta::__all_unique<TT...>, "Types cannot repeat.");
     using SelfType = PtrUnion<TT...>;
     using BaseType = __ptrunion_base<TT...>;
     struct _SelfTag { };
@@ -82,7 +82,7 @@ namespace hc::common {
 
     template <typename R, typename F>
     using _RetType = __conditional_t<__is_same(R, _SelfTag),
-      __common_return_t<F, __add_pointer(TT)...>, R>;
+      meta::__common_return_t<F, __add_pointer(TT)...>, R>;
 
   public:
     PtrUnion() = default;
@@ -91,23 +91,23 @@ namespace hc::common {
     PtrUnion& operator=(const PtrUnion&) = default;
 
     template <typename U>
-    requires __any_same<U, TT...> PtrUnion(U* data) 
-     : __addr(reinterpret_cast<uptr>(data)), 
+    requires meta::__any_same<U, TT...>
+    PtrUnion(U* data) : __addr(reinterpret_cast<uptr>(data)), 
      __tag(data ? _ID<U> : 0U) { }
     
     template <typename U>
-    requires __any_same<const U, TT...> PtrUnion(const U* data) 
-     : __addr(reinterpret_cast<uptr>(data)), 
+    requires meta::__any_same<const U, TT...> 
+    PtrUnion(const U* data) : __addr(reinterpret_cast<uptr>(data)), 
      __tag(data ? _ID<const U> : 0U) { }
     
     template <typename U>
-    requires __any_same<U, TT...> 
+    requires meta::__any_same<U, TT...> 
     PtrUnion& operator=(U* data) __noexcept {
       return this->set(data);
     }
 
     template <typename U>
-    requires __any_same<const U, TT...> 
+    requires meta::__any_same<const U, TT...> 
     PtrUnion& operator=(const U* data) __noexcept {
       return this->set(data);
     }
@@ -123,7 +123,7 @@ namespace hc::common {
     }
 
     template <typename U>
-    requires __any_same<U, TT...>
+    requires meta::__any_same<U, TT...>
     SelfType& set(U* data) __noexcept {
       if __expect_false(!data)
         return *this;
@@ -133,7 +133,7 @@ namespace hc::common {
     }
 
     template <typename U>
-    requires __any_same<U, TT...>
+    requires meta::__any_same<U, TT...>
     U* get() const __noexcept {
       return __dyn_cast<U>();
     }

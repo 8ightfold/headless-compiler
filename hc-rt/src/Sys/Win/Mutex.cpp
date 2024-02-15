@@ -36,6 +36,7 @@ namespace {
   template <bool Alertable = false>
   inline void __mtx_lock_ms(RawMtxHandle H, usize ms, bool) {
     static constexpr win::NtStatus alerted = 0x101;
+    const auto nt_handle = win::MutexHandle::New(H.__ptr);
     win::NtStatus S = 0;
     win::LargeInt I;
     if constexpr (Alertable)

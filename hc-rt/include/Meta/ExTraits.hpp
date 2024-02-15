@@ -1,4 +1,4 @@
-//===- Common/Traits.hpp --------------------------------------------===//
+//===- Meta/ExTraits.hpp --------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "Fundamental.hpp"
+#include <Common/Fundamental.hpp>
 
 HC_HAS_REQUIRED(builtin, __is_same);
 HC_HAS_REQUIRED(builtin, __decay);
@@ -91,7 +91,9 @@ namespace hc::common {
 } // namespace hc::common
 
 //=== Uniqueness ===//
-namespace hc::common {
+namespace hc::meta {
+  using common::TySeq;
+
   template <typename T, typename...TT>
   concept __all_same = (true && ... && __common_is_same(T, TT));
 
@@ -124,10 +126,10 @@ namespace hc::common {
   template <typename...TT>
   concept __all_unique = __common_is_same(
     TySeq<TT...>, __unique_list_t<TT...>);
-} // namespace hc::common
+} // namespace hc::meta
 
 //=== Function Stuff ===//
-namespace hc::common {
+namespace hc::meta {
   template <typename T> 
   __add_rvalue_reference(T) Decl() noexcept {
     $compile_failure(T, 
@@ -148,7 +150,7 @@ namespace hc::common {
   template <typename T, typename...TT>
   struct _CommonReturn2 {
     using _F = __decay(T);
-    using Type = __conditional_t<
+    using Type = common::__conditional_t<
       __all_convertible<_F, __decay(TT)...>, _F, void>;
   };
 
@@ -159,7 +161,7 @@ namespace hc::common {
 
   template <typename T, typename...TT>
   struct _CommonReturn<true, T, TT...> {
-    using Type = __conditional_t<
+    using Type = common::__conditional_t<
       __all_same<T, TT...>, T, 
       typename _CommonReturn2<T, TT...>::Type
     >;
@@ -169,10 +171,10 @@ namespace hc::common {
   using __common_return_t = typename
     _CommonReturn<(sizeof...(TT) > 0), 
     __return_t<F, TT>...>::Type;
-} // namespace hc::common
+} // namespace hc::meta
 
 //=== Operator Stuff ===//
-namespace hc::common {
+namespace hc::meta {
   _HC_UNARY_OP(plus, +)
   _HC_UNARY_OP(minus, -)
   _HC_UNARY_OP(deref, *)
@@ -228,7 +230,7 @@ namespace hc::common {
   template <typename T, typename...Args>
   concept __has_op_arrow = __is_pointer(T) ||
    requires(T t) { t.operator->(); };
-} // namespace hc::common
+} // namespace hc::meta
 
 #undef __common_is_same
 #undef _HC_UNARY_OP

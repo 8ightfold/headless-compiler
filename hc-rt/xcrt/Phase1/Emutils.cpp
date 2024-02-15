@@ -22,9 +22,10 @@
 //===----------------------------------------------------------------===//
 
 #include <Common/Fundamental.hpp>
-#include <Common/Limits.hpp>
 #include <Common/InlineMemcpy.hpp>
 #include <Common/InlineMemset.hpp>
+#include <Common/Limits.hpp>
+#include <Meta/Once.hpp>
 #include <Sys/Core/Generic.hpp>
 #include <Sys/Mutex.hpp>
 #include <Mingw/TryPrint.hpp>

@@ -19,8 +19,8 @@
 #include <Bootstrap/StubParser.hpp>
 #include <Bootstrap/ModuleParser.hpp>
 #include <Common/Casting.hpp>
-#include <Common/Refl.hpp>
-#include <Common/Traits.hpp>
+#include <Meta/Refl.hpp>
+#include <Meta/ExTraits.hpp>
 
 #undef $StubErr
 #undef $MatchInstr

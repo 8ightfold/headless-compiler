@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "Predefs.hpp"
+#include <Common/Predefs.hpp>
 
 // For more info:
 // https://github.com/pfultz2/Cloak/wiki

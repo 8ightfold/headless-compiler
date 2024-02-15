@@ -19,7 +19,7 @@
 #pragma once
 
 #include "Fundamental.hpp"
-#include "Traits.hpp"
+#include <Meta/ExTraits.hpp>
 
 #define _HC_AGGRESSIVE_INLINE \
  __attribute__((always_inline, flatten, artificial)) inline
@@ -102,7 +102,7 @@ namespace hc::common {
 namespace hc::common {
   template <typename T, typename...TT>
   concept __array_compatible = 
-    !__is_reference(T) && __all_same<T, TT...>;
+    !__is_reference(T) && meta::__all_same<T, TT...>;
 
   template <typename IIs, typename...TT>
   struct _TupleSelector {

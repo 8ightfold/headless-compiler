@@ -19,8 +19,8 @@
 #include <Bootstrap/Syscalls.hpp>
 #include <Bootstrap/StubParser.hpp>
 #include <Bootstrap/ModuleParser.hpp>
-#include <Common/Refl.hpp>
-#include <Common/Unwrap.hpp>
+#include <Meta/Refl.hpp>
+#include <Meta/Unwrap.hpp>
 
 using namespace hc::bootstrap;
 namespace C = hc::common;

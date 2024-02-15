@@ -111,6 +111,10 @@ namespace hc::sys {
       RawMtxHandle::Unlock(__data);
     }
 
+    __ndbg_inline explicit operator bool() const {
+      return __data.isInitialized();
+    }
+
     bool isLocked() const {
       return __locked;
     }
