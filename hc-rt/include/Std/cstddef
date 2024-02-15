@@ -1,4 +1,4 @@
-//===- Phase1/Initialization.cpp ------------------------------------===//
+//===- Std/cstddef --------------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -16,24 +16,23 @@
 //
 //===----------------------------------------------------------------===//
 
-#include <Phase1/Initialization.hpp>
+#pragma once
+#pragma clang system_header
 
-namespace hc::bootstrap {
-  extern void force_syscall_reload();
-  extern bool are_syscalls_loaded();
-} // namespace hc::bootstrap
+#include <Common/Fundamental.hpp>
+#undef NULL
 
-namespace B = hc::bootstrap;
+extern "C++" {
 
-extern "C" {
-  /// At this point, constructors still have not been called.
-  /// We need to get everything initialized, especially the syscalls.
-  [[gnu::used, gnu::noinline]]
-  int __xcrtCRTStartupPhase1(void) {
-    // Make sure syscalls are bootstrapped.
-    B::force_syscall_reload();
-    __xcrt_emutils_setup();
+namespace std {
+  static constexpr nullptr_t NULL = nullptr;
+  using size_t    = ::usize;
+  using ptrdiff_t = ::iptrdiff;
+  using nullptr_t = ::nullptr_t;
+  enum class byte : u8 {};
+  // TODO: byte operators
+} // namespace std
 
-    return 0;
-  }
-}
+using std::NULL;
+
+} // extern "C++"

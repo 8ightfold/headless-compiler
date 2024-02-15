@@ -51,7 +51,7 @@ namespace hc::parcel {
     { return this->__buffer; }
 
   public:
-    u8 __pad[__uSize];
+    ubyte __pad[__uSize];
     T __buffer[BufferSize];
   };
 

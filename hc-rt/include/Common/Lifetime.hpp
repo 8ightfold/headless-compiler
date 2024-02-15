@@ -20,25 +20,11 @@
 
 #include "Features.hpp"
 #include "Memory.hpp"
+#include <Std/memory>
 
 namespace hc::common {
-  template <typename T, typename...Args>
-  [[gnu::artificial, gnu::always_inline]]
-  inline constexpr T* construct_at(T* t, Args&&...args) {
-    return ::new(static_cast<void*>(t))
-     T(static_cast<decltype(args)&&>(args)...);
-  }
-
-  template <typename T>
-  [[gnu::nodebug]] inline constexpr void
-   destroy_at(T* ptr) __noexcept {
-    if constexpr (__is_array(T)) {
-      for (auto& elem : *ptr)
-        common::destroy_at(common::__addressof(elem));
-    } else if constexpr (!__is_trivially_destructible(T)) {
-      ptr->~T();
-    }
-  }
+  using ::std::construct_at;
+  using ::std::destroy_at;
 
   template <typename T>
   __always_inline constexpr T*
@@ -73,7 +59,7 @@ namespace hc::common {
   template <typename It>
   [[gnu::artificial]]
   inline constexpr void __destroy(It I, It E) __noexcept {
-    using type = __remove_cv(__remove_reference_t(decltype(*I)));
+    using type = __remove_cvref(decltype(*I));
     if $is_consteval() {
       return _DestroyAdaptor<false>::__destroy(I, E);
     }

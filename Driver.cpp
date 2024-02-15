@@ -16,8 +16,10 @@
 //
 //===----------------------------------------------------------------===//
 
-#include <Common/Unwrap.hpp>
+#include <Common/Limits.hpp>
+#include <Common/RawLazy.hpp>
 #include <Common/Refl.hpp>
+#include <Common/Unwrap.hpp>
 #include <Bootstrap/Win64KernelDefs.hpp>
 #include <Bootstrap/StubParser.hpp>
 #include <Bootstrap/Syscalls.hpp>
@@ -41,6 +43,26 @@ namespace C = hc::common;
 namespace P = hc::parcel;
 namespace S = hc::sys;
 namespace W = hc::sys::win;
+
+// TODO: Make types trivial
+
+struct NonTrivial {
+  NonTrivial() = default;
+  constexpr NonTrivial(u32 x) : __x(x) {}
+  constexpr ~NonTrivial() {}
+public:
+  u32 __x = 0;
+};
+
+constexpr C::Option<NonTrivial> lazy_test(i32 V) {
+  using OptType = C::Option<NonTrivial>;
+  C::RawLazy<OptType> R {};
+  if (V >= 0)
+    R.ctor(u32(V));
+  else
+    R.ctor(hc::nullopt);
+  return R.take();
+}
 
 int main() {
   wchar_t raw_name[] = L"\\??\\C:\\krita-dev\\krita\\README.md";
@@ -75,4 +97,11 @@ int main() {
     std::printf("Closing failed! [0x%.8X]\n", S);
     return S;
   }
+
+  auto mi  = hc::Max<int>;
+  auto mul = hc::Max<unsigned long>;
+  auto mmm = hc::Max<u128>;
+
+  constexpr auto Os = lazy_test(5);
+  constexpr auto On = lazy_test(-2);
 }

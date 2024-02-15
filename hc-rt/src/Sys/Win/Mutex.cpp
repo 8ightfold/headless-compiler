@@ -33,7 +33,6 @@ RawMtxHandle S::RawMtxHandle::New(const wchar_t* name) {
   return RawMtxHandle {H.__data};
 }
 
-[[gnu::flatten]]
 RawMtxHandle S::RawMtxHandle::New(const char* name) {
   if (!name)
     return RawMtxHandle::New(
@@ -49,6 +48,7 @@ void S::RawMtxHandle::Delete(RawMtxHandle H) {
   __hc_invariant($NtSuccess(S));
 }
 
+[[gnu::flatten]]
 void S::RawMtxHandle::Lock(RawMtxHandle H) {
   __hc_invariant(H.isInitialized());
   const auto nt_handle = win::MutexHandle::New(H.__ptr);
@@ -58,9 +58,15 @@ void S::RawMtxHandle::Lock(RawMtxHandle H) {
 
 [[gnu::flatten]]
 void S::RawMtxHandle::LockMs(RawMtxHandle H, usize ms, bool alertable) {
+  /// Max<usize> is the same as winapi's INFINITE.
+  /// This means we do not need to time the wait period.
+  if (ms == hc::Max<usize>)
+    return RawMtxHandle::Lock(H);
+  // Timed locking
   return RawMtxHandle::Lock(H);
 }
 
+[[gnu::flatten]]
 i32 S::RawMtxHandle::Unlock(RawMtxHandle H) {
   __hc_invariant(H.isInitialized());
   const auto nt_handle = win::MutexHandle::New(H.__ptr);

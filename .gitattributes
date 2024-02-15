@@ -1,9 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 
-# Ignore HTML file
-**/*.html linguist-documentation
-
 # Highlight files with internal conventions
 *.h     linguist-language=cpp
 *.mac   linguist-language=cpp

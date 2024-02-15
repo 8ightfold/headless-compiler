@@ -2,11 +2,12 @@ include_guard(DIRECTORY)
 
 project(
   hc-runtime
-  VERSION 0.1.13
+  VERSION 0.1.14
   LANGUAGES CXX
 )
 
 add_library(hcrt-dev STATIC
+  src/Common/CheckFundamental.cpp
   src/Common/Memory.cpp
   src/BinaryFormat/MagicMatcher.cpp
   src/Bootstrap/Win64KernelDefs.cpp
@@ -35,6 +36,7 @@ target_internal_flags(hcrt-dev PUBLIC HC_ENABLE_LTO)
 add_library(hc-runtime STATIC
   xcrt/Stub.cpp
   xcrt/BuiltinOverrides.cpp
+  src/Common/CheckFundamental.cpp
   src/Common/Memory.cpp
   src/BinaryFormat/MagicMatcher.cpp
   src/Bootstrap/Win64KernelDefs.cpp

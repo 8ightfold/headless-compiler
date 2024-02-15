@@ -16,3 +16,4 @@ but some of the less intuitive ones are:
 - ``xcrt/Phase1``: Static init, TLS definitions, argv parsing, etc.
 - ``Bootstrap``: Definitions for Windows syscall extraction/loading
 - ``Parcel``: Stack-allocated dynamic data structures (and their dependencies)
+- ``Std``: Implements things from the STL (suggested with warnings)

@@ -1,4 +1,4 @@
-//===- Gnu/RtEnd.cpp ------------------------------------------------===//
+//===- Sys/Core/Generic.hpp -----------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -16,12 +16,11 @@
 //
 //===----------------------------------------------------------------===//
 
-#include "GlobalXtors.hpp"
+#pragma once
 
-extern "C" {
-  [[gnu::section(".ctors"), gnu::used]]
-  XtorFunc __CTOR_END__[] = {0};
-
-  [[gnu::section(".dtors"), gnu::used]]
-  XtorFunc __DTOR_END__[] = {0};
-} // extern "C"
+#include <Common/Predefs.hpp>
+#if HC_PLATFORM_WIN64
+# include "Nt/Generic.hpp"
+#else
+// TODO
+#endif

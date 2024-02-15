@@ -140,6 +140,8 @@ namespace hc::common {
 
   void* __launder(void*) = delete;
   void* __launder(const void*) = delete;
+  void* __launder(volatile void*) = delete;
+  void* __launder(const volatile void*) = delete;
 
   // assume_aligned
 

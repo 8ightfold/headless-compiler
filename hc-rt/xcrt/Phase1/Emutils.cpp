@@ -22,9 +22,19 @@
 //===----------------------------------------------------------------===//
 
 #include <Common/Fundamental.hpp>
+#include <Common/Limits.hpp>
 #include <Common/InlineMemcpy.hpp>
 #include <Common/InlineMemset.hpp>
+#include <Sys/Core/Generic.hpp>
+#include <Sys/Mutex.hpp>
 #include <Mingw/TryPrint.hpp>
+
+using namespace hc;
+using namespace xcrt;
+namespace win = hc::sys::win;
+
+using ErrCode = win::DWord;
+using TLSType = win::DWord;
 
 extern "C" {
   void __xcrt_abort(void) throw() {
@@ -32,23 +42,40 @@ extern "C" {
   }
 } // extern "C"
 
+namespace {
+  constexpr TLSType tls_out_of_indexes = Max<TLSType>;
+  constinit sys::Mtx mtx {};
+  constinit TLSType tls_idx = tls_out_of_indexes;
+} // namespace `anonymous`
+
 namespace xcrt::emutils {
   struct AddrArray {
     uptr skip_dtor_rounds;
     uptr size;
-    void* data[];
+    void* data[] __counted_by(size);
   };
 
   static void shutdown(AddrArray* A);
 
-  [[gnu::cold]] static void win_err(u32 code, const char* hint) {
+  static inline void win_err(ErrCode code, const char* hint) {
     _XCRT_TRYPRINT("Error: Code %u (%s)\n", code, hint ? hint : "null");
+  }
+
+  static inline void win_abort(ErrCode code, const char* hint) {
+    win_err(code, hint);
     __xcrt_abort();
+  }
+
+  static /*inline*/ void* maligned_alloc(usize align, usize size);
+  static /*inline*/ void* maligned_free(void* base);
+
+  static void emutils_exit() {
+
   }
 } // namespace hcrt
 
 extern "C" {
   void __xcrt_emutils_setup(void) {
-
+    mtx.initialize();
   }
 }

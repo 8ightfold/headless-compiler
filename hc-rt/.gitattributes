@@ -1,0 +1,4 @@
+# Ignore HTML files
+**/*.html linguist-documentation
+# Mark STL files as C++
+include/Std/*  linguist-language=cpp

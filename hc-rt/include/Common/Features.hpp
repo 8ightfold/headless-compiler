@@ -78,17 +78,42 @@
 #define __visibility(ty) __attribute__((__visibility__(#ty)))
 #define __aligned(n) __attribute__((aligned(n)))
 
-#if __clang_major__ >= 17
-# define __prefer_type(name) [[clang::preferred_type(name)]]
+#if __has_attribute(preferred_type)
+# define __prefer_type(name) __attribute__((preferred_type(name)))
 #else
 # define __prefer_type(name)
+#endif
+
+#if __has_attribute(__preferred_name__)
+# define __prefer_name(name) __attribute__((__preferred_name__(name)))
+#else
+# define __prefer_name(name)
+#endif
+
+#if __has_attribute(counted_by)
+# define __counted_by(name) __attribute__((counted_by(name)))
+#else
+# define __counted_by(name)
+#endif
+
+#if __has_attribute(__nodebug__)
+# define __nodebug __attribute__((__nodebug__))
+#else
+# define __nodebug
 #endif
 
 #define __expect_false(expr...) (__builtin_expect(bool(expr), 0))
 #define __expect_true(expr...)  (__builtin_expect(bool(expr), 1))
 #define __unpredictable(expr...)  (__builtin_unpredictable(bool(expr)))
 #define __global inline constexpr
-#define __noexcept noexcept(!HC_EXCEPTIONS)
+
+#if HC_EXCEPTIONS
+# define __throw(ty...) throw(ty)
+# define __noexcept noexcept(false)
+#else
+# define __throw(...)
+# define __noexcept noexcept
+#endif
 
 template <typename T>
 [[gnu::always_inline, gnu::nodebug]]
@@ -134,6 +159,20 @@ constexpr __remove_reference_t(T)&& __hc_move(T&& t) __noexcept {
 #define $tail_return [[clang::musttail]] return
 #define $unreachable __builtin_unreachable()
 
+namespace hc {
+  template <typename T, auto = []{}>
+  consteval bool compile_failure() {
+    return false;
+  }
+
+  template <auto V, auto = []{}>
+  consteval bool compile_failure() {
+    return false;
+  }
+} // namespace hc
+
+#define $compile_failure(ty, ...) static_assert( \
+  hc::compile_failure<ty>() __VA_OPT__(, "In "#ty": ") __VA_ARGS__);
 #define $flag(n...) (1ULL << (n))
 
 #pragma clang final(__always_inline)

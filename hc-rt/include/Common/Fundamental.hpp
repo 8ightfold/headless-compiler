@@ -15,10 +15,6 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
-//
-//  Defines aliases for fundamental types.
-//
-//===----------------------------------------------------------------===//
 
 #pragma once
 
@@ -27,9 +23,12 @@
 HC_HAS_REQUIRED(builtin, __make_signed);
 HC_HAS_REQUIRED(builtin, __make_unsigned);
 
-__global auto __bitcount = 8ULL;
+__global decltype(sizeof(0)) __bitcount = __CHAR_BIT__;
 
 //=== Integrals ===//
+
+using ibyte = signed char;
+using ubyte = unsigned char;
 
 using i8  = __INT8_TYPE__;
 using i16 = __INT16_TYPE__;
@@ -85,9 +84,6 @@ using uptr = hc::common::uintty_t<void*>;
 using ihalfptr = hc::common::intn_t<sizeof(void*) / 2>;
 using uhalfptr = __make_unsigned(ihalfptr);
 
-static_assert(sizeof(i128) == 16);
-static_assert(sizeof(u128) == 16);
-
 //=== Floating Point ===//
 
 #if __is_reserved(_Float16)
@@ -111,10 +107,6 @@ namespace hc::common {
   template <usize N> 
   using floatn_t = typename _FloatN<N>::type;
 } // namespace hc::common
-
-static_assert(sizeof(f16) == 2);
-static_assert(sizeof(f32) == 4);
-static_assert(sizeof(f64) == 8);
 
 using nullptr_t = decltype(nullptr);
 

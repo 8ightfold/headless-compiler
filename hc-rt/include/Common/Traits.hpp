@@ -20,6 +20,11 @@
 
 #include "Fundamental.hpp"
 
+HC_HAS_REQUIRED(builtin, __is_same);
+HC_HAS_REQUIRED(builtin, __decay);
+HC_HAS_REQUIRED(builtin, __type_pack_element);
+HC_HAS_REQUIRED(builtin, __make_integer_seq);
+
 #define __common_is_same(t, u) (__is_same(t, u) && __is_same(u, t))
 #define $I(n) ::hc::__i<n>
 
@@ -125,8 +130,8 @@ namespace hc::common {
 namespace hc::common {
   template <typename T> 
   __add_rvalue_reference(T) Decl() noexcept {
-    static_assert(!__is_same(T, T), 
-      "Decl<...> must be called in an unevaluated context.");
+    $compile_failure(T, 
+      "Decl<...> must be called in an unevaluated context.")
   }
 
   template <typename F, typename...TT>

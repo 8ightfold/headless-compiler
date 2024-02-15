@@ -19,13 +19,8 @@
 #pragma once
 
 #include <Common/Fundamental.hpp>
+#include <Common/Limits.hpp>
 #include <Common/PtrUnion.hpp>
-
-#if HC_PLATFORM_WIN64
-# define __hc_mtxh(m...) ((m).__ptr)
-#else
-# define __hc_mtxh(m...) ((m).__int)
-#endif
 
 // TODO: Make atomic or sumn
 // For more info:
@@ -40,7 +35,7 @@ namespace hc::sys {
     constexpr RawMtxHandle() : __ptr(npos) { }
 #  else
     using DefaultType = uptr;
-    static constexpr DefaultType npos = -1;
+    static constexpr DefaultType npos = Max<uptr>;
     constexpr RawMtxHandle() : __int(npos) { }
 #  endif
     constexpr RawMtxHandle(void* P) : __ptr(P) { }
@@ -50,8 +45,8 @@ namespace hc::sys {
     static RawMtxHandle New(const wchar_t* name);
     static void Delete(RawMtxHandle H);
     static void Lock(RawMtxHandle H);
-    // TODO: Add `common::Max<usize>` !?
-    static void LockMs(RawMtxHandle H, usize ms, bool /*alert*/ = false);
+    static void LockMs(RawMtxHandle H, 
+      usize ms = Max<usize>, bool X = false);
     static i32 Unlock(RawMtxHandle H);
 
     __always_inline DefaultType getUnderlying() const {
@@ -83,6 +78,8 @@ namespace hc::sys {
     Mtx& operator=(const Mtx&) = delete;
 
     ~Mtx() {
+      if (!__data.isInitialized())
+        return;
       this->lock();
       RawMtxHandle::Delete(__data);
     }
@@ -118,6 +115,10 @@ namespace hc::sys {
       return __locked;
     }
 
+    __always_inline auto getUnderlying() const {
+      return __data.getUnderlying();
+    }
+
   public:
     RawMtxHandle __data {};
     u32  __lock_count = 0;
@@ -144,8 +145,4 @@ namespace hc::sys {
   private:
     MutexType& __mtx;
   };
-
-  __ndbg_inline auto* __get_mtx_handle(Mtx& M) {
-    return &__hc_mtxh(M.__data);
-  }
 } // namespace hc::sys
