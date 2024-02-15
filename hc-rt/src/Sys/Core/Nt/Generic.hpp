@@ -44,6 +44,10 @@ namespace hc::sys::win {
     __ndbg_inline operator i64() const {
       return this->quad;
     }
+    __ndbg_inline LargeInt& operator=(i64 I) {
+      this->quad = I;
+      return *this;
+    }
   public:
     i64 quad = 0L;
     struct {
@@ -55,6 +59,10 @@ namespace hc::sys::win {
   union ULargeInt {
     __ndbg_inline operator u64() const {
       return this->quad;
+    }
+    __ndbg_inline ULargeInt& operator=(u64 I) {
+      this->quad = I;
+      return *this;
     }
   public:
     u64 quad = 0UL;

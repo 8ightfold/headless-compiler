@@ -23,12 +23,22 @@
 namespace hc::sys {
   inline win::NtStatus win_wait_single(
     win::WaitHandle handle,
-    win::LargeInt* timeout = nullptr,
-    bool alertable = false
+    win::LargeInt* timeout,
+    bool alertable
   ) {
     return isyscall<NtSyscall::WaitForSingleObject>(
       $unwrap_handle(handle), timeout, 
       win::Boolean(alertable)
+    );
+  }
+
+  inline win::NtStatus win_wait_single(
+    win::WaitHandle handle
+  ) {
+    return isyscall<NtSyscall::WaitForSingleObject>(
+      $unwrap_handle(handle), 
+      (win::LargeInt*)nullptr, 
+      win::Boolean(false)
     );
   }
 } // namespace hc::sys

@@ -25,6 +25,34 @@ using namespace hc::sys;
 namespace C = hc::common;
 namespace S = hc::sys;
 
+namespace {
+  inline win::LargeInt* __mtx_time_fmt(win::LargeInt& I, usize ms) {
+    if __expect_false(ms == hc::Max<usize>)
+      return nullptr;
+    const i64 nt_ms = i64(ms) * -10000LL;
+    return &(I = nt_ms);
+  }
+
+  template <bool Alertable = false>
+  inline void __mtx_lock_ms(RawMtxHandle H, usize ms, bool) {
+    static constexpr win::NtStatus alerted = 0x101;
+    win::NtStatus S = 0;
+    win::LargeInt I;
+    if constexpr (Alertable)
+      __hc_unreachable("Fuck!");
+    win::LargeInt* const P = 
+      __mtx_time_fmt(I, ms);
+    do {
+      S = win_wait_single(nt_handle);
+      if __expect_false($NtFail(S)) {
+        // TODO: Set last error
+        S = hc::Max<win::NtStatus>; // WAIT_FAILED
+      }
+    } while((S == alerted) && Alertable);
+    __hc_invariant($NtSuccess(S));
+  }
+} // namespace `anonymous`
+
 RawMtxHandle S::RawMtxHandle::New(const wchar_t* name) {
   win::NtStatus S = 0;
   auto H = win_create_mutant(S,
@@ -56,14 +84,15 @@ void S::RawMtxHandle::Lock(RawMtxHandle H) {
   __hc_invariant($NtSuccess(S));
 }
 
-[[gnu::flatten]]
 void S::RawMtxHandle::LockMs(RawMtxHandle H, usize ms, bool alertable) {
   /// Max<usize> is the same as winapi's INFINITE.
   /// This means we do not need to time the wait period.
-  if (ms == hc::Max<usize>)
+  if __expect_false(ms == hc::Max<usize>)
     return RawMtxHandle::Lock(H);
-  // Timed locking
-  return RawMtxHandle::Lock(H);
+  if __expect_false(alertable)
+    $tail_return __mtx_lock_ms<true>(H, ms, alertable);
+  // else:
+  $tail_return __mtx_lock_ms<>(H, ms, alertable);
 }
 
 [[gnu::flatten]]
