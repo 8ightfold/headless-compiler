@@ -22,7 +22,6 @@
 
 #pragma once
 
-#include "Fundamental.hpp"
 #include "PtrRange.hpp"
 #include "Strings.hpp"
 
@@ -180,8 +179,7 @@ namespace hc::common {
 
     // TODO: Replace with something more advanced...
     // Returns `true` on error.
-    template <typename Int>
-    requires(__is_unsigned(Int))
+    template <meta::is_unsigned Int>
     [[nodiscard]] bool consumeUnsigned(Int& i) {
       StrRef S = *this;
       if (S.isEmpty())

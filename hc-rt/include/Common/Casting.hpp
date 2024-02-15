@@ -18,14 +18,13 @@
 
 #pragma once
 
-#include "Features.hpp"
-#include "Fundamental.hpp"
+#include <Meta/Traits.hpp>
 
 //=== Basic Casts ===//
 namespace hc {
   template <typename U = void, typename T>
   __always_inline U* ptr_cast(T* t) __noexcept {
-    if constexpr (!__is_void(__remove_const(T))) {
+    if constexpr (meta::not_void<__remove_const(T)>) {
       return reinterpret_cast<U*>(t);
     } else {
       return static_cast<U*>(t);
@@ -81,8 +80,7 @@ namespace hc {
 
 //=== Underlying ===//
 namespace hc {
-  template <typename E>
-  requires(__is_enum(E))
+  template <meta::is_enum E>
   __always_inline constexpr auto underlying_cast(E e) {
     return static_cast<__underlying_type(E)>(e);
   }

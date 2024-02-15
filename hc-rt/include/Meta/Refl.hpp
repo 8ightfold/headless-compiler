@@ -23,7 +23,7 @@
 #pragma once
 
 #include <Common/Features.hpp>
-#include <Common/Intrusive.hpp>
+#include "Intrusive.hpp"
 
 #define $reflexpr(type...) ::hc::Refl<__remove_cvref(type)>{}
 
@@ -32,7 +32,7 @@ namespace hc {
   struct _ReflFields {
     using SelfType = _ReflFields<T, Tag>;
     static constexpr auto& __fieldArray = __refl_fieldarray(Tag);
-    static constexpr usize __fieldCount = common::IADL::Size(__fieldArray) - 1;
+    static constexpr usize __fieldCount = meta::IADL::Size(__fieldArray) - 1;
   public:
     static constexpr auto Name(const T& V) {
       auto field_name = __refl_fieldname(V);

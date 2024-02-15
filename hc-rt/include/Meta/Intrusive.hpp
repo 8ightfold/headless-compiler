@@ -1,4 +1,4 @@
-//===- Common/Intrusive.hpp -----------------------------------------===//
+//===- Meta/Intrusive.hpp -------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -23,9 +23,9 @@
 
 #pragma once
 
-#include "Fundamental.hpp"
+#include <Common/Fundamental.hpp>
 
-namespace hc::common {
+namespace hc::meta {
   template <typename T, usize N>
   constexpr T* __get_data(T(&arr)[N]) {
     return arr;
@@ -88,4 +88,4 @@ namespace hc::common {
       }
     }
   };
-} // namespace hc::common
+} // namespace hc::meta

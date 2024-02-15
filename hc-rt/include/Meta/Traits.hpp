@@ -18,4 +18,53 @@
 
 #pragma once
 
+#include <Common/Fundamental.hpp>
 
+namespace hc::meta {
+  template <typename T>
+  concept is_void = __is_void(T);
+
+  template <typename T>
+  concept not_void = !__is_void(T);
+
+  template <typename T, typename U>
+  concept is_same = __is_same(T, U) && __is_same(U, T);
+
+  template <typename T>
+  concept is_integral = __is_integral(T);
+
+  template <typename T>
+  concept is_signed = is_integral<T> && __is_signed(T);
+
+  template <typename T>
+  concept is_unsigned = is_integral<T> && __is_unsigned(T);
+
+  template <typename T>
+  concept is_float = __is_floating_point(T);
+
+  template <typename T>
+  concept is_array = __is_array(T);
+
+  template <typename T>
+  concept is_enum = __is_enum(T);
+
+  template <typename T>
+  concept is_union = __is_union(T);
+
+  template <typename T>
+  concept is_struct = __is_class(T);
+
+  // Qualifiers
+
+  template <typename T>
+  concept is_ref = __is_reference(T);
+
+  template <typename T>
+  concept not_ref = !__is_reference(T);
+
+  template <typename T>
+  concept is_ptr = __is_pointer(T);
+
+  template <typename T>
+  concept not_ptr = !__is_pointer(T);
+} // namespace hc::meta

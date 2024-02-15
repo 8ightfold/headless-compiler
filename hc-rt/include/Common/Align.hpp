@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "Fundamental.hpp"
+#include <Meta/Traits.hpp>
 
 namespace hc::common {
   struct Align {
@@ -38,8 +38,7 @@ namespace hc::common {
       return n + 1;
     }
 
-    template <typename T, typename CastType = __make_unsigned(T)>
-    requires(__is_integral(T))
+    template <meta::is_integral T, typename CastType = __make_unsigned(T)>
     static constexpr CastType Up(T i) __noexcept {
       if __expect_false(i == 0) return 1;
       const usize n = __Up<__bitsizeof(T)>(usize(i));

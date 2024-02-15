@@ -18,8 +18,7 @@
 
 #pragma once
 
-#include "Features.hpp"
-#include "Fundamental.hpp"
+#include <Meta/Traits.hpp>
 
 #define $PRange(ty...) ::hc::common::PtrRange<ty>
 
@@ -56,8 +55,7 @@ namespace hc::common {
     _VoidPtrProxy(R(Obj::*)(Args...)) = delete;
 
   public:
-    template <typename T>
-    requires(!__is_void(T))
+    template <meta::not_void T>
     explicit operator T*() const __noexcept {
       return reinterpret_cast<T*>(this->__data);
     } 
@@ -73,15 +71,13 @@ namespace hc::common {
 
     //=== Arithmetic Operators ===//
 
-    template <typename T>
-    requires(__is_integral(T))
+    template <meta::is_integral T>
     friend Type operator+(const Type& lhs, T rhs) {
       __hc_invariant(!lhs.isEmpty() || rhs == 0);
       return { lhs.__data + rhs };
     }
 
-    template <typename T>
-    requires(__is_integral(T))
+    template <meta::is_integral T>
     friend Type operator-(const Type& lhs, T rhs) {
       __hc_invariant(!lhs.isEmpty() || rhs == 0);
       return { lhs.__data - rhs };
@@ -160,7 +156,7 @@ namespace hc::common {
     template <typename U = T, usize N>
     [[gnu::always_inline, gnu::const]]
     static PtrRange<U> New(U(&A)[N])
-     requires(!__is_void(U)) {
+     requires meta::not_void<U> {
       return { A, A + N };
     }
 
@@ -185,7 +181,7 @@ namespace hc::common {
     }
 
     usize sizeInBytes() const {
-      if constexpr (__is_void(T)) {
+      if constexpr (meta::is_void<T>) {
         return this->size();
       } else {
         return (__end - __begin) * __sizeof(T);
@@ -200,8 +196,7 @@ namespace hc::common {
       return this->__begin;
     }
 
-    template <typename U = T>
-    requires(!__is_void(U))
+    template <meta::not_void U = T>
     const U& operator[](usize n) const {
       __hc_invariant(!isEmpty() && n < size());
       return __begin[n];
@@ -241,8 +236,7 @@ namespace hc::common {
       $tail_return dropFront(size() - n);
     }
 
-    template <typename U>
-    requires(__is_void(T))
+    template <meta::not_void U>
     __always_inline PtrRange<U> intoRange() const {
       const auto new_begin = (U*)__begin;
       const auto new_end   = (U*)__end;

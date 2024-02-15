@@ -45,6 +45,7 @@ HC_HAS_BUILTIN(strncmp);
 HC_HAS_BUILTIN(strlen);
 
 namespace hc::common {
+  // TODO: Update
   template <typename T>
   concept __char_type = 
     __common_is_same(T, char)           ||

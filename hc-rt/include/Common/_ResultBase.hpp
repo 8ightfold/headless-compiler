@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "Fundamental.hpp"
+#include <Meta/Traits.hpp>
 #include "Lifetime.hpp"
 
 //=== Globals ===//

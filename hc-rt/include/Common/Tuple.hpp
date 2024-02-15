@@ -102,7 +102,7 @@ namespace hc::common {
 namespace hc::common {
   template <typename T, typename...TT>
   concept __array_compatible = 
-    !__is_reference(T) && meta::__all_same<T, TT...>;
+    meta::not_ref<T> && meta::__all_same<T, TT...>;
 
   template <typename IIs, typename...TT>
   struct _TupleSelector {

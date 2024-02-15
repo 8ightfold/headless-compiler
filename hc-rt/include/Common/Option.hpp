@@ -182,7 +182,7 @@ namespace hc::common {
     template <typename U>
     [[gnu::always_inline, gnu::nodebug]]
     constexpr bool __isa() const __noexcept {
-      if constexpr (__is_same(T, U))
+      if constexpr (meta::is_same<T, U>)
         return this->isSome();
       return false;
     }
@@ -190,7 +190,7 @@ namespace hc::common {
     template <typename U>
     [[gnu::nodebug]]
     constexpr const U* __dyn_cast() const __noexcept {
-      if constexpr (__is_same(T, U))
+      if constexpr (meta::is_same<T, U>)
         return isSome() ? __pok() : nullptr;
       return nullptr;
     }
@@ -295,7 +295,7 @@ namespace hc::common {
     template <typename U>
     [[gnu::always_inline, gnu::nodebug]]
     constexpr bool __isa() const __noexcept {
-      if constexpr (__is_same(T, U))
+      if constexpr (meta::is_same<T, U>)
         return this->isSome();
       return false;
     }
@@ -303,7 +303,7 @@ namespace hc::common {
     template <typename U>
     [[gnu::nodebug]]
     constexpr U* __dyn_cast() const __noexcept {
-      if constexpr (__is_same(T, U))
+      if constexpr (meta::is_same<T, U>)
         return isSome() ? this->__data : nullptr;
       return nullptr;
     }

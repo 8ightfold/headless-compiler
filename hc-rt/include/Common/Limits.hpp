@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "Fundamental.hpp"
+#include <Meta/Traits.hpp>
 
 HC_HAS_REQUIRED(builtin, __is_signed);
 HC_HAS_REQUIRED(builtin, __is_unsigned);
@@ -39,7 +39,7 @@ namespace hc {
   // Implementation
 
   template <typename T>
-  requires(__is_signed(T))
+  requires meta::is_signed<T>
   struct _Limits<T> {
     static constexpr T max = ~(T(1) << (__bitsizeof(T) - 1));
     static constexpr T min = -max - T(1);
@@ -47,7 +47,7 @@ namespace hc {
   };
 
   template <typename T>
-  requires(__is_unsigned(T))
+  requires meta::is_unsigned<T>
   struct _Limits<T> {
     static constexpr T max = ~T(0U);
     static constexpr T min = T(0U);

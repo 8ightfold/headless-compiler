@@ -19,6 +19,7 @@
 #include <Common/Limits.hpp>
 #include <Common/RawLazy.hpp>
 #include <Meta/Refl.hpp>
+#include <Meta/Traits.hpp>
 #include <Meta/Unwrap.hpp>
 #include <Bootstrap/Win64KernelDefs.hpp>
 #include <Bootstrap/StubParser.hpp>

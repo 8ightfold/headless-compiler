@@ -22,8 +22,6 @@
 
 #pragma once
 
-#include "Features.hpp"
-#include "Fundamental.hpp"
 #include <Meta/ExTraits.hpp>
 
 #define $PUnion(tys...) ::hc::common::PtrUnion<tys>
@@ -153,7 +151,7 @@ namespace hc::common {
     decltype(auto) visitR(F&& f) const __noexcept 
      requires(sizeof...(TT) > 0) {
       using Ret = _RetType<R, F>;
-      if constexpr (!__is_void(__remove_const(Ret))) {
+      if constexpr (meta::not_void<__remove_const(Ret)>) {
         if (this->isEmpty())
           $tail_return __visitR<Ret>(__hc_fwd(f));
         // Real visitor
@@ -206,7 +204,7 @@ namespace hc::common {
     template <typename R, typename...UU>
     R __visitR(auto&& f) const __noexcept
      requires(sizeof...(UU) == 0) {
-      if constexpr (!__is_reference(R)) {
+      if constexpr (meta::not_ref<R>) {
         return R{};
       }
       __hc_unreachable("Unable to instantiate a default object.");

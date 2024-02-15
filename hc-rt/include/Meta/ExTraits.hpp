@@ -19,6 +19,7 @@
 #pragma once
 
 #include <Common/Fundamental.hpp>
+#include "Traits.hpp"
 
 HC_HAS_REQUIRED(builtin, __is_same);
 HC_HAS_REQUIRED(builtin, __decay);
@@ -87,7 +88,7 @@ namespace hc::common {
   using make_intseq = __make_integer_seq<IntSeq, I, N>;
 
   template <usize N>
-  using make_idxseq = make_intseq<usize, N>;
+  using make_idxseq = __make_integer_seq<IntSeq, usize, N>;
 } // namespace hc::common
 
 //=== Uniqueness ===//
@@ -95,10 +96,10 @@ namespace hc::meta {
   using common::TySeq;
 
   template <typename T, typename...TT>
-  concept __all_same = (true && ... && __common_is_same(T, TT));
+  concept __all_same = (true && ... && is_same<T, TT>);
 
   template <typename T, typename...TT>
-  concept __any_same = (false || ... || __common_is_same(T, TT));
+  concept __any_same = (false || ... || is_same<T, TT>);
 
   // All Unique
 
@@ -124,8 +125,8 @@ namespace hc::meta {
     (_TAllUnique<>{} ->* ... ->* _TAllUnique<TT>{}).AsTySeq());
   
   template <typename...TT>
-  concept __all_unique = __common_is_same(
-    TySeq<TT...>, __unique_list_t<TT...>);
+  concept __all_unique = is_same<
+    TySeq<TT...>, __unique_list_t<TT...>>;
 } // namespace hc::meta
 
 //=== Function Stuff ===//
