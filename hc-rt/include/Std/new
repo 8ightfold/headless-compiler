@@ -17,7 +17,7 @@
 //===----------------------------------------------------------------===//
 
 #pragma once
-// #pragma clang system_header
+#pragma clang system_header
 
 #include <Std/cstddef>
 
