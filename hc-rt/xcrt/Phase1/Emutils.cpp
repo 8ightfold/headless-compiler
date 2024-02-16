@@ -45,6 +45,7 @@ extern "C" {
 
 namespace {
   constexpr TLSType tls_out_of_indexes = Max<TLSType>;
+  // TODO: Make RawLazy<sys::Mtx[]>
   constinit sys::Mtx mtx {};
   constinit TLSType tls_idx = tls_out_of_indexes;
 } // namespace `anonymous`

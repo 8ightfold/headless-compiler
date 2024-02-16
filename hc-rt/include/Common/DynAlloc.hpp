@@ -66,7 +66,10 @@ namespace hc::common {
   public:
     [[nodiscard, gnu::always_inline, gnu::const]]
     static usize AllocationSize(usize size) __noexcept {
-      return size * __sizeof(T);
+      // Alloca sometimes releases memory when passed a 0.
+      // We make sure this can't happen (disaster).
+      const usize out_size = size < 1 ? 1 : size;
+      return out_size * __sizeof(T);
     }
 
     [[nodiscard, gnu::always_inline]]

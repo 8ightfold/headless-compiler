@@ -24,9 +24,8 @@
 
 #ifndef  _HC_SOFTWARE_PREFETCH
 # define _HC_SOFTWARE_PREFETCH 0
-#endif
+#endif // _HC_SOFTWARE_PREFETCH
 
-//=== Types ===//
 namespace hcrt {
   template <usize Count = 1>
   static constexpr usize cacheLinesSize = 64 * Count;
