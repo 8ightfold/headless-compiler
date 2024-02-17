@@ -20,6 +20,7 @@
 
 #include <Common/Fundamental.hpp>
 
+//=== Concepts ===//
 namespace hc::meta {
   template <typename T>
   concept is_void = __is_void(T);
@@ -67,4 +68,51 @@ namespace hc::meta {
 
   template <typename T>
   concept not_ptr = !__is_pointer(T);
+
+  // Complex
+
+  template <typename T>
+  concept is_trivial = __is_trivial(T);
+
+  template <typename T>
+  concept is_trivially_copyable = __is_trivially_copyable(T);
+
+  template <typename T>
+  concept is_trivially_destructible = __is_trivially_destructible(T);
+
+  template <typename T>
+  concept is_object = __is_object(T);
+
+  template <typename T, typename U>
+  concept is_same_size = 
+    (__sizeof(T) == __sizeof(U)) &&
+    (__sizeof(U) == __sizeof(T));
+
+} // namespace hc::meta
+
+//=== Types ===//
+namespace hc::meta {
+  template <typename T>
+  using Decay = __decay(T);
+
+  template <typename T>
+  using UnderlyingType = __underlying_type(T);
+
+  template <typename T>
+  using AddPointer = __add_pointer(T);
+
+  template <typename T>
+  using RemoveConst = __remove_const(T);
+
+  template <typename T>
+  using RemoveVolatile = __remove_volatile(T);
+
+  template <typename T>
+  using RemoveRef = __remove_reference_t(T);
+
+  template <typename T>
+  using RemoveCV = __remove_cv(T);
+
+  template <typename T>
+  using RemoveCVRef = __remove_cvref(T);
 } // namespace hc::meta

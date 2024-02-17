@@ -1,4 +1,4 @@
-//===- Phase1/Initialization.cpp ------------------------------------===//
+//===- Sys/Win/PFiles.hpp -------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -16,25 +16,27 @@
 //
 //===----------------------------------------------------------------===//
 
-#include <Phase1/Initialization.hpp>
+#include <Sys/Win/IOFile.hpp>
+#include <Meta/Once.hpp>
 
-namespace hc::bootstrap {
-  extern void force_syscall_reload();
-  extern bool are_syscalls_loaded();
-} // namespace hc::bootstrap
+using namespace hc::sys;
 
-namespace B = hc::bootstrap;
+namespace {
+  constinit IIOFileBuf<1024> pOut_buf {};
+  constinit IIOFileBuf<0>    pErr_buf {};
+  constinit IIOFileBuf<512>  pIn_buf {};
 
-extern "C" {
-  /// At this point, constructors still have not been called.
-  /// We need to get everything initialized, especially the syscalls.
-  [[gnu::used, gnu::noinline]]
-  int __xcrtCRTStartupPhase1(void) {
-    // Make sure syscalls are bootstrapped.
-    B::force_syscall_reload();
-    // Setup thread_local backend.
-    __xcrt_emutils_setup();
+  // constinit IIOFile pOut;
+  // constinit IIOFile pErr;
+  // constinit IIOFile pIn;
+} // namespace `anonymous`
 
-    return 0;
+namespace hc::sys {
+  void __init_pfiles() {
+    static bool __init = false;
+    if __expect_false(__init)
+      return;
   }
-}
+
+  
+} // namespace hc::sys

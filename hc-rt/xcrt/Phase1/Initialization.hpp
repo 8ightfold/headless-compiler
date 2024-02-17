@@ -18,10 +18,13 @@
 
 #pragma once
 
+#include <Common/Fundamental.hpp>
+
 extern "C" {
   using VVFunc = void(*)(void);
   using IVFunc = int(*)(void);
   using VIFunc = void(*)(int);
 
+  extern void __xcrt_sysio_setup(void);
   extern void __xcrt_emutils_setup(void);
 }

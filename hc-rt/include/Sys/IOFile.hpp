@@ -21,9 +21,9 @@
 namespace hc {
   namespace sys { 
     struct IIOFile;
-    // extern IIOFile* pout;
-    // extern IIOFile* perr;
-    // extern IIOFile* pin;
+    // extern constinit IIOFile* pout;
+    // extern constinit IIOFile* perr;
+    // extern constinit IIOFile* pin;
   } // namespace sys
   using RawIOFile = sys::IIOFile;
   using IOFile    = RawIOFile*;

@@ -29,7 +29,7 @@
 namespace hc::common {
   template <typename T, typename E,
     E MaxValue = E::MaxValue,
-    typename UType = __underlying_type(E),
+    typename UType = meta::UnderlyingType<E>,
     UType N = static_cast<UType>(MaxValue) + 1>
   struct EnumArray {
     using Type = T;

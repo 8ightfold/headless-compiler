@@ -23,8 +23,8 @@ static_assert(sizeof(void*) == 8,
   "Do not use these definitions with 32-bit executables.");
 
 using namespace hc::bootstrap;
-namespace C = hc::common;
 namespace B = hc::bootstrap;
+namespace C = hc::common;
 
 namespace {
   /// Load from segment register at `offset`.
@@ -104,8 +104,16 @@ Win64TEB* B::Win64TEB::LoadTEBFromGS() {
   return static_cast<Win64TEB*>(raw_addr);
 }
 
-Win64AddrRange B::Win64TEB::getStackRange() {
+Win64PEB* B::Win64TEB::LoadPEBFromGS() {
+  return LoadTEBFromGS()->getPEB();
+}
+
+Win64AddrRange B::Win64TEB::getStackRange() const {
   return C::AddrRange::New(tib.stack_end, tib.stack_begin);
+}
+
+Win64ProcParams* B::Win64TEB::GetProcessParams() {
+  return LoadPEBFromGS()->process_params;
 }
 
 uptr B::Win64TEB::getProcessId() const {
@@ -118,8 +126,4 @@ uptr B::Win64TEB::getThreadId() const {
 
 Win64PEB* B::Win64TEB::getPEB() const {
   return static_cast<Win64PEB*>(this->PEB_addr);
-}
-
-Win64PEB* B::Win64TEB::LoadPEBFromGS() {
-  return LoadTEBFromGS()->getPEB();
 }

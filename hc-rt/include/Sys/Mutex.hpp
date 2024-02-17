@@ -86,10 +86,12 @@ namespace hc::sys {
 
   public:
     void initialize() {
+      if (__data.isInitialized()) return;
       this->__data = RawMtxHandle::New();
     }
 
     void initialize(common::DualString S) {
+      if (__data.isInitialized()) return;
       S.visit([this] (auto* name) {
         this->__data = 
           RawMtxHandle::New(name);

@@ -26,7 +26,6 @@ HC_HAS_REQUIRED(builtin, __decay);
 HC_HAS_REQUIRED(builtin, __type_pack_element);
 HC_HAS_REQUIRED(builtin, __make_integer_seq);
 
-#define __common_is_same(t, u) (__is_same(t, u) && __is_same(u, t))
 #define $I(n) ::hc::__i<n>
 
 #define _HC_UNARY_OP(name, op) \

@@ -240,6 +240,8 @@ namespace hc::bootstrap {
     Win64Handle std_err;
     // ...
     HC_MARK_DELETED(Win64ProcParams);
+  public:
+    bool hasConsole() const { return !!console_handle; }
   };
 
   struct Win64PEB {
@@ -257,7 +259,7 @@ namespace hc::bootstrap {
     Win64Handle       mutant;
     Win64Handle       image_base_addr;
     Win64PEBLDRData*  LDR_data;
-    Win64ProcParams*  proccess_params;
+    Win64ProcParams*  process_params;
     // ...
     HC_MARK_DELETED(Win64PEB);
   public:
@@ -302,7 +304,8 @@ namespace hc::bootstrap {
   public:
     static Win64TEB* LoadTEBFromGS();
     static Win64PEB* LoadPEBFromGS();
-    Win64AddrRange getStackRange();
+    static Win64ProcParams* GetProcessParams();
+    Win64AddrRange getStackRange() const;
     uptr getProcessId() const;
     uptr getThreadId() const;
     Win64PEB* getPEB() const;

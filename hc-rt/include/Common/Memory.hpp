@@ -19,7 +19,7 @@
 #pragma once
 
 #include "Features.hpp"
-#include "Fundamental.hpp"
+#include <Meta/Traits.hpp>
 
 HC_HAS_BUILTIN(is_constant_evaluated);
 HC_HAS_BUILTIN(addressof);
@@ -109,10 +109,9 @@ namespace hc::common {
 
   template <typename To, typename From>
   concept __is_bit_castable =
-    (sizeof(To) == sizeof(From))  && 
-    (sizeof(From) == sizeof(To))  &&
-    __is_trivially_copyable(To)   &&
-    __is_trivially_copyable(From);
+    meta::is_same_size<To, From>    &&
+    meta::is_trivially_copyable<To> &&
+    meta::is_trivially_copyable<From>;
 
   template <typename To, typename From>
   [[nodiscard, gnu::always_inline, gnu::nodebug]]
@@ -168,7 +167,7 @@ namespace hc::common {
     static void* VSet(void* __restrict dst, int ch, usize len);
 
     template <typename T>
-    requires(__is_trivially_copyable(T))
+    requires meta::is_trivially_copyable<T>
     __always_inline static T* 
      Copy(T* __restrict dst, const T* __restrict src, usize len) {
       static_assert(!__is_void(T), "Directly use VCopy with void*!");
@@ -177,7 +176,7 @@ namespace hc::common {
     }
 
     template <typename T>
-    requires(!__is_trivially_copyable(T))
+    requires(!meta::is_trivially_copyable<T>)
     static T* Copy(T* __restrict dst, const T* __restrict src, usize len) {
       static_assert(!__is_void(T), "Directly use VCopy with void*!");
       for (usize I = 0; I < len; ++I)
@@ -186,14 +185,14 @@ namespace hc::common {
     }
 
     template <typename T>
-    requires(__is_trivial(T))
+    requires meta::is_trivial<T>
     __always_inline static T* 
      Move(T* __restrict dst, T* __restrict src, usize len) {
       return Mem::Copy(dst, src, len);
     }
 
     template <typename T>
-    requires(!__is_trivial(T))
+    requires(!meta::is_trivial<T>)
     static T* Move(T* __restrict dst, T* __restrict src, usize len) {
       for (usize I = 0; I < len; ++I)
         dst[I] = static_cast<T&&>(src[I]);
@@ -201,14 +200,14 @@ namespace hc::common {
     }
 
     template <typename T>
-    requires(__is_trivial(T))
+    requires meta::is_trivial<T>
     __always_inline static T* 
      Reset(T* __restrict dst, u8 pattern, usize len) {
       return Mem::VSet(dst, int(pattern), len);
     }
 
     template <typename T>
-    requires(!__is_trivial(T))
+    requires(!meta::is_trivial<T>)
     static T* Reset(T* __restrict dst, u8, usize len) {
       for (usize I = 0; I < len; ++I)
         dst[I] = T{};
@@ -216,13 +215,13 @@ namespace hc::common {
     }
 
     template <typename T>
-    requires(__is_trivially_copyable(T))
+    requires meta::is_trivially_copyable<T>
     __always_inline static T& Clone(T& dst, const T& src) {
       return __clone(dst, src);
     }
 
     template <typename T>
-    requires(!__is_trivially_copyable(T))
+    requires(!meta::is_trivially_copyable<T>)
     static T& Clone(T& dst, const T& src) {
       return dst = src;
     }

@@ -63,7 +63,6 @@ namespace hc {
 
 //=== Handles ===//
 namespace hc {
-
   template <typename T, 
     typename ID, typename...AA>
   struct Handle;
@@ -82,7 +81,7 @@ namespace hc {
 namespace hc {
   template <meta::is_enum E>
   __always_inline constexpr auto underlying_cast(E e) {
-    return static_cast<__underlying_type(E)>(e);
+    return static_cast<meta::UnderlyingType<E>>(e);
   }
 
   template <typename T>

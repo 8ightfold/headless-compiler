@@ -29,7 +29,8 @@ namespace hc::sys {
    NtFileAttribMask file_attr, 
    NtFileShareMask share_access,
    NtCreateDisposition disposition, 
-   NtCreateOptsMask create_opts
+   NtCreateOptsMask create_opts 
+    = NtCreateOptsMask::IsFile
   ) {
     win::FileObjHandle hout;
     io.status = isyscall<NtSyscall::CreateFile>(

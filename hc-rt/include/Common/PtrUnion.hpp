@@ -79,8 +79,8 @@ namespace hc::common {
     static constexpr usize _ID = BaseType::GetID((U*)nullptr);
 
     template <typename R, typename F>
-    using _RetType = __conditional_t<__is_same(R, _SelfTag),
-      meta::__common_return_t<F, __add_pointer(TT)...>, R>;
+    using _RetType = __conditional_t<meta::is_same<R, _SelfTag>,
+      meta::__common_return_t<F, meta::AddPointer<TT>...>, R>;
 
   public:
     PtrUnion() = default;

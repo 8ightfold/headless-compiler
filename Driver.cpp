@@ -22,7 +22,6 @@
 #include <Meta/Traits.hpp>
 #include <Meta/Unwrap.hpp>
 #include <Bootstrap/Win64KernelDefs.hpp>
-#include <Bootstrap/StubParser.hpp>
 #include <Bootstrap/Syscalls.hpp>
 #include <Parcel/StaticVec.hpp>
 
@@ -47,24 +46,6 @@ namespace W = hc::sys::win;
 
 // TODO: Make types trivial
 
-struct NonTrivial {
-  NonTrivial() = default;
-  constexpr NonTrivial(u32 x) : __x(x) {}
-  constexpr ~NonTrivial() {}
-public:
-  u32 __x = 0;
-};
-
-constexpr C::Option<NonTrivial> lazy_test(i32 V) {
-  using OptType = C::Option<NonTrivial>;
-  C::RawLazy<OptType> R {};
-  if (V >= 0)
-    R.ctor(u32(V));
-  else
-    R.ctor(hc::nullopt);
-  return R.take();
-}
-
 int main() {
   wchar_t raw_name[] = L"\\??\\C:\\krita-dev\\krita\\README.md";
   auto name = W::UnicodeString::New(raw_name);
@@ -79,7 +60,7 @@ int main() {
   W::FileHandle handle = S::win_open_file(
     mask, obj_attr, io, nullptr, 
     file_attr, share,
-    createDis, createOpt
+    createDis
   );
   if ($NtFail(io.status)) {
     std::printf("Open failed! [0x%.8X]\n", io.status);
@@ -98,11 +79,4 @@ int main() {
     std::printf("Closing failed! [0x%.8X]\n", S);
     return S;
   }
-
-  auto mi  = hc::Max<int>;
-  auto mul = hc::Max<unsigned long>;
-  auto mmm = hc::Max<u128>;
-
-  constexpr auto Os = lazy_test(5);
-  constexpr auto On = lazy_test(-2);
 }

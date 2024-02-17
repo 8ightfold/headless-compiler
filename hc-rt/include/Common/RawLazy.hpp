@@ -92,7 +92,7 @@ namespace hc::common {
   };
 
   template <typename T>
-  requires(__is_trivial(T))
+  requires(meta::is_trivial<T>)
   struct [[clang::trivial_abi]] RawLazy<T> {
     using Type = T;
     using SelfType = RawLazy<T>;
@@ -125,5 +125,5 @@ namespace hc::common {
     BaseType __data;
   };
 
-  static_assert(__is_trivial(RawLazy<int>));
+  static_assert(meta::is_trivial<RawLazy<int>>);
 } // namespace hc::common

@@ -29,6 +29,7 @@
 #include <Sys/Core/Generic.hpp>
 #include <Sys/Mutex.hpp>
 #include <Mingw/TryPrint.hpp>
+#include "Initialization.hpp"
 
 using namespace hc;
 using namespace xcrt;

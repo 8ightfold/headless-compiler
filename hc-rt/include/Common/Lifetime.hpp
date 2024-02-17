@@ -59,11 +59,13 @@ namespace hc::common {
   template <typename It>
   [[gnu::artificial]]
   inline constexpr void __destroy(It I, It E) __noexcept {
-    using type = __remove_cvref(decltype(*I));
+    using Type = meta::RemoveCVRef<decltype(*I)>;
+    static constexpr bool dtorable = 
+      meta::is_trivially_destructible<Type>;
     if $is_consteval() {
       return _DestroyAdaptor<false>::__destroy(I, E);
     }
-    _DestroyAdaptor<__is_trivially_destructible(type)>::__destroy(I, E);
+    _DestroyAdaptor<dtorable>::__destroy(I, E);
   }
 
   template <typename It>

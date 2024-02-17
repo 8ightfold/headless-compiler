@@ -160,12 +160,12 @@ constexpr __remove_reference_t(T)&& __hc_move(T&& t) __noexcept {
 #define $unreachable __builtin_unreachable()
 
 namespace hc {
-  template <typename T, auto = []{}>
+  template <typename T>
   consteval bool compile_failure() {
     return false;
   }
 
-  template <auto V, auto = []{}>
+  template <auto V>
   consteval bool compile_failure() {
     return false;
   }

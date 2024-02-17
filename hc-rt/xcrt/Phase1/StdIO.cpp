@@ -1,4 +1,4 @@
-//===- Phase1/Initialization.cpp ------------------------------------===//
+//===- Phase1/StdIO.cpp ---------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -15,26 +15,20 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
+//
+//  This file ensures the standard output files (pout, perr, pin)
+//  have been initialized. On Windows, this initializes the mutexes.
+//
+//===----------------------------------------------------------------===//
 
-#include <Phase1/Initialization.hpp>
+#include <Sys/Win/IOFile.hpp>
+#include "Initialization.hpp"
 
-namespace hc::bootstrap {
-  extern void force_syscall_reload();
-  extern bool are_syscalls_loaded();
-} // namespace hc::bootstrap
+namespace S = hc::sys;
 
-namespace B = hc::bootstrap;
-
-extern "C" {
-  /// At this point, constructors still have not been called.
-  /// We need to get everything initialized, especially the syscalls.
-  [[gnu::used, gnu::noinline]]
-  int __xcrtCRTStartupPhase1(void) {
-    // Make sure syscalls are bootstrapped.
-    B::force_syscall_reload();
-    // Setup thread_local backend.
-    __xcrt_emutils_setup();
-
-    return 0;
+namespace xcrt {
+  __ndbg_inline static 
+  S::WinIOFile* as_winfile(int fd) {
+    return nullptr;
   }
-}
+} // namespace xcrt
