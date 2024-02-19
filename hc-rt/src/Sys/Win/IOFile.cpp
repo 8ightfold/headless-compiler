@@ -19,6 +19,59 @@
 #include <Sys/Win/IOFile.hpp>
 
 using namespace hc::sys;
+namespace C = hc::common;
 namespace S = hc::sys;
 
+/// r: Read, w: Write, a: Append, 
+/// +: Plus, b: Binary, x: Exclude.
+IIOMode S::IIOFile::ParseModeFlags(C::StrRef S) {
+  static constexpr auto err = IIOMode::None;
+  S = S.dropNull();
+  if __expect_false(!S.beginsWithAny("rwa"))
+    return err;
+  auto flags = IIOMode::None;
+  /// Checks if each main mode has only been used once.
+  int mmode_count = 0;
+  for (char C : S) {
+    switch (C) {
+     case 'a':
+      flags |= IIOMode::Append;
+      ++mmode_count;
+      break;
+     case 'r':
+      flags |= IIOMode::Read;
+      ++mmode_count;
+      break;
+     case 'w':
+      flags |= IIOMode::Write;
+      ++mmode_count;
+      break;
+     case '+':
+      flags |= IIOMode::Plus;
+      break;
+     case 'b':
+      flags |= IIOMode::Binary;
+      break;
+     case 'x':
+      flags |= IIOMode::Exclude;
+      break;
+     default:
+      return err;
+    }
+  }
+  if __expect_false(mmode_count != 1)
+    return err;
+  return flags;
+}
 
+FileResult S::IIOFile::readUnlocked(C::AddrRange data) {
+  return FileResult::Err(0);
+}
+
+FileResult S::IIOFile::writeUnlocked(C::ImmutAddrRange data) {
+  return FileResult::Err(0);
+}
+
+FileResult S::IIOFile::flushUnlocked() {
+  return FileResult::Err(0);
+}

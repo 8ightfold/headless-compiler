@@ -15,10 +15,6 @@ add_library(hcrt-dev STATIC
   src/Bootstrap/COFFModule.cpp
   src/Bootstrap/StubParser.cpp
   src/Bootstrap/Syscalls.cpp
-
-  src/Sys/Win/Mutex.cpp
-  src/Sys/Win/IOFile.cpp
-  src/Sys/Win/PFiles.cpp
 )
 add_library(hcrt::dev ALIAS hcrt-dev)
 target_include_directories(hcrt-dev PUBLIC include PRIVATE src)
@@ -26,6 +22,16 @@ target_compile_definitions(hcrt-dev PRIVATE -D__HC_INTERNAL__=1)
 target_compile_options(hcrt-dev PUBLIC -fno-exceptions)
 target_link_options(hcrt-dev PUBLIC -Wl,--stack,0xF42400 -nostdlib++)
 set_property(TARGET hcrt-dev PROPERTY INTERPROCEDURAL_OPTIMIZATION ${HC_ENABLE_LTO})
+
+if(WIN32)
+  target_sources(hcrt-dev PUBLIC
+    src/Sys/Win/Mutex.cpp
+    src/Sys/Win/IOFile.cpp
+    src/Sys/Win/PFiles.cpp
+  )
+else()
+  message(FATAL_ERROR "hc is not supported on your platform.")
+endif()
 
 include(SetInternalFlag)
 target_internal_flags(hcrt-dev PUBLIC HC_DEBUG)
@@ -53,10 +59,11 @@ if(WIN32)
     xcrt/Phase0/Xtors.cpp
     xcrt/Phase0/InitCookie.cpp
     xcrt/Phase1/Initialization.cpp
+    xcrt/Phase1/StdIO.cpp
     xcrt/Phase1/Emutils.cpp
     xcrt/Mingw/NtdllLdr.cpp
   )
   target_link_options(hc-runtime PUBLIC -Wl,-e,mainCRTStartup)
 else()
-  message(FATAL_ERROR "xcrt is not supported on your platform.")
+  message(FATAL_ERROR "The hc runtime is not supported on your platform.")
 endif()

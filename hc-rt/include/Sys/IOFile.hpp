@@ -18,12 +18,21 @@
 
 #pragma once
 
+#include <Common/PtrRange.hpp>
+#include <Common/StrRef.hpp>
+
 namespace hc {
   namespace sys { 
     struct IIOFile;
+    struct IIOFileBuf;
+
     // extern constinit IIOFile* pout;
     // extern constinit IIOFile* perr;
     // extern constinit IIOFile* pin;
+
+    /// Opens a file, same flag syntax as `std::fopen`'s extended mode.
+    IIOFile* fopen(const char* filename, 
+      IIOFileBuf& buf, common::StrRef flags);
   } // namespace sys
   using RawIOFile = sys::IIOFile;
   using IOFile    = RawIOFile*;

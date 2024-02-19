@@ -257,4 +257,5 @@ namespace hc::common {
   PtrRange(T*, T*) -> PtrRange<T>;
 
   using AddrRange = PtrRange<void>;
+  using ImmutAddrRange = PtrRange<const void>;
 } // namespace hc::common

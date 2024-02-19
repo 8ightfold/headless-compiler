@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "Checked.hpp"
 #include "PtrRange.hpp"
 #include "Strings.hpp"
 
@@ -149,11 +150,27 @@ namespace hc::common {
 
     //=== Comparison ===//
 
+    bool beginsWith(char C) {
+      return !isEmpty() && (*data() == C);
+    }
+
     bool beginsWith(auto&& R) {
       const auto S = StrRef(R);
       if (S.size() > this->size())
         return false;
       return takeFront(S.size()).isEqual(S);
+    }
+
+    template <usize N>
+    bool beginsWithAny(const char(&A)[N]) {
+      constexpr usize sz = Checked<true>(N) - 1ULL;
+      if constexpr (sz == 0)
+        return false;
+      for (usize I = 0; I < sz; ++I) {
+        if (beginsWith(A[I]))
+          return true;
+      }
+      return false;
     }
 
     __always_inline friend bool 
@@ -180,7 +197,7 @@ namespace hc::common {
     // TODO: Replace with something more advanced...
     // Returns `true` on error.
     template <meta::is_unsigned Int>
-    [[nodiscard]] bool consumeUnsigned(Int& i) {
+    [[nodiscard]] bool consumeUnsigned(Int& I) {
       StrRef S = *this;
       if (S.isEmpty())
         return true;
@@ -195,7 +212,7 @@ namespace hc::common {
         S = S.dropFront();
       }
 
-      i = result;
+      I = result;
       *this = S;
       return false;
     }

@@ -16,6 +16,7 @@
 //
 //===----------------------------------------------------------------===//
 
+#include <Common/Checked.hpp>
 #include <Common/Limits.hpp>
 #include <Common/RawLazy.hpp>
 #include <Meta/Refl.hpp>
@@ -45,6 +46,12 @@ namespace S = hc::sys;
 namespace W = hc::sys::win;
 
 // TODO: Make types trivial
+
+#define FLAG_MAP(ty) | S::IIOMode::ty
+#define IO(ty, tys...) S::IIOMode::ty $PP_expand($PP_mapC(FLAG_MAP, ##tys))
+#define IIO(ty, tys...) (IO(ty, ##tys))
+#define IO_TEST(str, ex) assert( \
+  S::IIOFile::ParseModeFlags(str) == IIO($PP_rm_parens(ex)))
 
 int main() {
   wchar_t raw_name[] = L"\\??\\C:\\krita-dev\\krita\\README.md";
@@ -79,4 +86,11 @@ int main() {
     std::printf("Closing failed! [0x%.8X]\n", S);
     return S;
   }
+
+  IO_TEST("+r", None);
+  IO_TEST("W+", None);
+  IO_TEST("r", Read);
+  IO_TEST("ab", (Append, Binary));
+  IO_TEST("r+", (Read, Plus));  
+  IO_TEST("wx+", (Write, Exclude, Plus));
 }

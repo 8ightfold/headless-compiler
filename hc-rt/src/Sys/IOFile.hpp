@@ -23,9 +23,11 @@
 # include_next <Sys/IOFile.hpp>
 #endif // _HC_IOFILE_STNL
 
+#include <Common/EnumBitwise.hpp>
 #include <Common/Result.hpp>
+#include <Meta/Traits.hpp>
 #include <Sys/Mutex.hpp>
-#include "IOFileBuf.hpp"
+#include <Sys/IOFileBuf.hpp>
 
 // For more info:
 // https://github.com/llvm/llvm-project/blob/main/libc/src
@@ -42,8 +44,12 @@ namespace hc::sys {
     static constexpr FileResult Ok(usize V) { return {V}; }
     static constexpr FileResult Err(int E) { return {0UL, E}; }
   public:
-    __always_inline constexpr bool isOk()  const { return err == 0; }
-    __always_inline constexpr bool isErr() const { return err != 0; }
+    __always_inline constexpr bool isOk() const {
+      return err == 0; 
+    }
+    __always_inline constexpr bool isErr() const { 
+      return err != 0;
+    }
 
     constexpr explicit operator usize() const {
       __hc_invariant(isOk());
@@ -55,6 +61,18 @@ namespace hc::sys {
     int err = 0;
   };
 
+  enum class IIOMode : u32 {
+    None        = 0x00,
+    Read        = 0x01,
+    Write       = 0x02,
+    Append      = 0x04,
+    Plus        = 0x08,
+    Binary      = 0x10,
+    Exclude     = 0x20,
+  };
+
+  $MarkBitwise(IIOMode);
+
   struct IIOFile {
     using FLockType   = void(IIOFile*);
     using FUnlockType = void(IIOFile*);
@@ -62,7 +80,11 @@ namespace hc::sys {
     using FWriteType  = FileResult(IIOFile*, const void*, usize);
     using FSeekType   = IOResult<long>(IIOFile*, long, int);
     using FCloseType  = int(IIOFile*);
-    using RawFlags    = u32;
+    using RawFlags    = meta::UnderlyingType<IIOMode>;
+  private:
+    enum class IIOOp : u8 {
+      None, Read, Write, Seek
+    };
 
     struct FileLock {
       FileLock(IIOFile* f) : file(f) { file->lock(); }
@@ -78,17 +100,21 @@ namespace hc::sys {
     constexpr IIOFile(
       FReadType* read, FWriteType* write,
       FSeekType* seek, FCloseType* close,
-      IIOFileBufBase& buf) 
+      IIOFileBuf& buf, IIOMode mode) 
      : read_fn(read), write_fn(write), seek_fn(seek), close_fn(close),
-      mtx(), buf_size(buf.size), buf_ptr(buf.buf_ptr), pos(0)
-    {
+     mtx(), buf_size(buf.size), buf_ptr(buf.buf_ptr), pos(0),
+     mode(RawFlags(mode)), last_op(IIOOp::None),
+     owning(false), eof(false), err(false) {
 
     }
 
   public:
-    void initialize() {
-      mtx.initialize();
-    }
+    static IIOMode ParseModeFlags(common::StrRef flags);
+    void initialize() { mtx.initialize(); }
+
+    FileResult readUnlocked(common::AddrRange data);
+    FileResult writeUnlocked(common::ImmutAddrRange data);
+    FileResult flushUnlocked();
 
     void lock() { mtx.lock(); }
     void unlock() { mtx.unlock(); }
@@ -99,9 +125,12 @@ namespace hc::sys {
     FSeekType*  seek_fn;
     FCloseType* close_fn;
     Mtx mtx;
-    usize buf_size = 0;
-    u8* buf_ptr = nullptr;
+    usize buf_size;
+    u8* buf_ptr;
     usize pos = 0;
+    RawFlags mode;
+    IIOOp last_op = IIOOp::None;
+    bool owning;
     bool eof = false;
     bool err = false;
   };

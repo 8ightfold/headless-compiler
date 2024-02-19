@@ -16,19 +16,20 @@
 //
 //===----------------------------------------------------------------===//
 //
-//  This file ensures the standard output files (pout, perr, pin)
-//  have been initialized. On Windows, this initializes the mutexes.
+//  This file ensures the standard io files (pout, perr, pin) have
+//  been initialized. On Windows, this initializes the mutexes.
 //
 //===----------------------------------------------------------------===//
 
 #include <Sys/Win/IOFile.hpp>
 #include "Initialization.hpp"
 
-namespace S = hc::sys;
+using namespace hc;
 
-namespace xcrt {
-  __ndbg_inline static 
-  S::WinIOFile* as_winfile(int fd) {
-    return nullptr;
+extern "C" {
+  void __xcrt_sysio_setup(void) {
+    // Initializes at startup.
+    // We need these BEFORE calling ctors.
+    sys::__init_pfiles();
   }
-} // namespace xcrt
+} // extern "C"

@@ -26,11 +26,11 @@
 #include <Common/Limits.hpp>
 
 namespace hc::sys {
-  struct IIOFileBufBase {
-    constexpr IIOFileBufBase() = default;
+  struct IIOFileBuf {
+    constexpr IIOFileBuf() = default;
   protected:
     template <usize N>
-    constexpr IIOFileBufBase(u8(&B)[N]) 
+    constexpr IIOFileBuf(u8(&B)[N]) 
      : size(N), buf_ptr(B) { }
   public:
     usize size = 0;
@@ -39,30 +39,30 @@ namespace hc::sys {
   };
 
   template <usize BufLen>
-  struct IIOFileBuf : IIOFileBufBase {
+  struct IIOFileArray : IIOFileBuf {
     using BufType = u8[BufLen];
     static constexpr usize bufLen = BufLen;
   public:
-    constexpr IIOFileBuf() 
-     : IIOFileBufBase(__buf) { }
+    constexpr IIOFileArray() 
+     : IIOFileBuf(__buf) { }
     
-    constexpr IIOFileBufBase& asBase() {
-      return static_cast<IIOFileBufBase&>(*this);
+    constexpr IIOFileBuf& asBase() {
+      return static_cast<IIOFileBuf&>(*this);
     }
   public:
     BufType __buf {};
   };
 
   template <>
-  struct IIOFileBuf<0> : IIOFileBufBase {
+  struct IIOFileArray<0> : IIOFileBuf {
     using BufType = void;
     static constexpr usize bufLen = 0;
   public:
-    constexpr IIOFileBuf() 
-     : IIOFileBufBase() { }
+    constexpr IIOFileArray() 
+     : IIOFileBuf() { }
     
-    constexpr IIOFileBufBase& asBase() {
-      return static_cast<IIOFileBufBase&>(*this);
+    constexpr IIOFileBuf& asBase() {
+      return static_cast<IIOFileBuf&>(*this);
     }
   };
 } // namespace hc::sys

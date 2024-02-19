@@ -22,9 +22,9 @@
 using namespace hc::sys;
 
 namespace {
-  constinit IIOFileBuf<1024> pOut_buf {};
-  constinit IIOFileBuf<0>    pErr_buf {};
-  constinit IIOFileBuf<512>  pIn_buf {};
+  constinit IIOFileArray<1024> pOut_buf {};
+  constinit IIOFileArray<0>    pErr_buf {};
+  constinit IIOFileArray<512>  pIn_buf {};
 
   // constinit IIOFile pOut;
   // constinit IIOFile pErr;
@@ -38,5 +38,5 @@ namespace hc::sys {
       return;
   }
 
-  
+
 } // namespace hc::sys
