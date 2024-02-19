@@ -15,6 +15,7 @@ add_library(hcrt-dev STATIC
   src/Bootstrap/COFFModule.cpp
   src/Bootstrap/StubParser.cpp
   src/Bootstrap/Syscalls.cpp
+  src/Sys/IOFile.cpp
 )
 add_library(hcrt::dev ALIAS hcrt-dev)
 target_include_directories(hcrt-dev PUBLIC include PRIVATE src)

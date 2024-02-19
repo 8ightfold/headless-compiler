@@ -20,8 +20,8 @@
 
 #include <Common/Features.hpp>
 
-#define $Once(extra...) \
-  static ::hc::meta::_Once $var(once) = [extra] ()
+#define $OnceEx(extra...) static ::hc::meta::_Once $var(once) = [extra] ()
+#define $Once $OnceEx()
 
 namespace hc::meta {
   struct _Once {

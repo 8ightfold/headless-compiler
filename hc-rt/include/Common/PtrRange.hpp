@@ -237,7 +237,7 @@ namespace hc::common {
     }
 
     __always_inline operator PtrRange<const T>() const {
-      return this->intoRange<const T>();
+      return this->intoImmRange<T>();
     }
 
     template <meta::not_void U>
@@ -245,6 +245,11 @@ namespace hc::common {
       const auto new_begin = (U*)__begin;
       const auto new_end   = (U*)__end;
       return { new_begin, new_end };
+    }
+
+    template <meta::not_void U>
+    __always_inline PtrRange<U> intoImmRange() const {
+      return this->intoRange<const U>();
     }
 
     template <typename U>
@@ -260,6 +265,9 @@ namespace hc::common {
   template <typename T>
   PtrRange(T*, T*) -> PtrRange<T>;
 
+  template <typename T>
+  using ImmPtrRange = PtrRange<const T>;
+
   using AddrRange = PtrRange<void>;
-  using ImmutAddrRange = PtrRange<const void>;
+  using ImmAddrRange = ImmPtrRange<void>;
 } // namespace hc::common
