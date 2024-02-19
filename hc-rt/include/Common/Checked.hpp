@@ -51,7 +51,7 @@ namespace hc::common {
     explicit constexpr operator U() const {
       if $is_consteval() {
         if __expect_false(!canConvertTo<U>())
-          $unreachable;
+          $unreachable_msg("Conversion impossible.");
       }
       return static_cast<U>(__data);
     }
@@ -132,13 +132,13 @@ namespace hc::common {
     Int __data;
   };
 
-  template <bool Capped, typename Int>
+  template <bool IsCapped, typename Int>
   requires meta::is_integral<meta::RemoveCVRef<Int>>
   constexpr auto Checked(Int&& I) noexcept {
-    return _Checked<Int, Capped>{__hc_fwd(I)};
+    return _Checked<Int, IsCapped>{__hc_fwd(I)};
   }
 
-  template <bool>
+  template <bool IsCapped>
   constexpr bool Checked(bool B) noexcept { 
     return B;
   }

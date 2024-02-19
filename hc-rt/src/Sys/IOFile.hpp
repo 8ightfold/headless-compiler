@@ -15,6 +15,12 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
+//
+//  Internal implementation of IIOFile. 
+//  open_file/close_file: {PLATFORM}/IOFile.(h|c)pp
+//  pout/perr/pin: {PLATFORM}/PFiles.cpp
+//
+//===----------------------------------------------------------------===//
 
 #pragma once
 
@@ -111,13 +117,12 @@ namespace hc::sys {
   public:
     static IIOMode ParseModeFlags(common::StrRef flags);
     void initialize() { mtx.initialize(); }
+    void lock() { mtx.lock(); }
+    void unlock() { mtx.unlock(); }
 
     FileResult readUnlocked(common::AddrRange data);
     FileResult writeUnlocked(common::ImmutAddrRange data);
     FileResult flushUnlocked();
-
-    void lock() { mtx.lock(); }
-    void unlock() { mtx.unlock(); }
 
   private:
     FReadType*  read_fn;

@@ -76,7 +76,7 @@ int main() {
   std::printf("Opened file `%ls`.\n", name.buffer);
 
   auto buf = $dynalloc(2048, char).zeroMemory();
-  if (auto S = S::win_read_file(handle, io, buf.toPtrRange()); $NtFail(S)) {
+  if (auto S = S::win_read_file(handle, io, buf.intoRange()); $NtFail(S)) {
     std::printf("Read failed! [0x%.8X]\n", S);
     return S::win_close(handle);
   }

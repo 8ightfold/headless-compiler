@@ -16,8 +16,11 @@
 //
 //===----------------------------------------------------------------===//
 
+#include <Common/Casting.hpp>
+#include <Common/InlineMemcpy.hpp>
 #include <Sys/Win/IOFile.hpp>
 
+using namespace hc;
 using namespace hc::sys;
 namespace C = hc::common;
 namespace S = hc::sys;

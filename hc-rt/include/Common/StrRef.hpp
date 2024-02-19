@@ -164,9 +164,8 @@ namespace hc::common {
     template <usize N>
     bool beginsWithAny(const char(&A)[N]) {
       constexpr usize sz = Checked<true>(N) - 1ULL;
-      if constexpr (sz == 0)
-        return false;
-      for (usize I = 0; I < sz; ++I) {
+      if constexpr (sz > 0)
+       for (usize I = 0; I < sz; ++I) {
         if (beginsWith(A[I]))
           return true;
       }

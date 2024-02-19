@@ -236,6 +236,10 @@ namespace hc::common {
       $tail_return dropFront(size() - n);
     }
 
+    __always_inline operator PtrRange<const T>() const {
+      return this->intoRange<const T>();
+    }
+
     template <meta::not_void U>
     __always_inline PtrRange<U> intoRange() const {
       const auto new_begin = (U*)__begin;

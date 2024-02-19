@@ -67,7 +67,12 @@ namespace hc::common {
     }
 
     [[nodiscard]]
-    PtrRange<T> toPtrRange() const __noexcept {
+    PtrRange<T> intoRange() __noexcept {
+      return { begin(), end() };
+    }
+
+    [[nodiscard]]
+    PtrRange<const T> intoRange() const __noexcept {
       return { begin(), end() };
     }
 

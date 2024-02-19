@@ -194,7 +194,7 @@ namespace hc::parcel {
     }
 
     [[nodiscard]]
-    CC::PtrRange<T> toPtrRange() const __noexcept {
+    CC::PtrRange<T> intoRange() const __noexcept {
       return { begin(), end() };
     }
 
@@ -296,7 +296,7 @@ namespace hc::parcel {
     constexpr usize sizeInBytes() const __noexcept { return 0; }
 
     [[nodiscard, gnu::const]]
-    CC::PtrRange<T> toPtrRange() const __noexcept { return {}; }
+    CC::PtrRange<T> intoRange() const __noexcept { return {}; }
 
     [[nodiscard, gnu::const]]
     constexpr T* begin() const __noexcept { return nullptr; }
@@ -316,13 +316,16 @@ namespace hc::parcel {
 
   //=== Deduction ===//
 
+  template <typename T, usize N>
+  using ALStaticVec = StaticVec<T, CC::Align::Up(N)>;
+
   template <typename T, typename...TT>
   using __staticvec_t = StaticVec<__decay(T), 
-    common::Align::Up(sizeof...(TT) + 1)>;
+    CC::Align::Up(sizeof...(TT) + 1)>;
   
   template <typename T, typename...TT>
   StaticVec(T&&, TT&&...) -> StaticVec<__decay(T), 
-    common::Align::Up(sizeof...(TT) + 1)>;
+    CC::Align::Up(sizeof...(TT) + 1)>;
 
   template <typename T, typename...TT>
   [[nodiscard, gnu::always_inline, gnu::nodebug]]

@@ -31,8 +31,10 @@ namespace hc {
     // extern constinit IIOFile* pin;
 
     /// Opens a file, same flag syntax as `std::fopen`'s extended mode.
-    IIOFile* fopen(const char* filename, 
+    IIOFile* open_file(common::StrRef filename,
       IIOFileBuf& buf, common::StrRef flags);
+    /// Closes a file, returns `true` if handle was valid.
+    bool close_file(IIOFile* file_handle);
   } // namespace sys
   using RawIOFile = sys::IIOFile;
   using IOFile    = RawIOFile*;

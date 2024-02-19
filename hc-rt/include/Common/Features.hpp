@@ -158,6 +158,7 @@ constexpr __remove_reference_t(T)&& __hc_move(T&& t) __noexcept {
 
 #define $tail_return [[clang::musttail]] return
 #define $unreachable __builtin_unreachable()
+#define $unreachable_msg(message) __builtin_unreachable()
 
 namespace hc {
   template <typename T>
