@@ -27,6 +27,8 @@
 #include <Common/RawLazy.hpp>
 #include "BitList.hpp"
 
+HC_HAS_BUILTIN(ffsll);
+
 namespace hc::parcel {
   template <typename T, usize N>
   struct Skiplist;
@@ -46,12 +48,9 @@ namespace hc::parcel {
     }
 
     constexpr bool erase() {
-      if __expect_true(__data) {
-        const bool R = __list->eraseRaw(__data);
-        this->__data = nullptr;
-        return R;
-      }
-      return false;
+      const bool R = __list->eraseRaw(__data);
+      this->__data = nullptr;
+      return R;
     }
 
   public:
