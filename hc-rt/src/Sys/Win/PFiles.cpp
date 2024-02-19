@@ -30,16 +30,18 @@ namespace {
   // constinit IIOFile pOut;
   // constinit IIOFile pErr;
   // constinit IIOFile pIn;
-
-  $Once { __init_pfiles(); };
 } // namespace `anonymous`
 
 namespace hc::sys {
-  void __init_pfiles() {
-    static bool __init = false;
-    if __expect_false(__init)
-      return;
-  }
-
 
 } // namespace hc::sys
+
+void S::__init_pfiles() {
+  static bool __init = false;
+  if __expect_false(__init)
+    return;
+}
+
+$Once { 
+  __init_pfiles(); 
+};
