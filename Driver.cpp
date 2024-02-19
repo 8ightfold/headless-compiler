@@ -24,6 +24,7 @@
 #include <Meta/Unwrap.hpp>
 #include <Bootstrap/Win64KernelDefs.hpp>
 #include <Bootstrap/Syscalls.hpp>
+#include <Parcel/BitList.hpp>
 #include <Parcel/StaticVec.hpp>
 
 #include <Sys/Core/Nt/Structs.hpp>
@@ -93,4 +94,25 @@ int main() {
   IO_TEST("ab", (Append, Binary));
   IO_TEST("r+", (Read, Plus));  
   IO_TEST("wx+", (Write, Exclude, Plus));
+
+  P::BitList<99> L {};
+  L[77] = true;
+  assert(!L.flip(77));
+  L.flip(23);
+  assert(L[23]);
+  
+  L.reset();
+  for (usize I = 0; I < L.Size(); ++I) {
+    std::printf("%.2zu[%zu, %.2zu]: ", 
+      I, L.Idx(I), I % L.__perIx);
+    if (!L.flip(I))
+      std::printf("Invalid bit");
+    std::printf("\n");
+  }
+  std::printf("Total: %zu\n", 
+    L.accumulateCount());
+  L[33] = false;
+  L[79] = false;
+  std::printf("New total: %zu\n", 
+    L.accumulateCount());
 }

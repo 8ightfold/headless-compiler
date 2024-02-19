@@ -248,7 +248,7 @@ namespace hc::common {
     }
 
     template <meta::not_void U>
-    __always_inline PtrRange<U> intoImmRange() const {
+    __always_inline PtrRange<const U> intoImmRange() const {
       return this->intoRange<const U>();
     }
 

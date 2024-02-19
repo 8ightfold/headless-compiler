@@ -38,11 +38,26 @@ namespace hc::common {
       return n + 1;
     }
 
+    template <meta::is_integral T>
+    __always_inline static constexpr bool IsPow2(T i) __noexcept {
+      return __expect_false(i == T(0))
+        ? bool((i & (i - 1)) == T(0))
+        : false;
+    }
+
+    /// Aligns `i` to the next power of 2, even when it is one already.
     template <meta::is_integral T, typename CastType = __make_unsigned(T)>
     static constexpr CastType Up(T i) __noexcept {
-      if __expect_false(i == 0) return 1;
+      if __expect_false(i == T(0))
+        return CastType(1);
       const usize n = __Up<__bitsizeof(T)>(usize(i));
-      return static_cast<CastType>(n);
+      return CastType(n);
+    }
+
+    /// Aligns `i` to the next power of 2, unless it is one already.
+    template <meta::is_integral T, typename CastType = __make_unsigned(T)>
+    __always_inline static constexpr CastType UpEq(T i) __noexcept {
+      return IsPow2(i) ? CastType(i) : Up<T, CastType>(i);
     }
   };
 } // namespace hc::common

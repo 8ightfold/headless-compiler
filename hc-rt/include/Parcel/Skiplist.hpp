@@ -22,6 +22,20 @@
 
 #pragma once
 
+#include <Common/Limits.hpp>
+#include <Common/RawLazy.hpp>
+#include "BitList.hpp"
+
 namespace hc::parcel {
-  
+  template <typename T, usize N>
+  struct Skiplist {
+    using SelfType = Skiplist;
+    using Type = CC::RawLazy<T>;
+    using DataType = Type[N];
+  public:
+
+  public:
+    DataType   __data {};
+    BitList<N> __bits;
+  };
 } // namespace hc::parcel
