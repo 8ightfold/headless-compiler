@@ -1,4 +1,4 @@
-//===- Sys/Win/IOFile.cpp -------------------------------------------===//
+//===- Sys/Errors.hpp -----------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -16,12 +16,17 @@
 //
 //===----------------------------------------------------------------===//
 
-#include <Common/Casting.hpp>
-#include <Common/InlineMemcpy.hpp>
-#include <Sys/Win/IOFile.hpp>
+#pragma once
 
-using namespace hc;
-using namespace hc::sys;
-namespace C = hc::common;
-namespace S = hc::sys;
-
+namespace hc::sys {
+  enum Error : int {
+    ePerms = 1,   // Operation requires special priveleges
+    eNoEntry,     // File/dir expected to exist, but doesn't
+    ePIO,         // Physical read/write error
+    eBadFD,       // Closed FD or insufficient perms (eg. read on write only)
+    eNoMem,       // No virtual memory, rare in static mode
+    eAccDenied,   // File perms do not allow the operation
+    eFault,       // Access violation, not guaranteed to be returned
+    eMaxFiles,    // Maximum files allotted for the process
+  };
+} // namespace hc::sys

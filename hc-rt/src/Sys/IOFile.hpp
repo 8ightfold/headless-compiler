@@ -17,7 +17,8 @@
 //===----------------------------------------------------------------===//
 //
 //  Internal implementation of IIOFile. 
-//  open_file/close_file: {PLATFORM}/IOFile.(h|c)pp
+//  IIOFile::*: IOFile.cpp
+//  open_file/close_file: {PLATFORM}/IOFile.Xpp
 //  pout/perr/pin: {PLATFORM}/PFiles.cpp
 //
 //===----------------------------------------------------------------===//
@@ -32,6 +33,7 @@
 #include <Common/EnumBitwise.hpp>
 #include <Common/Result.hpp>
 #include <Meta/Traits.hpp>
+#include <Sys/Errors.hpp>
 #include <Sys/Mutex.hpp>
 #include <Sys/IOFileBuf.hpp>
 
@@ -106,23 +108,60 @@ namespace hc::sys {
     constexpr IIOFile(
       FReadType* read, FWriteType* write,
       FSeekType* seek, FCloseType* close,
-      IIOFileBuf& buf, IIOMode mode) 
+      IIOFileBuf& buf, BufferMode buf_mode, IIOMode mode) 
      : read_fn(read), write_fn(write), seek_fn(seek), close_fn(close),
-     mtx(), buf_size(buf.size), buf_ptr(buf.buf_ptr), pos(0),
-     mode(RawFlags(mode)), last_op(IIOOp::None),
+     mtx(), buf_size(buf.size), buf_ptr(buf.buf_ptr), 
+     pos(0), read_limit(0),
+     buf_mode(buf_mode), mode(RawFlags(mode)), last_op(IIOOp::None),
      owning(false), eof(false), err(false) {
+      __hc_invariant(buf_ptr || (buf_size == 0));
+    }
 
+  protected:
+    constexpr bool canRead() const {
+      return mode & RawFlags(
+        IIOMode::Read   |
+        IIOMode::Append |
+        IIOMode::Plus
+      );
+    }
+    constexpr bool canWrite() const {
+      return mode & RawFlags(
+        IIOMode::Write  |
+        IIOMode::Plus
+      );
     }
 
   public:
+    /// r: Read, w: Write, a: Append, +: Plus, b: Binary, x: Exclude.
     static IIOMode ParseModeFlags(common::StrRef flags);
+
     void initialize() { mtx.initialize(); }
     void lock() { mtx.lock(); }
     void unlock() { mtx.unlock(); }
 
     FileResult readUnlocked(common::AddrRange data);
-    FileResult writeUnlocked(common::ImmutAddrRange data);
+    FileResult read(common::AddrRange data) {
+      FileLock(this);
+      return readUnlocked(data);
+    }
+
+    FileResult writeUnlocked(common::ImmAddrRange data);
+    FileResult write(common::ImmAddrRange data) {
+      FileLock(this);
+      return writeUnlocked(data);
+    }
+
     FileResult flushUnlocked();
+    FileResult flush() {
+      FileLock(this);
+      return flushUnlocked();
+    }
+  
+  private:
+    FileResult writeUnlockedNone(common::ImmPtrRange<u8> data);
+    FileResult writeUnlockedLine(common::ImmPtrRange<u8> data);
+    FileResult writeUnlockedFull(common::ImmPtrRange<u8> data);
 
   private:
     FReadType*  read_fn;
@@ -133,6 +172,8 @@ namespace hc::sys {
     usize buf_size;
     u8* buf_ptr;
     usize pos = 0;
+    usize read_limit;
+    BufferMode buf_mode;
     RawFlags mode;
     IIOOp last_op = IIOOp::None;
     bool owning;

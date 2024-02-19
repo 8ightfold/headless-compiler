@@ -20,6 +20,7 @@
 #include <Meta/Once.hpp>
 
 using namespace hc::sys;
+namespace S = hc::sys;
 
 namespace {
   constinit IIOFileArray<1024> pOut_buf {};
@@ -29,6 +30,8 @@ namespace {
   // constinit IIOFile pOut;
   // constinit IIOFile pErr;
   // constinit IIOFile pIn;
+
+  $Once { __init_pfiles(); };
 } // namespace `anonymous`
 
 namespace hc::sys {
