@@ -79,7 +79,7 @@ FileResult S::IIOFile::writeUnlocked(C::ImmAddrRange data) {
   }
 
   last_op = IIOOp::Read;
-  const auto u8data = data.intoRange<u8>();
+  const auto u8data = data.intoImmRange<u8>();
 
   if (buf_mode == BufferMode::None) {
     auto R = writeUnlockedNone(u8data);

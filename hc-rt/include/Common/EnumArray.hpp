@@ -72,7 +72,7 @@ namespace hc::common {
     }
 
     [[nodiscard]]
-    PtrRange<const T> intoRange() const __noexcept {
+    ImmPtrRange<T> intoRange() const __noexcept {
       return { begin(), end() };
     }
 

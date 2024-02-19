@@ -194,7 +194,12 @@ namespace hc::parcel {
     }
 
     [[nodiscard]]
-    CC::PtrRange<T> intoRange() const __noexcept {
+    CC::PtrRange<T> intoRange() __noexcept {
+      return { begin(), end() };
+    }
+
+    [[nodiscard]]
+    CC::ImmPtrRange<T> intoRange() const __noexcept {
       return { begin(), end() };
     }
 
@@ -296,7 +301,10 @@ namespace hc::parcel {
     constexpr usize sizeInBytes() const __noexcept { return 0; }
 
     [[nodiscard, gnu::const]]
-    CC::PtrRange<T> intoRange() const __noexcept { return {}; }
+    CC::PtrRange<T> intoRange() __noexcept { return {}; }
+
+    [[nodiscard, gnu::const]]
+    CC::ImmPtrRange<T> intoRange() const __noexcept { return {}; }
 
     [[nodiscard, gnu::const]]
     constexpr T* begin() const __noexcept { return nullptr; }
