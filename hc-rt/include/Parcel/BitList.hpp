@@ -102,14 +102,14 @@ namespace hc::parcel {
       return total;
     }
 
-    static constexpr usize Size() { return N; }
-    static constexpr usize Bits() { return N; }
-
-    constexpr auto __UData()
+    constexpr auto __uData()
      -> BitListType(&)[__count] {
       return this->__data; 
     }
 
+    static constexpr usize Size() { return N; }
+    static constexpr usize __USize() { return __count; }
+    
     __always_inline static constexpr usize Idx(usize I) {
       return I / __perIx;
     }
@@ -120,4 +120,7 @@ namespace hc::parcel {
   public:
     BitListType __data[__count] { };
   };
+
+  template <usize N>
+  using ALBitList = BitList<CC::Align::UpEq(N)>;
 } // namespace hc::parcel

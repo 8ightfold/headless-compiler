@@ -69,6 +69,16 @@ namespace hc::common {
       return __data.__data;
     }
 
+    __ndbg_inline constexpr
+     T* data() noexcept {
+      return &__data.__data;
+    }
+
+    __ndbg_inline constexpr
+     const T* data() const noexcept {
+      return &__data.__data;
+    }
+
     __ndbg_inline constexpr T take() __noexcept {
       T V {__hc_move(this->unwrap())};
       this->dtor();

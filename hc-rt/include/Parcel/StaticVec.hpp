@@ -276,7 +276,7 @@ namespace hc::parcel {
       return (n > Capacity()) ? Capacity() : n;
     }
 
-  private:
+  public:
     mutable _BaseType __base { };
     usize __size = 0;
   };

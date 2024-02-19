@@ -24,6 +24,7 @@
 #pragma once
 
 #include <Common/Fundamental.hpp>
+#include <Common/Align.hpp>
 
 namespace hc::parcel {
   namespace CC = hc::common;

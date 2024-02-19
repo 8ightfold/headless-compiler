@@ -23,19 +23,105 @@
 #pragma once
 
 #include <Common/Limits.hpp>
+#include <Common/Option.hpp>
 #include <Common/RawLazy.hpp>
 #include "BitList.hpp"
 
 namespace hc::parcel {
   template <typename T, usize N>
-  struct Skiplist {
-    using SelfType = Skiplist;
-    using Type = CC::RawLazy<T>;
-    using DataType = Type[N];
-  public:
+  struct Skiplist;
+
+  template <typename T, typename SKType>
+  struct SkiplistHandle {
+    constexpr SkiplistHandle(T* data, SKType* list)
+     : __data(data), __list(list) { }
+    
+    constexpr SkiplistHandle(SkiplistHandle&& H)
+     : __data(H.__data), __list(H.__list) {
+      H.__data = nullptr;
+    }
+
+    constexpr ~SkiplistHandle() {
+      this->erase();
+    }
+
+    constexpr bool erase() {
+      if __expect_true(__data) {
+        const bool R = __list->eraseRaw(__data);
+        this->__data = nullptr;
+        return R;
+      }
+      return false;
+    }
 
   public:
-    DataType   __data {};
-    BitList<N> __bits;
+    T* __data;
+    SKType* __list;
   };
+
+  template <typename T, usize N>
+  struct Skiplist {
+    using SelfType = Skiplist;
+    using DataType = CC::RawLazy<T>;
+    using Type = T;
+    using BitType = uptr;
+    using HandleType = SkiplistHandle<T, SelfType>;
+    static constexpr auto __bSize = __bitsizeof(BitType);
+    static constexpr auto __full  = Max<BitType>;
+  public:
+    constexpr ~Skiplist() {
+      for (BitType I = 0; I < N; ++I) {
+        if (__bits.get(I))
+          __data[I].dtor();
+      }
+    }
+
+    static constexpr usize FindEmptySlot(usize S) {
+      return (S != 0) ? (__builtin_ffsll(~S) - 1) : 0;
+    }
+
+    [[nodiscard]] constexpr HandleType insert(auto&&...args) {
+      return {insertRaw(__hc_fwd(args)...), this};
+    }
+
+    [[nodiscard]] constexpr T* insertRaw(auto&&...args) {
+      auto& B = __bits.__uData();
+      for (usize I = 0; I < __bits.__USize(); ++I) {
+        if (B[I] == Max<BitType>)
+          continue;
+        const usize V = (I * __bSize) + FindEmptySlot(B[I]);
+        __data[V].ctor(__hc_fwd(args)...);
+        __bits[V] = true;
+        return __data[V].data();
+      }
+      return nullptr;
+    }
+
+    constexpr bool eraseRaw(T* P) {
+      if __expect_false(P == nullptr)
+        return false;
+      __hc_invariant(P >= __begin() && P < __end());
+      const auto V = P - __begin();
+      if __expect_false(!__bits.get(V))
+        return false;
+      __bits[V] = false;
+      __data[V].dtor();
+      return true;
+    }
+
+    constexpr const T* __begin() const {
+      return __data[0].data();
+    }
+
+    constexpr const T* __end() const {
+      return __data[0].data() + N;
+    }
+
+  public:
+    DataType __data[N] {};
+    BitList<N, BitType> __bits;
+  };
+
+  template <typename T, usize N>
+  using ALSkiplist = Skiplist<T, CC::Align::UpEq(N)>;
 } // namespace hc::parcel
