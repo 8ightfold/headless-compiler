@@ -57,13 +57,15 @@ int S::win_file_close(IIOFile* file) {
 
 //=== Implementation ===//
 
-IIOFile* S::open_file(C::StrRef filename, IIOFileBuf& buf, C::StrRef flags) {
+IIOFile* File::openFileRaw(C::StrRef filename, C::StrRef flags) {
   const auto F = IIOFile::ParseModeFlags(flags);
   if (filename.isEmpty()) {
     // TODO: Set error?
     return nullptr;
   }
 
+  // Check if the path uses UNC paths. We assume this will not
+  // be the case most of the time.
   if (!filename.beginsWith("\\??\\", "\\GLOBAL??\\")) {
 
   }
@@ -73,7 +75,37 @@ IIOFile* S::open_file(C::StrRef filename, IIOFileBuf& buf, C::StrRef flags) {
   return nullptr;
 }
 
-bool S::close_file(IIOFile* file) {
+bool File::closeFileRaw(IIOFile* file) {
+  const auto F = ptr_cast<WinIOFile>(file);
+  if (!file_slots.inRange(F)) {
+    err = Error::eBadFD;
+    return false;
+  }
+  F->close();
+  const bool R = file_slots.eraseRaw(F);
+  err = R ? Error::eNone : Error::eBadFD;
+  return R;
+}
+
+IIOFile* S::open_file(C::StrRef path, IIOFileBuf& buf, C::StrRef flags) {
+  const auto F = IIOFile::ParseModeFlags(flags);
+  if (path.isEmpty()) {
+    // TODO: Set error?
+    return nullptr;
+  }
+
+  // Check if the path uses NT paths. We assume this will not
+  // be the case most of the time.
+  if (!path.beginsWith("\\??\\", "\\GLOBAL??\\")) {
+
+  }
+
+  // Check for `/.` and `/..` yk
+
+  return nullptr;
+}
+
+common::VErr<Error> S::close_file(IIOFile* file) {
   const auto F = ptr_cast<WinIOFile>(file);
   if (!file_slots.inRange(F))
     return false;

@@ -31,7 +31,6 @@
 #endif // _HC_IOFILE_STNL
 
 #include <Common/EnumBitwise.hpp>
-#include <Common/Result.hpp>
 #include <Meta/Traits.hpp>
 #include <Sys/Errors.hpp>
 #include <Sys/Mutex.hpp>
@@ -71,6 +70,7 @@ namespace hc::sys {
 
   enum class IIOMode : u32 {
     None        = 0x00,
+    Err         = None,
     Read        = 0x01,
     Write       = 0x02,
     Append      = 0x04,
@@ -112,12 +112,11 @@ namespace hc::sys {
       IIOFileBuf& buf, BufferMode buf_mode, IIOMode mode,
       bool is_owned = false) : 
      read_fn(read), write_fn(write), seek_fn(seek), close_fn(close),
-     mtx(), buf_size(buf.size), buf_ptr(buf.buf_ptr), 
-     pos(0), read_limit(0),
+     mtx(), buf(&buf), pos(0), read_limit(0),
      buf_mode(buf_mode), mode(RawFlags(mode)), last_op(IIOOp::None),
      owning(is_owned), eof(false), err(false) {
       adjustBuf();
-      __hc_invariant(buf_ptr || buf_size == 0);
+      __hc_invariant(bufPtr() || bufSize() == 0);
       // TODO: Fixme
       __hc_assert(buf_mode != BufferMode::Line);
       __hc_assert(!is_owned);
@@ -139,16 +138,20 @@ namespace hc::sys {
     }
 
     common::ImmPtrRange<u8> getSelfRange() const __noexcept {
-      const u8* const P = buf_ptr;
-      return common::PtrRange<>::New(P, buf_size);
+      const u8* const P = bufPtr();
+      return common::PtrRange<>::New(P, bufSize());
     }
     common::PtrRange<u8> getSelfRange() __noexcept {
-      return common::PtrRange<>::New(buf_ptr, buf_size);
+      return common::PtrRange<>::New(bufPtr(), bufSize());
     }
     common::PtrRange<u8> getSelfPosRange() __noexcept {
       return common::PtrRange<>::New(
-        buf_ptr + pos, buf_size - pos);
+        bufPtr() + pos, bufSize() - pos);
     }
+
+    u8* bufPtr() const { return buf->buf_ptr; }
+    usize bufSize() const { return buf->size; }
+    IIOFileBuf& getFileBuf() const { return *buf; }
 
   public:
     /// r: Read, w: Write, a: Append, +: Plus, b: Binary, x: Exclude.
@@ -182,9 +185,11 @@ namespace hc::sys {
       {
         FileLock L(this);
         // Returns 0 on success.
-        if (int E = flushUnlocked())
+        if (int err = flushUnlocked())
           // Something fucked happened...
-          return E;
+          return err;
+        // Resets the buffer if we set up unget operations.
+        buf->reset();
       }
 
       if (owning)
@@ -221,9 +226,9 @@ namespace hc::sys {
     FileResult writeUnlockedFull(common::ImmPtrRange<u8> data);
 
     constexpr void adjustBuf() {
-      if (canRead() && (buf_ptr == nullptr || buf_size == 0)) {
-        buf_ptr = &ungetc_buf;
-        buf_size = 1;
+      if (canRead() && (bufPtr() == nullptr || bufSize() == 0U)) {
+        buf->buf_ptr = &ungetc_buf;
+        buf->size = 1U;
         owning = false;
       }
     }
@@ -236,8 +241,7 @@ namespace hc::sys {
     Mtx mtx;
 
     u8 ungetc_buf = 0;
-    usize buf_size;
-    u8* buf_ptr;
+    IIOFileBuf* buf;
     usize pos = 0;
 
     /// Upper limit of where a read buffer can be read.

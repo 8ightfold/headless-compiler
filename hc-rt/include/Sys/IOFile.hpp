@@ -19,7 +19,9 @@
 #pragma once
 
 #include <Common/PtrRange.hpp>
+#include <Common/Result.hpp>
 #include <Common/StrRef.hpp>
+#include <Sys/Errors.hpp>
 
 namespace hc {
   namespace sys { 
@@ -30,14 +32,24 @@ namespace hc {
       None, Line, Full
     };
 
+    class File {
+      constexpr File(IIOFileBuf& buf) : buf(&buf) { }
+      /// Opens a file, same flag syntax as `std::fopen`'s extended mode.
+      IIOFile* openFileRaw(common::StrRef path, common::StrRef flags);
+      /// Closes a file, returns `true` if handle was valid.
+      bool closeFileRaw(IIOFile* file);
+      /// Returns the last error, if there was one.
+      Error getLastError() const { return err; }
+    private:
+      IIOFileBuf* buf;
+      Error err = Error::eNone;
+      int arg = -1;
+    };
+
     /// Opens a file, same flag syntax as `std::fopen`'s extended mode.
-    IIOFile* open_file(
-      common::StrRef filename, 
-      IIOFileBuf& buf, 
-      common::StrRef flags);
-    
+    IIOFile* open_file(common::StrRef path, IIOFileBuf& buf, common::StrRef flags);
     /// Closes a file, returns `true` if handle was valid.
-    bool close_file(IIOFile* file_handle);
+    common::VErr<Error> close_file(IIOFile* file);
 
     // extern constinit IIOFile* pout;
     // extern constinit IIOFile* perr;

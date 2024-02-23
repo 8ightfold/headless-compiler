@@ -37,10 +37,9 @@ namespace {
 } // namespace `anonymous`
 
 IIOMode IIOFile::ParseModeFlags(C::StrRef S) {
-  static constexpr auto E = IIOMode::None;
   S = S.dropNull();
   if __expect_false(!S.beginsWithAny("rwa"))
-    return E;
+    return IIOMode::Err;
   auto flags = IIOMode::None;
   /// Checks if each main mode has only been used once.
   int mmode_count = 0;
@@ -68,11 +67,11 @@ IIOMode IIOFile::ParseModeFlags(C::StrRef S) {
       flags |= IIOMode::Exclude;
       break;
      default:
-      return E;
+      return IIOMode::Err;
     }
   }
   if __expect_false(mmode_count != 1)
-    return E;
+    return IIOMode::Err;
   return flags;
 }
 
@@ -108,7 +107,7 @@ FileResult IIOFile::readUnlocked(C::AddrRange data) {
   data = data.dropFront(available_data);
   usize to_fetch = len - available_data;
   // Check if output can be buffered
-  if (to_fetch > buf_size) {
+  if (to_fetch > bufSize()) {
     // Unbuffered read into the output buffer.
     auto R = read_fn(this, data);
     usize fetched = R.value;
@@ -204,14 +203,14 @@ FileResult IIOFile::writeUnlockedLine(C::ImmPtrRange<u8> data) {
 
 FileResult IIOFile::writeUnlockedFull(C::ImmPtrRange<u8> data) {
   const usize init_pos = pos;
-  const usize buf_space = buf_size - pos;
+  const usize buf_space = bufSize() - pos;
   const usize len = data.size();
 
   // The idea is we should be able to write in >2 sections.
   // First, writing to the current buffer, then flushing
   // and writing to the clean buffer. If we do not have
   // sufficient space for this, just write unbuffered.
-  if (len > (buf_space + buf_size))
+  if (len > (buf_space + bufSize()))
     $tail_return writeUnlockedNone(data);
   
   // Find the section middle.
@@ -249,7 +248,7 @@ FileResult IIOFile::writeUnlockedFull(C::ImmPtrRange<u8> data) {
 
   // If there is space in the buffer to write, then do that.
   // Otherwise, just write unbuffered and leave `pos` at 0.
-  if (remainder.size() < buf_size) {
+  if (remainder.size() < bufSize()) {
     copy_range(getSelfRange(), remainder);
     pos = remainder.size();
   } else {

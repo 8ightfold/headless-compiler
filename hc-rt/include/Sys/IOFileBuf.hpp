@@ -30,12 +30,23 @@ namespace hc::sys {
     constexpr IIOFileBuf() = default;
   protected:
     template <usize N>
-    constexpr IIOFileBuf(u8(&B)[N]) 
-     : size(N), buf_ptr(B) { }
+    constexpr IIOFileBuf(u8(&B)[N]) :
+     buf_ptr(B), size(N), __true_size(N) { }
   public:
-    usize size = 0;
+    constexpr usize getTrueSize() const {
+      return this->__true_size;
+    }
+    constexpr void reset() {
+      if (__true_size > 0U)
+        return;
+      buf_ptr = nullptr;
+      size = 0U;
+    }
+
+  public:
     u8* buf_ptr = nullptr;
-    usize written = Max<usize>;
+    usize size = 0;
+    const usize __true_size = 0;
   };
 
   template <usize BufLen>
@@ -58,9 +69,7 @@ namespace hc::sys {
     using BufType = void;
     static constexpr usize bufLen = 0;
   public:
-    constexpr IIOFileArray() 
-     : IIOFileBuf() { }
-    
+    constexpr IIOFileArray() : IIOFileBuf() { }
     constexpr IIOFileBuf& asBase() {
       return static_cast<IIOFileBuf&>(*this);
     }
