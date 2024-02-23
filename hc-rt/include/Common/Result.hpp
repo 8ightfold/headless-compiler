@@ -248,4 +248,7 @@ namespace hc::common {
       return const_cast<U*>(S->__dyn_cast<U>());
     }
   };
+
+  template <typename Err>
+  using VErr = Result<void, Err>;
 } // namespace hc::common

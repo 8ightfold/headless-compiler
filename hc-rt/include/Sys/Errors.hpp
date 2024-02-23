@@ -28,6 +28,8 @@ namespace hc::sys {
     eNoMem,       // No virtual memory, rare in static mode
     eAccDenied,   // File perms do not allow the operation
     eFault,       // Access violation, not guaranteed to be returned
-    eMaxFiles,    // Maximum files allotted for the process
+    eInval,       // Invalid argument for library function.
+    eNFiles,      // Maximum files allotted for the process
+    eMaxFiles,    // Maximum files allotted for the system
   };
 } // namespace hc::sys

@@ -34,6 +34,11 @@ namespace hc {
 
 //=== Backend ===//
 namespace hc::common {
+  struct _Eater {
+    constexpr _Eater() = default;
+    constexpr _Eater(auto&&...) {}
+  };
+
   template <typename T>
   struct _ResultVoid {
     using Type = T;
@@ -41,7 +46,7 @@ namespace hc::common {
 
   template <>
   struct _ResultVoid<void> {
-    using Type = __void;
+    using Type = _Eater;
   };
 
   template <typename T>
