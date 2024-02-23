@@ -90,12 +90,14 @@ namespace hc::common {
 
     template <typename U>
     requires meta::__any_same<U, TT...>
-    PtrUnion(U* data) : __addr(reinterpret_cast<uptr>(data)), 
+    PtrUnion(U* data) : 
+     __addr(reinterpret_cast<uptr>(data)), 
      __tag(data ? _ID<U> : 0U) { }
     
     template <typename U>
     requires meta::__any_same<const U, TT...> 
-    PtrUnion(const U* data) : __addr(reinterpret_cast<uptr>(data)), 
+    PtrUnion(const U* data) : 
+     __addr(reinterpret_cast<uptr>(data)), 
      __tag(data ? _ID<const U> : 0U) { }
     
     template <typename U>

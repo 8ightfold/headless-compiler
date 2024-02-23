@@ -27,7 +27,16 @@ using namespace hc::sys;
 namespace C = hc::common;
 namespace S = hc::sys;
 
-IIOMode S::IIOFile::ParseModeFlags(C::StrRef S) {
+namespace {
+  template <typename T, typename U>
+  inline void copy_range(C::PtrRange<T> to, C::PtrRange<U> from) {
+    static_assert(meta::is_same_size<T, U>);
+    __hc_invariant(to.size() >= from.size());
+    C::inline_memcpy(to.data(), from.data(), from.sizeInBytes());
+  }
+} // namespace `anonymous`
+
+IIOMode IIOFile::ParseModeFlags(C::StrRef S) {
   static constexpr auto E = IIOMode::None;
   S = S.dropNull();
   if __expect_false(!S.beginsWithAny("rwa"))
@@ -67,20 +76,76 @@ IIOMode S::IIOFile::ParseModeFlags(C::StrRef S) {
   return flags;
 }
 
-FileResult S::IIOFile::readUnlocked(C::AddrRange data) {
-  
-  return $FileErr(0);
+FileResult IIOFile::readUnlocked(C::AddrRange data) {
+  if __expect_false(!canRead()) {
+    err = true;
+    return $FileErr(eBadFD);
+  }
+  last_op = IIOOp::Read;
+
+  auto self_buf = getSelfRange();
+  const usize len = data.size();
+
+  __hc_invariant(read_limit > pos);
+  usize available_data = read_limit - pos;
+  if (len <= available_data) {
+    C::inline_memcpy(data.data(),
+      self_buf.dropFront(pos).data(), len);
+    pos += len;
+    return len;
+  }
+
+  // Copy all available data to the buffer.
+  C::inline_memcpy(
+    data.data(),
+    self_buf.dropFront(pos).data(),
+    available_data
+  );
+  // Reset position.
+  pos = read_limit = 0;
+
+  // Update the output buffer.
+  data = data.dropFront(available_data);
+  usize to_fetch = len - available_data;
+  // Check if output can be buffered
+  if (to_fetch > buf_size) {
+    // Unbuffered read into the output buffer.
+    auto R = read_fn(this, data);
+    usize fetched = R.value;
+    if (R.isErr() || fetched < to_fetch) {
+      if (R.isOk())
+        eof = true;
+      else
+        err = true;
+      return {available_data + fetched, R.err};
+    }
+    return len;
+  }
+
+  auto R = read_fn(this,
+    self_buf.intoRange<void>());
+  usize fetched = R.value;
+  read_limit += fetched;
+  usize transfer_size = (fetched >= to_fetch) ? to_fetch : fetched;
+  C::inline_memcpy(data.data(), self_buf.data(), transfer_size);
+  pos += transfer_size;
+  if (R.isErr() || fetched < to_fetch) {
+    if (R.isOk())
+      eof = true;
+    else
+      err = true;
+  }
+  return {available_data + transfer_size, R.err};
 }
 
-FileResult S::IIOFile::writeUnlocked(C::ImmAddrRange data) {
+FileResult IIOFile::writeUnlocked(C::ImmAddrRange data) {
   if __expect_false(!canWrite()) {
     err = true;
     return $FileErr(eBadFD);
   }
+  last_op = IIOOp::Write;
 
-  last_op = IIOOp::Read;
   const auto u8data = data.intoImmRange<u8>();
-
   if (buf_mode == BufferMode::None) {
     auto R = writeUnlockedNone(u8data);
     flushUnlocked();
@@ -92,20 +157,112 @@ FileResult S::IIOFile::writeUnlocked(C::ImmAddrRange data) {
   }
 }
 
-FileResult S::IIOFile::flushUnlocked() {
-  return $FileErr(0);
+int IIOFile::flushUnlocked() {
+  if (last_op == IIOOp::Write && pos > 0) {
+    auto R = write_fn(this, 
+      getSelfRange().intoRange<void>());
+    // Ensure all data was flushed.
+    if (R.isErr() || R.value < pos) {
+      err = true;
+      return R.err;
+    }
+    pos = 0;
+  } else if (last_op == IIOOp::Read && pos > 0) {
+    // Discard any pending reads to the file buffer.
+    // TODO: Test this...
+    pos = read_limit = 0;
+  }
+  return 0;
 }
 
 // impl
 
-FileResult S::IIOFile::writeUnlockedNone(C::ImmPtrRange<u8> data) {
+FileResult IIOFile::writeUnlockedNone(C::ImmPtrRange<u8> data) {
+  if (pos > 0) {
+    const usize write_size = pos;
+    auto R = write_fn(this, 
+      getSelfRange()
+        .takeFront(write_size).intoRange<void>());
+    pos = 0;
+    // Error, not enough bytes were written.
+    if (R.value < write_size) {
+      err = true;
+      return $FileErr(R.err);
+    }
+  }
+  auto R = write_fn(this, 
+    data.intoImmRange<void>());
+  if (R.value < data.size())
+    err = true;
+  return R;
+}
+
+FileResult IIOFile::writeUnlockedLine(C::ImmPtrRange<u8> data) {
+  __hc_unreachable("`writeUnlockedLine` unimplemented.");
   return $FileErr(0);
 }
 
-FileResult S::IIOFile::writeUnlockedLine(C::ImmPtrRange<u8> data) {
-  return $FileErr(0);
-}
+FileResult IIOFile::writeUnlockedFull(C::ImmPtrRange<u8> data) {
+  const usize init_pos = pos;
+  const usize buf_space = buf_size - pos;
+  const usize len = data.size();
 
-FileResult S::IIOFile::writeUnlockedFull(C::ImmPtrRange<u8> data) {
-  return $FileErr(0);
+  // The idea is we should be able to write in >2 sections.
+  // First, writing to the current buffer, then flushing
+  // and writing to the clean buffer. If we do not have
+  // sufficient space for this, just write unbuffered.
+  if (len > (buf_space + buf_size))
+    $tail_return writeUnlockedNone(data);
+  
+  // Find the section middle.
+  const usize split_pos = 
+    (len < buf_space) ? len : buf_space;
+  
+  // This section is written to the current buffer.
+  auto first = data.takeFront(split_pos);
+  // This section is written to the flushed buffer (if required).
+  // Invariant: `split_pos <= data.size()` 
+  auto remainder = data.dropFront(split_pos);
+
+  // Do the primary write.
+  copy_range(getSelfPosRange(), first);
+  pos += first.size();
+
+  if (remainder.size() == 0)
+    return len;
+  
+  const usize flush_size = pos;
+  auto flush_res = write_fn(this, 
+    getSelfRange().intoImmRange<void>());
+  usize bytes_flushed = flush_res.value;
+
+  pos = 0;
+  // If not all data was flushed, an error occured.
+  if (flush_res.isErr() || bytes_flushed < flush_size) {
+    err = true;
+    return {
+      bytes_flushed <= init_pos ? 
+        0 : bytes_flushed - init_pos,
+      flush_res.err
+    };
+  }
+
+  // If there is space in the buffer to write, then do that.
+  // Otherwise, just write unbuffered and leave `pos` at 0.
+  if (remainder.size() < buf_size) {
+    copy_range(getSelfRange(), remainder);
+    pos = remainder.size();
+  } else {
+    // Write directly to output.
+    auto R = write_fn(this,
+      remainder.intoImmRange<void>());
+    const usize bytes_written = R.value;
+
+    if (R.isErr() || bytes_written < remainder.size()) {
+      err = true;
+      return {first.size() + bytes_written, R.err};
+    }
+  }
+
+  return len;
 }

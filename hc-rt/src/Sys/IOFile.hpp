@@ -49,8 +49,10 @@ namespace hc::sys {
   struct FileResult {
     constexpr FileResult(usize V) : value(V) { }
     constexpr FileResult(usize V, int E) : value(V), err(E) { }
+    constexpr FileResult(Error E) : value(0UL), err(int(E)) { }
     static constexpr FileResult Ok(usize V) { return {V}; }
     static constexpr FileResult Err(int E) { return {0UL, E}; }
+    static constexpr FileResult Err(Error E) { return {E}; }
   public:
     __always_inline constexpr bool isOk() const {
       return err == 0; 
@@ -58,9 +60,7 @@ namespace hc::sys {
     __always_inline constexpr bool isErr() const { 
       return err != 0;
     }
-
     constexpr explicit operator usize() const {
-      __hc_invariant(isOk());
       return this->value;
     }
   
@@ -84,11 +84,12 @@ namespace hc::sys {
   struct IIOFile {
     using FLockType   = void(IIOFile*);
     using FUnlockType = void(IIOFile*);
-    using FReadType   = FileResult(IIOFile*, void*, usize);
-    using FWriteType  = FileResult(IIOFile*, const void*, usize);
+    using FReadType   = FileResult(IIOFile*, common::AddrRange);
+    using FWriteType  = FileResult(IIOFile*, common::ImmAddrRange);
     using FSeekType   = IOResult<long>(IIOFile*, long, int);
     using FCloseType  = int(IIOFile*);
     using RawFlags    = meta::UnderlyingType<IIOMode>;
+    using enum Error;
   private:
     enum class IIOOp : u8 {
       None, Read, Write, Seek
@@ -108,13 +109,18 @@ namespace hc::sys {
     constexpr IIOFile(
       FReadType* read, FWriteType* write,
       FSeekType* seek, FCloseType* close,
-      IIOFileBuf& buf, BufferMode buf_mode, IIOMode mode) 
-     : read_fn(read), write_fn(write), seek_fn(seek), close_fn(close),
+      IIOFileBuf& buf, BufferMode buf_mode, IIOMode mode,
+      bool is_owned = false) : 
+     read_fn(read), write_fn(write), seek_fn(seek), close_fn(close),
      mtx(), buf_size(buf.size), buf_ptr(buf.buf_ptr), 
      pos(0), read_limit(0),
      buf_mode(buf_mode), mode(RawFlags(mode)), last_op(IIOOp::None),
-     owning(false), eof(false), err(false) {
-      __hc_invariant(buf_ptr || (buf_size == 0));
+     owning(is_owned), eof(false), err(false) {
+      adjustBuf();
+      __hc_invariant(buf_ptr || buf_size == 0);
+      // TODO: Fixme
+      __hc_assert(buf_mode != BufferMode::Line);
+      __hc_assert(!is_owned);
     }
 
   protected:
@@ -132,6 +138,18 @@ namespace hc::sys {
       );
     }
 
+    common::ImmPtrRange<u8> getSelfRange() const __noexcept {
+      const u8* const P = buf_ptr;
+      return common::PtrRange<>::New(P, buf_size);
+    }
+    common::PtrRange<u8> getSelfRange() __noexcept {
+      return common::PtrRange<>::New(buf_ptr, buf_size);
+    }
+    common::PtrRange<u8> getSelfPosRange() __noexcept {
+      return common::PtrRange<>::New(
+        buf_ptr + pos, buf_size - pos);
+    }
+
   public:
     /// r: Read, w: Write, a: Append, +: Plus, b: Binary, x: Exclude.
     static IIOMode ParseModeFlags(common::StrRef flags);
@@ -140,22 +158,61 @@ namespace hc::sys {
     void lock() { mtx.lock(); }
     void unlock() { mtx.unlock(); }
 
+    //=== IO ===//
+
     FileResult readUnlocked(common::AddrRange data);
     FileResult read(common::AddrRange data) {
-      FileLock(this);
+      FileLock L(this);
       return readUnlocked(data);
     }
 
     FileResult writeUnlocked(common::ImmAddrRange data);
     FileResult write(common::ImmAddrRange data) {
-      FileLock(this);
+      FileLock L(this);
       return writeUnlocked(data);
     }
 
-    FileResult flushUnlocked();
-    FileResult flush() {
-      FileLock(this);
+    int flushUnlocked();
+    int flush() {
+      FileLock L(this);
       return flushUnlocked();
+    }
+
+    int close() {
+      {
+        FileLock L(this);
+        // Returns 0 on success.
+        if (int E = flushUnlocked())
+          // Something fucked happened...
+          return E;
+      }
+
+      if (owning)
+        // This shouldn't ever be true...
+        // ...for now.
+        __hc_unreachable("What...");
+
+      return close_fn(this);
+    }
+
+    //=== Meta ===//
+
+    bool errorUnlocked() const { return err; }
+    bool error() {
+      FileLock L(this);
+      return errorUnlocked();
+    }
+
+    bool isEOFUnlocked() const { return eof; }
+    bool isEOF() {
+      FileLock L(this);
+      return isEOFUnlocked();
+    }
+
+    void clearerrUnlocked() { this->err = false; }
+    void clearerr() {
+      FileLock L(this);
+      return clearerrUnlocked();
     }
   
   private:
@@ -163,19 +220,36 @@ namespace hc::sys {
     FileResult writeUnlockedLine(common::ImmPtrRange<u8> data);
     FileResult writeUnlockedFull(common::ImmPtrRange<u8> data);
 
+    constexpr void adjustBuf() {
+      if (canRead() && (buf_ptr == nullptr || buf_size == 0)) {
+        buf_ptr = &ungetc_buf;
+        buf_size = 1;
+        owning = false;
+      }
+    }
+
   private:
     FReadType*  read_fn;
     FWriteType* write_fn;
     FSeekType*  seek_fn;
     FCloseType* close_fn;
     Mtx mtx;
+
+    u8 ungetc_buf = 0;
     usize buf_size;
     u8* buf_ptr;
     usize pos = 0;
+
+    /// Upper limit of where a read buffer can be read.
     usize read_limit;
+
+    /// If unbuffered, line buffered, or fully buffered.
     BufferMode buf_mode;
     RawFlags mode;
+
+    /// Last operation done by the file.
     IIOOp last_op = IIOOp::None;
+
     bool owning;
     bool eof = false;
     bool err = false;

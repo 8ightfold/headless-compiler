@@ -19,10 +19,18 @@
 #pragma once
 
 #include <Sys/IOFile.hpp>
+#include <Sys/Core/Nt/Filesystem.hpp>
 
 namespace hc::sys {
+  FileResult     win_file_read(IIOFile* file, common::AddrRange in);
+  FileResult     win_file_write(IIOFile* file, common::ImmAddrRange out);
+  IOResult<long> win_file_seek(IIOFile* file, long offset, int);
+  int            win_file_close(IIOFile* file);
+
   struct WinIOFile : IIOFile {
 
+  public:
+    win::IoStatusBlock io_block;
   };
 
   extern void __init_pfiles();

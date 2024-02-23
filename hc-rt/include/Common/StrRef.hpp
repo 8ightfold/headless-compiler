@@ -161,6 +161,12 @@ namespace hc::common {
       return takeFront(S.size()).isEqual(S);
     }
 
+    bool beginsWith(auto&& R, auto&&...RR)
+     requires(sizeof...(RR) > 0) {
+      return (beginsWith(__hc_fwd(R)) || 
+        ... || beginsWith(__hc_fwd(RR)));
+    }
+
     template <usize N>
     bool beginsWithAny(const char(&A)[N]) {
       constexpr usize sz = Checked<true>(N) - 1ULL;

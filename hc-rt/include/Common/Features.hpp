@@ -140,7 +140,7 @@ constexpr __remove_reference_t(T)&& __hc_move(T&& t) __noexcept {
 # define __hc_assert(expr...) \
   [&] () __attribute__((always_inline, artificial)) { \
     if __expect_false(!bool(expr)) \
-      __hc_trap();                 \
+      ::__hc_dbg_unreachable(); \
   }();
 #else
 # define __hc_assert(...) (void)(0)
@@ -151,6 +151,8 @@ constexpr __remove_reference_t(T)&& __hc_move(T&& t) __noexcept {
 #else
 # define __hc_invariant(expr...) (void)(0)
 #endif // __hc_invariant
+
+// TODO: Add __hc_trace("msg", args...)
 
 #define $is_consteval() (__builtin_is_constant_evaluated())
 #define $launder(expr...) __builtin_launder(expr)
@@ -206,12 +208,18 @@ extern "C" {
 
   __attribute__((cold, noreturn))
   inline void __hc_dbg_unreachable(void) {
-    if constexpr(_HC_DEBUG) {
-      __hc_trap();
-    }
+    if constexpr (_HC_DEBUG) __hc_trap();
     __builtin_unreachable();
   }
 
+  /// Invokes the current panic handler and aborts.
+  /// TODO: Implement
   __attribute__((cold, noreturn, format(__printf__, 1, 2)))
   int __hc_raw_panic(const char fmt[], ...);
+
+  /// Writes a trace to the current handler.
+  /// Used for logging what functions were called,
+  /// and with which arguments.
+  __attribute__((format(__printf__, 1, 2)))
+  int __hc_log_trace(const char fmt[], ...);
 }

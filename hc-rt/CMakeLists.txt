@@ -2,7 +2,7 @@ include_guard(DIRECTORY)
 
 project(
   hc-runtime
-  VERSION 0.1.15
+  VERSION 0.1.16
   LANGUAGES CXX
 )
 
@@ -19,6 +19,7 @@ add_library(hcrt-dev STATIC
 )
 add_library(hcrt::dev ALIAS hcrt-dev)
 target_include_directories(hcrt-dev PUBLIC include PRIVATE src)
+target_compile_definitions(hcrt-dev PUBLIC -DHC_MAX_FILE_SLOTS=${HC_MAX_FILE_SLOTS})
 target_compile_definitions(hcrt-dev PRIVATE -D__HC_INTERNAL__=1)
 target_compile_options(hcrt-dev PUBLIC -fno-exceptions)
 target_link_options(hcrt-dev PUBLIC -Wl,--stack,0xF42400 -nostdlib++)

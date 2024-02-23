@@ -14,6 +14,7 @@ project(
 )
 
 include(SetInternalFlag)
+include(ValuedOption)
 include(CheckIPOSupported)
 check_ipo_supported(RESULT hc_ipo_supported LANGUAGES CXX)
 
@@ -44,6 +45,8 @@ endif()
 option(HC_CHECK_INVARIANTS "Enable invariant checking." OFF)
 option(HC_SOFTWARE_PREFETCH "Enable software prefetching." ON)
 option(HC_ENABLE_LTO "Enable IPO/LTO." ON)
+
+valued_option(HC_MAX_FILE_SLOTS "Maximum amount of files to be opened at once." 16)
 
 message(STATUS "invariant checking: ${HC_ENABLE_LTO}")
 message(STATUS "IPO/LTO: ${HC_ENABLE_LTO}")

@@ -137,4 +137,14 @@ namespace hcrt {
   }
 } // namespace hcrt
 
+namespace hc::common {
+  static inline void inline_memset(void* dst, u8 val, usize len) {
+    __hc_invariant(dst || !len);
+    if __expect_false(len == 0)
+      return;
+    return hcrt::__memset_dispatch(
+      (u8*)dst, val, len);
+  }
+} // namespace hc::common
+
 #undef _HC_MEMSET_FN

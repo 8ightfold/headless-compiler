@@ -21,7 +21,8 @@
 #include <Sys/Core/Nt/Filesystem.hpp>
 
 namespace hc::sys {
-  inline win::FileObjHandle win_open_file(
+inline namespace __nt {
+  inline win::FileObjHandle open_file(
    NtAccessMask mask, 
    win::ObjectAttributes& attr,
    win::IoStatusBlock& io, 
@@ -42,7 +43,7 @@ namespace hc::sys {
     return hout;
   }
 
-  inline win::NtStatus win_read_file(
+  inline win::NtStatus read_file(
    win::FileHandle handle,
    win::IoStatusBlock& io, 
    common::PtrRange<char> buf, 
@@ -60,10 +61,11 @@ namespace hc::sys {
     );
   }
 
-  __always_inline win::NtStatus win_close(
+  __always_inline win::NtStatus close_file(
    win::FileObjHandle handle
   ) {
     return isyscall<NtSyscall::Close>(
       $unwrap_handle(handle));
   }
+} // inline namespace __nt
 } // namespace hc::sys

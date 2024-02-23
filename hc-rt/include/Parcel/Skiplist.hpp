@@ -99,13 +99,17 @@ namespace hc::parcel {
     constexpr bool eraseRaw(T* P) {
       if __expect_false(P == nullptr)
         return false;
-      __hc_invariant(P >= __begin() && P < __end());
+      __hc_invariant(inRange(P));
       const auto V = P - __begin();
       if __expect_false(!__bits.get(V))
         return false;
       __bits[V] = false;
       __data[V].dtor();
       return true;
+    }
+
+    constexpr bool inRange(T* P) const {
+      return P >= __begin() && P < __end();
     }
 
     constexpr const T* __begin() const {

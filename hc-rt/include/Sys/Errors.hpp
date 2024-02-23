@@ -19,7 +19,8 @@
 #pragma once
 
 namespace hc::sys {
-  enum Error : int {
+  enum class Error : int {
+    eNone  = 0,   // The default, no error
     ePerms = 1,   // Operation requires special priveleges
     eNoEntry,     // File/dir expected to exist, but doesn't
     ePIO,         // Physical read/write error

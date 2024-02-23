@@ -130,6 +130,19 @@ namespace hc::common {
       return { begin, end };
     }
 
+    template <>
+    [[gnu::always_inline, gnu::const]]
+    static PtrRange<void> New<void>(void* begin, void* end) {
+      return {_VoidPtrProxy(begin), _VoidPtrProxy(end)};
+    }
+
+    template <>
+    [[gnu::always_inline, gnu::const]]
+    static PtrRange<const void>
+     New<const void>(const void* begin, const void* end) {
+      return {_VoidPtrProxy(begin), _VoidPtrProxy(end)};
+    }
+
     [[gnu::always_inline, gnu::const]]
     static PtrRange<void> New(
      _VoidPtrProxy begin, _VoidPtrProxy end) {
@@ -240,16 +253,27 @@ namespace hc::common {
       return this->intoImmRange<T>();
     }
 
-    template <meta::not_void U>
+    template <typename U>
     __always_inline PtrRange<U> intoRange() const {
       const auto new_begin = (U*)__begin;
       const auto new_end   = (U*)__end;
       return { new_begin, new_end };
     }
 
-    template <meta::not_void U>
+    template <typename U>
     __always_inline PtrRange<const U> intoImmRange() const {
       return this->intoRange<const U>();
+    }
+
+    template <>
+    __always_inline PtrRange<void> intoRange<void>() const {
+      return PtrRange::New<void>(__begin, __end);
+    }
+
+    template <>
+    __always_inline PtrRange<const void>
+     intoRange<const void>() const {
+      return PtrRange::New<const void>(__begin, __end);
     }
 
     template <typename U>

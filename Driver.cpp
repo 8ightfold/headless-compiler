@@ -62,7 +62,7 @@ struct X {
   }
 };
 
-int main() {
+int main(int N, char* A[], char* Env[]) {
   wchar_t raw_name[] = L"\\??\\C:\\krita-dev\\krita\\README.md";
   auto name = W::UnicodeString::New(raw_name);
   auto mask = W::GenericReadAccess;
@@ -73,7 +73,7 @@ int main() {
   auto createDis  = W::CreateDisposition::Open;
   auto createOpt  = W::CreateOptsMask::IsFile;
 
-  W::FileHandle handle = S::win_open_file(
+  W::FileHandle handle = S::open_file(
     mask, obj_attr, io, nullptr, 
     file_attr, share,
     createDis
@@ -85,15 +85,20 @@ int main() {
   std::printf("Opened file `%ls`.\n", name.buffer);
 
   auto buf = $dynalloc(2048, char).zeroMemory();
-  if (auto S = S::win_read_file(handle, io, buf.intoRange()); $NtFail(S)) {
+  if (auto S = S::read_file(handle, io, buf.intoRange()); $NtFail(S)) {
     std::printf("Read failed! [0x%.8X]\n", S);
-    return S::win_close(handle);
+    return S::close_file(handle);
   }
   std::printf("Buffer contents:\n%.128s\n...\n", buf.data());
 
-  if (W::NtStatus S = S::win_close(handle); $NtFail(S)) {
+  if (W::NtStatus S = S::close_file(handle); $NtFail(S)) {
     std::printf("Closing failed! [0x%.8X]\n", S);
     return S;
+  }
+
+  char** preEnv = Env;
+  while (char* E = *Env++) {
+    std::printf("%s\n", E);
   }
 
   IO_TEST("+r", None);
@@ -102,16 +107,4 @@ int main() {
   IO_TEST("ab", (Append, Binary));
   IO_TEST("r+", (Read, Plus));  
   IO_TEST("wx+", (Write, Exclude, Plus));
-
-  P::ALSkiplist<X, 8> Xsl;
-  auto _0 = Xsl.insertRaw();
-  auto _1 = Xsl.insert();
-  auto _2 = Xsl.insertRaw();
-  _1.erase();
-  Xsl.eraseRaw(_0);
-  auto _3 = Xsl.insertRaw();
-  _3->me();
-  Xsl.eraseRaw(_2);
-  auto _4 = Xsl.insertRaw();
-  auto _5 = Xsl.insert();
 }

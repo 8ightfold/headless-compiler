@@ -52,11 +52,11 @@ namespace hc::common {
   union _ResultBase {
     constexpr _ResultBase() : __value() { }
 
-    constexpr _ResultBase(InPlace, auto&&...args)
-     : __value(__hc_fwd(args)...) { }
+    constexpr _ResultBase(InPlace, auto&&...args) : 
+     __value(__hc_fwd(args)...) { }
     
-    constexpr _ResultBase(Unexpect, auto&&...args)
-     : __error(__hc_fwd(args)...) { }
+    constexpr _ResultBase(Unexpect, auto&&...args) : 
+     __error(__hc_fwd(args)...) { }
     
     constexpr ~_ResultBase() { }
   public:
@@ -72,11 +72,11 @@ namespace hc::common {
   public:
     constexpr _ResultStorage() = default;
 
-    constexpr _ResultStorage(InPlace ip, auto&&...args)
-     : __base(ip, __hc_fwd(args)...), __is_value(true) { }
+    constexpr _ResultStorage(InPlace ip, auto&&...args) : 
+     __base(ip, __hc_fwd(args)...), __is_value(true) { }
     
-    constexpr _ResultStorage(Unexpect ux, auto&&...args)
-     : __base(ux, __hc_fwd(args)...), __is_value(false) { }
+    constexpr _ResultStorage(Unexpect ux, auto&&...args) : 
+     __base(ux, __hc_fwd(args)...), __is_value(false) { }
     
     constexpr ~_ResultStorage() {
       this->__destroy();

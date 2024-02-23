@@ -31,8 +31,11 @@ namespace hc {
     };
 
     /// Opens a file, same flag syntax as `std::fopen`'s extended mode.
-    IIOFile* open_file(common::StrRef filename,
-      IIOFileBuf& buf, common::StrRef flags);
+    IIOFile* open_file(
+      common::StrRef filename, 
+      IIOFileBuf& buf, 
+      common::StrRef flags);
+    
     /// Closes a file, returns `true` if handle was valid.
     bool close_file(IIOFile* file_handle);
 

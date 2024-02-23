@@ -16,12 +16,67 @@
 //
 //===----------------------------------------------------------------===//
 
+#include <Sys/Win/IOFile.hpp>
 #include <Common/Casting.hpp>
 #include <Common/InlineMemcpy.hpp>
-#include <Sys/Win/IOFile.hpp>
+#include <Parcel/Skiplist.hpp>
+#include "Filesystem.hpp"
+
+#define $FileErr(e) S::FileResult::Err(e)
 
 using namespace hc;
 using namespace hc::sys;
 namespace C = hc::common;
+namespace P = hc::parcel;
 namespace S = hc::sys;
 
+namespace {
+  constexpr usize max_files = HC_MAX_FILE_SLOTS;
+  constinit P::ALSkiplist<WinIOFile, max_files> file_slots {};
+} // namespace `anonymous`
+
+FileResult S::win_file_read(IIOFile* file, common::AddrRange in) {
+  return $FileErr(0);
+}
+
+FileResult S::win_file_write(IIOFile* file, common::ImmAddrRange out) {
+  return $FileErr(0);
+}
+
+IOResult<long> S::win_file_seek(IIOFile* file, long offset, int) {
+  __hc_unreachable("`win_file_seek` unimplemented.");
+  return $Err(0);
+}
+
+int S::win_file_close(IIOFile* file) {
+  const auto F = ptr_cast<WinIOFile>(file);
+  if (!file_slots.inRange(F))
+    return int(Error::eBadFD);
+  return 0;
+}
+
+//=== Implementation ===//
+
+IIOFile* S::open_file(C::StrRef filename, IIOFileBuf& buf, C::StrRef flags) {
+  const auto F = IIOFile::ParseModeFlags(flags);
+  if (filename.isEmpty()) {
+    // TODO: Set error?
+    return nullptr;
+  }
+
+  if (!filename.beginsWith("\\??\\", "\\GLOBAL??\\")) {
+
+  }
+
+  // Check for `/.` and `/..` yk
+
+  return nullptr;
+}
+
+bool S::close_file(IIOFile* file) {
+  const auto F = ptr_cast<WinIOFile>(file);
+  if (!file_slots.inRange(F))
+    return false;
+  F->close();
+  return file_slots.eraseRaw(F);
+}

@@ -30,7 +30,7 @@
 // TODO: Use prefetching/SIMD?
 
 #define _HC_MEMCPY_FN(name) \
- inline void name(u8* __restrict dst, \
+ static inline void name(u8* __restrict dst, \
   const u8* __restrict src, [[maybe_unused]] usize len = 0)
 
 namespace hcrt {
@@ -79,7 +79,7 @@ namespace hcrt {
     $tail_return __copy_block<4>(dst, src, len);
   }
 
-  [[gnu::always_inline]] static _HC_MEMCPY_FN(__memcpy_dispatch) {
+  [[gnu::always_inline]] _HC_MEMCPY_FN(__memcpy_dispatch) {
     if (len == 0)
       return;
     if (len < 5)
@@ -98,5 +98,15 @@ namespace hcrt {
     $tail_return __copy_aligned_blocks<32>(dst, src, len);
   }
 } // namespace hcrt
+
+namespace hc::common {
+  static inline void inline_memcpy(void* dst, const void* src, usize len) {
+    __hc_invariant((dst && src) || !len);
+    if __expect_false(len == 0)
+      return;
+    return hcrt::__memcpy_dispatch(
+      (u8*)dst, (const u8*)src, len);
+  }
+} // namespace hc::common
 
 #undef _HC_MEMCPY_FN

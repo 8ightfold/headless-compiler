@@ -42,6 +42,7 @@ namespace hc::sys::win {
 } // namespace hc::sys::win
 
 namespace hc::sys {
+inline namespace __nt {
   $NtExtract(AccessMask);
   $NtExtract(AccessMaskSpecific);
   $NtExtract(CreateDisposition);
@@ -51,6 +52,7 @@ namespace hc::sys {
   $NtExtract(ObjAttribMask);
   $NtExtract(FileInfoClass);
   $NtExtract(FilesystemInfoClass);
+} // inline namespace __nt
 } // namespace hc::sys
 
 #undef $NtExtract

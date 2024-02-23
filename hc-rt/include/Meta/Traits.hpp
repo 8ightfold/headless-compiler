@@ -69,6 +69,24 @@ namespace hc::meta {
   template <typename T>
   concept not_ptr = !__is_pointer(T);
 
+  template <typename T>
+  concept is_const = __is_const(T);
+
+  template <typename T>
+  concept not_const = !__is_const(T);
+
+  template <typename T>
+  concept is_volatile = __is_volatile(T);
+
+  template <typename T>
+  concept not_volatile = !__is_volatile(T);
+
+  template <typename T>
+  concept is_cv = is_const<T> || is_volatile<T>;
+
+  template <typename T>
+  concept not_cv = not_const<T> && not_volatile<T>;
+
   // Complex
 
   template <typename T>

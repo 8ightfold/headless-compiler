@@ -77,9 +77,9 @@ namespace hc::common {
       return { data, uptr(size) };
     }
 
-    [[nodiscard]] T& operator[](usize n) const __noexcept {
-      __hc_invariant(__data != nullptr && n < __size);
-      return this->__data[n];
+    [[nodiscard]] T& operator[](usize I) const __noexcept {
+      __hc_invariant(__data != nullptr && I < __size);
+      return this->__data[I];
     }
 
     template <typename...Args>
@@ -91,8 +91,10 @@ namespace hc::common {
     template <typename...Args>
     DynAllocation& init(Args&...args) __noexcept
      requires(!__is_trivial_alloc<T>) {
-      if __expect_true(this->__active) return *this;
-      else if __expect_false(this->isEmpty()) return *this;
+      if __expect_true(this->__active)
+        return *this;
+      else if __expect_false(this->isEmpty())
+        return *this;
       this->__active = true;
       for (T* I = begin(), *E = end(); I != E; ++I)
         common::construct_at(I, args...);
