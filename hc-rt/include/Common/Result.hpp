@@ -198,7 +198,7 @@ namespace hc::common {
     //=== Monads ===//
 
     template <typename U>
-    constexpr _T valueOr(U&& u) const& {
+    constexpr _T okOr(U&& u) const& {
       if(this->isOk()) 
         return ok();
       else
@@ -206,11 +206,27 @@ namespace hc::common {
     }
 
     template <typename U>
-    constexpr _T valueOr(U&& u)&& {
+    constexpr _T okOr(U&& u)&& {
       if(this->isOk()) 
         return __hc_move(ok());
       else
         return _T{__hc_fwd(u)};
+    }
+
+    template <typename G>
+    constexpr _E errOr(G&& g) const& {
+      if(this->isErr()) 
+        return err();
+      else
+        return _E{__hc_fwd(g)};
+    }
+
+    template <typename G>
+    constexpr _E errOr(G&& g)&& {
+      if(this->isErr())
+        return __hc_move(err());
+      else
+        return _E{__hc_fwd(g)};
     }
 
     //=== Internals ===//

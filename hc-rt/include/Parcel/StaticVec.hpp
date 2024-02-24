@@ -108,15 +108,15 @@ namespace hc::parcel {
     }
 
     template <usize Sz>
-    StaticVec(StaticVec<T, Sz>&& vec) : StaticVec() {
+    StaticVec(StaticVec<T, Sz>&& V) : StaticVec() {
       if constexpr (Sz > Capacity()) {
-        const auto n = (vec.__size > Capacity()) 
-          ? Capacity() : vec.__size;
-        CC::Mem::Move(begin(), vec.begin(), n);
+        const auto n = (V.__size > Capacity()) 
+          ? Capacity() : V.__size;
+        CC::Mem::Move(begin(), V.begin(), n);
         this->__size = n;
       } else {
-        CC::Mem::Move(begin(), vec.begin(), vec.__size);
-        this->__size = vec.__size;
+        CC::Mem::Move(begin(), V.begin(), V.__size);
+        this->__size = V.__size;
       }
     }
 
@@ -174,6 +174,10 @@ namespace hc::parcel {
       return *this;
     }
 
+    constexpr void clear() __noexcept {
+      $tail_return __destroy();
+    }
+
     //=== Observers ===//
 
     static constexpr usize Capacity() __noexcept {
@@ -203,6 +207,18 @@ namespace hc::parcel {
       return { begin(), end() };
     }
 
+    template <typename U>
+    [[nodiscard]]
+    inline U into() __noexcept {
+      return intoRange().template into<U>();
+    }
+
+    template <typename U>
+    [[nodiscard]]
+    inline U into() const __noexcept {
+      return intoRange().template into<U>();
+    }
+
     [[nodiscard, gnu::const]]
     constexpr T* begin() const __noexcept {
       return data();
@@ -226,7 +242,7 @@ namespace hc::parcel {
   
   private:
     struct _DestroyVec {
-      constexpr _DestroyVec(StaticVec& vec) : __vec(vec) { }
+      constexpr _DestroyVec(StaticVec& V) : __vec(V) { }
       
       constexpr void operator()() __noexcept {
         if __expect_true(__vec.__size > 0)

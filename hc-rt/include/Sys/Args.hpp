@@ -1,4 +1,4 @@
-//===- Sys/Win/IOFile.hpp -------------------------------------------===//
+//===- Sys/Args.hpp -------------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -15,23 +15,23 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
+//
+//  Get stuff like argv, envp, the program path, and working directory.
+//
+//===----------------------------------------------------------------===//
 
 #pragma once
 
-#include <Sys/IOFile.hpp>
-#include <Sys/Core/Nt/Filesystem.hpp>
+#include <Common/PtrRange.hpp>
 
 namespace hc::sys {
-  FileResult     win_file_read(IIOFile* file, common::AddrRange in);
-  FileResult     win_file_write(IIOFile* file, common::ImmAddrRange out);
-  IOResult<long> win_file_seek(IIOFile* file, long offset, int);
-  IOResult<>     win_file_close(IIOFile* file);
-
-  struct WinIOFile : IIOFile {
-
+  struct Args {
+    template <typename T>
+    using ArgType = common::ImmPtrRange<T>;
   public:
-    win::IoStatusBlock io_block;
+    static ArgType<char*>   Argv();
+    static ArgType<char*>   Envp();
+    static ArgType<wchar_t> ProgramDir();
+    static ArgType<wchar_t> WorkingDir();
   };
-
-  extern void __init_pfiles();
 } // namespace hc::sys

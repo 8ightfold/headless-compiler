@@ -1,11 +1,6 @@
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.18)
 include_guard(DIRECTORY)
-
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 23)
+include(Setup.cmake)
 
 project(
   headless-compiler
@@ -13,8 +8,8 @@ project(
   LANGUAGES CXX C
 )
 
-include(SetInternalFlag)
-include(ValuedOption)
+include(SetFlags)
+include(SetOptions)
 include(CheckIPOSupported)
 check_ipo_supported(RESULT hc_ipo_supported LANGUAGES CXX)
 
@@ -46,17 +41,19 @@ option(HC_CHECK_INVARIANTS "Enable invariant checking." OFF)
 option(HC_SOFTWARE_PREFETCH "Enable software prefetching." ON)
 option(HC_ENABLE_LTO "Enable IPO/LTO." ON)
 
-valued_option(HC_MAX_FILE_SLOTS "Maximum amount of files to be opened at once." 16)
+valued_option(RT_MAX_FILES "Maximum amount of files to be opened at once." 16)
+valued_option(RT_MAX_PATH "Maximum length a filepath can be." 512)
 
-message(STATUS "invariant checking: ${HC_ENABLE_LTO}")
+message(STATUS "Invariant checking: ${HC_CHECK_INVARIANTS}")
 message(STATUS "IPO/LTO: ${HC_ENABLE_LTO}")
+message(STATUS "Max files: ${RT_MAX_FILES}")
+message(STATUS "Max path: ${RT_MAX_PATH}")
 
 add_subdirectory(hc-rt)
-
 add_executable(driver Driver.cpp)
 target_link_libraries(driver PRIVATE hcrt::dev)
 target_include_directories(driver PRIVATE hc-rt/src)
-target_compile_definitions(driver PRIVATE -D__HC_INTERNAL__=1)
+target_compile_definitions(driver PRIVATE __HC_INTERNAL__=1)
 
 # add_executable(nostartup NoStartup.cpp)
 # target_link_libraries(nostartup PUBLIC hc::runtime)

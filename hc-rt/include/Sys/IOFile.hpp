@@ -27,12 +27,17 @@ namespace hc {
   namespace sys { 
     struct IIOFile;
     struct IIOFileBuf;
-
     enum BufferMode {
       None, Line, Full
     };
 
-    class File {
+    template <typename T = void>
+    using IOResult = common::Result<T, Error>;
+
+    struct File {
+      static constexpr usize invalArgMax = 3U;
+      using InvalArgsType = bool(&)[invalArgMax];
+    public:
       constexpr File(IIOFileBuf& buf) : buf(&buf) { }
       /// Opens a file, same flag syntax as `std::fopen`'s extended mode.
       IIOFile* openFileRaw(common::StrRef path, common::StrRef flags);
@@ -40,21 +45,30 @@ namespace hc {
       bool closeFileRaw(IIOFile* file);
       /// Returns the last error, if there was one.
       Error getLastError() const { return err; }
+      /// Returns the positions for `Error::eInval`.
+      /// Indexes are `true` if they were invalid.
+      auto invalArgsPos() const
+       -> const bool(&)[invalArgMax] { 
+        return invals;
+      }
+      /// Resets any error info.
+      void clearError();
     private:
       IIOFileBuf* buf;
       Error err = Error::eNone;
-      int arg = -1;
+      bool invals[invalArgMax] {};
     };
 
     /// Opens a file, same flag syntax as `std::fopen`'s extended mode.
-    IIOFile* open_file(common::StrRef path, IIOFileBuf& buf, common::StrRef flags);
+    IOResult<IIOFile*> open_file(common::StrRef path, IIOFileBuf& buf, common::StrRef flags);
     /// Closes a file, returns `true` if handle was valid.
-    common::VErr<Error> close_file(IIOFile* file);
+    IOResult<> close_file(IIOFile* file);
 
     // extern constinit IIOFile* pout;
     // extern constinit IIOFile* perr;
     // extern constinit IIOFile* pin;
   } // namespace sys
+
   using RawIOFile = sys::IIOFile;
   using IOFile    = RawIOFile*;
   // using sys::pout;

@@ -23,14 +23,16 @@
 #pragma once
 
 #include <Common/Fundamental.hpp>
+#include <Common/PtrRange.hpp>
 
 namespace hc::bootstrap {
   struct Win64UnicodeString {
-    u16 size = 0, size_max = 0;
+    u16 size = 0, size_max = 0; // In bytes
     wchar_t* buffer = nullptr;
   public:
     static Win64UnicodeString New(wchar_t* str);
     static Win64UnicodeString New(wchar_t* str, usize max);
+    static Win64UnicodeString New(common::PtrRange<wchar_t> R);
     bool isEqual(const Win64UnicodeString& rhs) const;
   };
 } // namespace hc::bootstrap

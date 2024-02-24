@@ -30,6 +30,9 @@
 #include "Memory.hpp"
 #include "PtrRange.hpp"
 
+// TODO: $to_wstr -> $widen
+// Add $narrow, add SIMD?
+
 #define $to_wstr(S) ({ \
   const usize __len = __builtin_strlen(S); \
   auto __wstr = $zdynalloc(__len + 1, wchar_t); \
@@ -75,6 +78,10 @@ namespace hc::common {
     [[nodiscard, gnu::always_inline]]
     static DynAllocation New(T* data, usize size) __noexcept {
       return { data, uptr(size) };
+    }
+
+    operator PtrRange<T>() const __noexcept {
+      return {begin(), end()};
     }
 
     [[nodiscard]] T& operator[](usize I) const __noexcept {

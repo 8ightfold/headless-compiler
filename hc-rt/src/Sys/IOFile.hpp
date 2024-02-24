@@ -42,22 +42,22 @@
 // https://github.com/huangqinjin/ucrt/blob/master/stdio
 
 namespace hc::sys {
-  template <typename T>
-  using IOResult = common::Result<T, int>;
-
   struct FileResult {
     constexpr FileResult(usize V) : value(V) { }
-    constexpr FileResult(usize V, int E) : value(V), err(E) { }
-    constexpr FileResult(Error E) : value(0UL), err(int(E)) { }
+    constexpr FileResult(usize V, Error E) : value(V), err(E) { }
+    constexpr FileResult(Error E) : value(0UL), err(E) { }
     static constexpr FileResult Ok(usize V) { return {V}; }
-    static constexpr FileResult Err(int E) { return {0UL, E}; }
     static constexpr FileResult Err(Error E) { return {E}; }
+    static constexpr FileResult Err(int E) {
+      __hc_invariant(E < int(Error::MaxValue));
+      return {0UL, Error(E)};
+    }
   public:
     __always_inline constexpr bool isOk() const {
-      return err == 0; 
+      return err == Error::eNone; 
     }
     __always_inline constexpr bool isErr() const { 
-      return err != 0;
+      return err != Error::eNone;
     }
     constexpr explicit operator usize() const {
       return this->value;
@@ -65,7 +65,7 @@ namespace hc::sys {
   
   public:
     usize value;
-    int err = 0;
+    Error err = Error::eNone;
   };
 
   enum class IIOMode : u32 {
@@ -87,7 +87,7 @@ namespace hc::sys {
     using FReadType   = FileResult(IIOFile*, common::AddrRange);
     using FWriteType  = FileResult(IIOFile*, common::ImmAddrRange);
     using FSeekType   = IOResult<long>(IIOFile*, long, int);
-    using FCloseType  = int(IIOFile*);
+    using FCloseType  = IOResult<>(IIOFile*);
     using RawFlags    = meta::UnderlyingType<IIOMode>;
     using enum Error;
   private:
@@ -149,10 +149,6 @@ namespace hc::sys {
         bufPtr() + pos, bufSize() - pos);
     }
 
-    u8* bufPtr() const { return buf->buf_ptr; }
-    usize bufSize() const { return buf->size; }
-    IIOFileBuf& getFileBuf() const { return *buf; }
-
   public:
     /// r: Read, w: Write, a: Append, +: Plus, b: Binary, x: Exclude.
     static IIOMode ParseModeFlags(common::StrRef flags);
@@ -160,6 +156,10 @@ namespace hc::sys {
     void initialize() { mtx.initialize(); }
     void lock() { mtx.lock(); }
     void unlock() { mtx.unlock(); }
+
+    u8* bufPtr() const { return buf->buf_ptr; }
+    usize bufSize() const { return buf->size; }
+    IIOFileBuf& getFileBuf() const { return *buf; }
 
     //=== IO ===//
 
@@ -175,27 +175,28 @@ namespace hc::sys {
       return writeUnlocked(data);
     }
 
-    int flushUnlocked();
-    int flush() {
+    Error flushUnlocked();
+    Error flush() {
       FileLock L(this);
       return flushUnlocked();
     }
 
-    int close() {
+    IOResult<> close() {
       {
         FileLock L(this);
-        // Returns 0 on success.
-        if (int err = flushUnlocked())
+        if (Error E = flushUnlocked(); E != eNone) {
           // Something fucked happened...
-          return err;
+          return $Err(E);
+        }
         // Resets the buffer if we set up unget operations.
         buf->reset();
       }
 
-      if (owning)
+      if (owning) {
         // This shouldn't ever be true...
         // ...for now.
         __hc_unreachable("What...");
+      }
 
       return close_fn(this);
     }

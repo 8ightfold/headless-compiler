@@ -92,6 +92,9 @@ namespace hc::bootstrap {
     __always_inline Win64UnicodeString name() const {
       return this->base_dll_name;
     }
+    __always_inline Win64UnicodeString fullName() const {
+      return this->full_dll_name;
+    }
   };
 
   struct Win64ModuleType {
@@ -168,6 +171,9 @@ namespace hc::bootstrap {
     Win64UnicodeString name() const {
       return this->asLDRDataTableEntry()->name();
     }
+    Win64UnicodeString fullName() const {
+      return this->asLDRDataTableEntry()->fullName();
+    }
   
     //=== Conversions ===//
 
@@ -228,20 +234,29 @@ namespace hc::bootstrap {
     }
   };
 
+  struct Win64CurrDir {
+    Win64UnicodeString dos_path;
+    Win64Handle handle; // ?
+  };
+
   struct Win64ProcParams {
-    u32         allocation_size;
-    u32         size;
-    u32         flags;
-    u32         debug_flags;
-    Win64Handle console_handle;
-    u32         console_flags;
-    Win64Handle std_in;
-    Win64Handle std_out;
-    Win64Handle std_err;
+    u32          allocation_size;
+    u32          size;
+    u32          flags;
+    u32          debug_flags;
+    Win64Handle  console_handle;
+    u32          console_flags;
+    Win64Handle  std_in;
+    Win64Handle  std_out;
+    Win64Handle  std_err;
+    Win64CurrDir curr_dir;
     // ...
     HC_MARK_DELETED(Win64ProcParams);
   public:
     bool hasConsole() const { return !!console_handle; }
+    Win64UnicodeString getCurrDir() const {
+      return curr_dir.dos_path;
+    }
   };
 
   struct Win64PEB {

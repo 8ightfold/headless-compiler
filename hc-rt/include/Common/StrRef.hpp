@@ -110,6 +110,20 @@ namespace hc::common {
       return BaseType::__end[size() - 1];
     }
 
+    Type& frontSafe() const {
+      static constexpr Type C = Type(0);
+      if __expect_false(size() == 0)
+        return C;
+      return front();
+    }
+
+    Type& backSafe() const {
+      static constexpr Type C = Type(0);
+      if __expect_false(size() == 0)
+        return C;
+      return front();
+    }
+
     //=== Observers ===//
 
     bool isEqual(StrRef S) const {

@@ -2,7 +2,7 @@ include_guard(DIRECTORY)
 
 project(
   hc-runtime
-  VERSION 0.1.16
+  VERSION 0.1.17
   LANGUAGES CXX
 )
 
@@ -19,23 +19,25 @@ add_library(hcrt-dev STATIC
 )
 add_library(hcrt::dev ALIAS hcrt-dev)
 target_include_directories(hcrt-dev PUBLIC include PRIVATE src)
-target_compile_definitions(hcrt-dev PUBLIC -DHC_MAX_FILE_SLOTS=${HC_MAX_FILE_SLOTS})
-target_compile_definitions(hcrt-dev PRIVATE -D__HC_INTERNAL__=1)
+target_forward_options(hcrt-dev PUBLIC RT_MAX_FILES RT_MAX_PATH)
+target_compile_definitions(hcrt-dev PRIVATE __HC_INTERNAL__=1)
 target_compile_options(hcrt-dev PUBLIC -fno-exceptions)
 target_link_options(hcrt-dev PUBLIC -Wl,--stack,0xF42400 -nostdlib++)
 set_property(TARGET hcrt-dev PROPERTY INTERPROCEDURAL_OPTIMIZATION ${HC_ENABLE_LTO})
 
 if(WIN32)
   target_sources(hcrt-dev PUBLIC
+  src/Sys/Win/Args.cpp
     src/Sys/Win/Mutex.cpp
     src/Sys/Win/IOFile.cpp
     src/Sys/Win/PFiles.cpp
+    src/Sys/Win/PathNormalizer.cpp
   )
 else()
   message(FATAL_ERROR "hc is not supported on your platform.")
 endif()
 
-include(SetInternalFlag)
+include(SetFlags)
 target_internal_flags(hcrt-dev PUBLIC HC_DEBUG)
 target_internal_flags(hcrt-dev PUBLIC HC_TRUE_DEBUG)
 target_internal_flags(hcrt-dev PUBLIC HC_CHECK_INVARIANTS)
@@ -51,7 +53,7 @@ add_library(hc-runtime STATIC
 add_library(hc::runtime ALIAS hc-runtime)
 target_link_libraries(hc-runtime PUBLIC hcrt-dev)
 target_include_directories(hc-runtime PRIVATE src xcrt)
-target_compile_definitions(hc-runtime PRIVATE -D__HC_INTERNAL__=1)
+target_compile_definitions(hc-runtime PRIVATE __HC_INTERNAL__=1)
 target_compile_options(hc-runtime PUBLIC -fno-exceptions -nostdinc++ -nostdinc -static)
 target_link_options(hc-runtime PUBLIC -nostdlib++ -nostdlib -nostartfiles)
 

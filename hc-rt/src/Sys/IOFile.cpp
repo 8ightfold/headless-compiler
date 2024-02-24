@@ -156,7 +156,7 @@ FileResult IIOFile::writeUnlocked(C::ImmAddrRange data) {
   }
 }
 
-int IIOFile::flushUnlocked() {
+Error IIOFile::flushUnlocked() {
   if (last_op == IIOOp::Write && pos > 0) {
     auto R = write_fn(this, 
       getSelfRange().intoRange<void>());
@@ -171,7 +171,7 @@ int IIOFile::flushUnlocked() {
     // TODO: Test this...
     pos = read_limit = 0;
   }
-  return 0;
+  return eNone;
 }
 
 // impl

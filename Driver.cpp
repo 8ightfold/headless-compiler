@@ -30,6 +30,8 @@
 #include <Sys/Core/Nt/Structs.hpp>
 #include <Sys/Win/Filesystem.hpp>
 #include <Sys/Win/Mutant.hpp>
+#include <Sys/Win/PathNormalizer.hpp>
+#include <Sys/Args.hpp>
 #include <Sys/IOFile.hpp>
 #include <Sys/Mutex.hpp>
 
@@ -62,8 +64,44 @@ struct X {
   }
 };
 
+const char* getPathType(C::StrRef S) {
+  using S::PathType;
+  PathType type = S::PathNormalizer::GetPathType(S);
+  switch (type) {
+   case PathType::DosDrive:     return "DosDrive";
+   case PathType::DosVolume:    return "DosVolume";
+   case PathType::DeviceUNC:    return "DeviceUNC";
+   case PathType::UNCNamespace: return "UNCNamespace";
+   case PathType::NtNamespace:  return "NtNamespace";
+   case PathType::LegacyDevice: return "LegacyDevice";
+   case PathType::QualDOS:      return "QualDOS";
+   case PathType::DriveRel:     return "DriveRel";
+   case PathType::CurrDriveRel: return "CurrDriveRel";
+   case PathType::DirRel:       return "DirRel";
+   default:                     return "Unknown";
+  }
+}
+
+void printPathType(C::StrRef S) {
+  std::printf("%s: %s\n", getPathType(S), S.data());
+}
+
 int main(int N, char* A[], char* Env[]) {
-  wchar_t raw_name[] = L"\\??\\C:\\krita-dev\\krita\\README.md";
+  printPathType("//?/PhysicalDrive0/"); // DosDrive
+  printPathType("//?/X:/");             // DosVolume
+  printPathType("//.\\UNC/");           // DeviceUNC
+  printPathType("//RAHHHH/");           // UNCNamespace
+  printPathType("\\??\\C:");            // NtNamespace  
+  printPathType("/GLOBAL??""/C:");      // NtNamespace
+  printPathType("NUL");                 // LegacyDevice
+  printPathType("//./CON3");            // LegacyDevice
+  printPathType("D:\\ProgramData");     // QualDOS
+  printPathType("Z:code");              // DriveRel
+  printPathType("\\build");             // CurrDriveRel
+  printPathType("contents.txt");        // DirRel
+  std::puts("");
+
+  wchar_t raw_name[] = L"\\GLOBAL??\\C:\\krita-dev\\krita\\README.md";
   auto name = W::UnicodeString::New(raw_name);
   auto mask = W::GenericReadAccess;
   W::ObjectAttributes obj_attr { .object_name = &name };
@@ -71,7 +109,6 @@ int main(int N, char* A[], char* Env[]) {
   auto file_attr  = W::FileAttribMask::Normal;
   auto share      = W::FileShareMask::Read;
   auto createDis  = W::CreateDisposition::Open;
-  auto createOpt  = W::CreateOptsMask::IsFile;
 
   W::FileHandle handle = S::open_file(
     mask, obj_attr, io, nullptr, 
@@ -90,14 +127,14 @@ int main(int N, char* A[], char* Env[]) {
     return S::close_file(handle);
   }
   std::printf("Buffer contents:\n%.128s\n...\n", buf.data());
-
+  
   if (W::NtStatus S = S::close_file(handle); $NtFail(S)) {
     std::printf("Closing failed! [0x%.8X]\n", S);
     return S;
   }
 
-  char** preEnv = Env;
-  while (char* E = *Env++) {
+  auto* preEnv = S::Args::Envp().data();
+  while (const char* E = *Env++) {
     std::printf("%s\n", E);
   }
 

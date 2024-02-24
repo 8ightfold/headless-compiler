@@ -31,5 +31,8 @@ namespace hc::sys {
     eInval,       // Invalid argument for library function.
     eNFiles,      // Maximum files allotted for the process
     eMaxFiles,    // Maximum files allotted for the system
+    eInvalName,   // Invalid filename encountered during normalization.
+    eNameTooLong, // Unnormalized filepath was larger than `RT_PATH_MAX`.
+    MaxValue,
   };
 } // namespace hc::sys
