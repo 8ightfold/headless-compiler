@@ -96,6 +96,7 @@ void* B::COFFModule::resolveExportRaw(C::StrRef S) const {
 }
 
 void* B::COFFModule::resolveImportRaw(C::StrRef S) const {
+  __hc_unreachable("resolveImportRaw is unimplemented.");
   return nullptr;
 }
 
