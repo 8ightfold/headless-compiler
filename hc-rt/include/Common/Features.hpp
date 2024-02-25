@@ -137,14 +137,19 @@ constexpr __remove_reference_t(T)&& __hc_move(T&& t) __noexcept {
 #endif
 
 #if _HC_DEBUG
+/// Checked condition in debug.
 # define __hc_assert(expr...) \
   [&] () __attribute__((always_inline, artificial)) { \
     if __expect_false(!bool(expr)) \
       ::__hc_dbg_unreachable(); \
   }();
-#else
+/// Use this when you need something to be evaluated in release.
+# define __hc_assertOrIdent(expr...) __hc_assert(expr)
+#else // _HC_DEBUG
+/// Noop in release.
 # define __hc_assert(...) (void)(0)
-#endif // __hc_assert
+# define __hc_assertOrIdent(expr...) (void) expr
+#endif // _HC_DEBUG
 
 #if _HC_CHECK_INVARIANTS
 # define __hc_invariant(expr...) __hc_assert(expr)

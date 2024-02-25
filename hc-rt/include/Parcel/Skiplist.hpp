@@ -120,6 +120,10 @@ namespace hc::parcel {
       return __data[0].data() + N;
     }
 
+    constexpr usize accumulateCount() const {
+      return __bits.accumulateCount();
+    }
+
   public:
     DataType __data[N] {};
     BitList<N, BitType> __bits;

@@ -169,6 +169,24 @@ namespace hc::parcel {
       return data()[__size - 1];
     }
 
+    constexpr bool resize(usize N) __noexcept {
+      T* const old_end = end();
+      const bool R = resizeUninit();
+      this->__init(old_end, end(), T());
+      return R;
+    }
+
+    /// Can be very unsafe, do not use without good reason.
+    constexpr bool resizeUninit(usize N) __noexcept {
+      const usize new_size = N + size();
+      if __expect_false(new_size > Capacity()) {
+        __size = Capacity();
+        return false;
+      }
+      __size = new_size;
+      return true;
+    }
+
     constexpr SelfType& erase() __noexcept {
       __destroy();
       return *this;
@@ -182,6 +200,10 @@ namespace hc::parcel {
 
     static constexpr usize Capacity() __noexcept {
       return SelfType::__capacity;
+    }
+
+    constexpr usize remainingCapacity() const __noexcept {
+      return Capacity() - size();
     }
 
     [[nodiscard, gnu::const]]

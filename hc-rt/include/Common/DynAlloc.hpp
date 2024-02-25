@@ -46,7 +46,7 @@
  auto* __local_alloc = __hc_typed_alloca(sz, __ty); \
  __ty::New(__local_alloc, sz); })
 
-#define $zdynalloc(sz, ...) ($dynalloc(sz, ##__VA_ARGS__).zeroMemory())
+#define $zdynalloc(sz, ty...) ($dynalloc(sz, ##ty).zeroMemory())
 
 #define __hc_typed_alloca(sz, ty) \
  (typename ty::pointer)__builtin_alloca_with_align( \
