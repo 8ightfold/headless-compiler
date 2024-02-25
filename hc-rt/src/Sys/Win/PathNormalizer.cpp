@@ -113,7 +113,9 @@ void PathNormalizer::push(common::PtrRange<wchar_t> P) {
     return;
   }
 
+  wchar_t* const old_end = path.end();
   __hc_assertOrIdent(path.resizeUninit(N));
+  C::inline_memcpy(old_end, P.data(), N);
 }
 
 void PathNormalizer::push(common::PtrRange<char> P) {
