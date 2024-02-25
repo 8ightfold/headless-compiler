@@ -101,7 +101,11 @@ int main(int N, char* A[], char* Env[]) {
   printPathType("contents.txt");        // DirRel
   std::puts("");
 
+  
+  // wchar_t raw_name[] = L"\\??\\PhysicalDrive0\\krita-dev\\krita\\README.md";
   wchar_t raw_name[] = L"\\GLOBAL??\\C:\\krita-dev\\krita\\README.md";
+  // wchar_t raw_name[] = L"\\??\\C:\\Program Files\\desktop.ini";
+  // wchar_t raw_name[] = L"\\??\\Program Files\\desktop.ini";
   auto name = W::UnicodeString::New(raw_name);
   auto mask = W::GenericReadAccess;
   W::ObjectAttributes obj_attr { .object_name = &name };
@@ -134,7 +138,7 @@ int main(int N, char* A[], char* Env[]) {
   }
 
   auto* preEnv = S::Args::Envp().data();
-  while (const char* E = *Env++) {
+  while (const char* E = *preEnv++) {
     std::printf("%s\n", E);
   }
 

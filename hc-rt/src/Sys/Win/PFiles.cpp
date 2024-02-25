@@ -40,6 +40,9 @@ void S::__init_pfiles() {
   static bool __init = false;
   if __expect_false(__init)
     return;
+  (void) pOut_buf;
+  (void) pErr_buf;
+  (void) pIn_buf;
 }
 
 $Once { 

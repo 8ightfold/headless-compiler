@@ -43,7 +43,7 @@ namespace {
   WinIOFile* __nt_openfile(File& self, C::PtrRange<wchar_t> wpath, IIOMode flags) {
     __hc_invariant(!wpath.isEmpty());
     auto name  = win::UnicodeString::New(wpath);
-
+    (void) name;
     return nullptr;
   }
 

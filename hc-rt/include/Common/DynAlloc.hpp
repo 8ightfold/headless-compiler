@@ -138,7 +138,12 @@ namespace hc::common {
 
     [[nodiscard, gnu::const]]
     PtrRange<T> intoRange() const __noexcept {
-      return { .__begin = begin(), .__end = end() };
+      return {begin(), end()};
+    }
+
+    template <typename U>
+    [[nodiscard]] U into() const __noexcept {
+      return U::New(begin(), end());
     }
 
     [[nodiscard, gnu::const]]

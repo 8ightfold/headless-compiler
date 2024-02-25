@@ -30,7 +30,7 @@ namespace hc {
   public:
     constexpr bool is(auto&& R) {
       const auto I = static_cast<Type>(__hc_fwd(R));
-      return (R == V);
+      return (V == I);
     }
     [[gnu::flatten]] constexpr bool 
       is(auto&& R, auto&&...RR)
@@ -43,8 +43,5 @@ namespace hc {
   };
 
   template <typename T> 
-  MMatch(T&) -> MMatch<T&>;
-
-  template <typename T> 
-  MMatch(T)  -> MMatch<T>;
+  MMatch(T&&)  -> MMatch<T>;
 } // namespace hc

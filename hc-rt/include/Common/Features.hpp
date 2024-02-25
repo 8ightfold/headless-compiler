@@ -140,7 +140,7 @@ constexpr __remove_reference_t(T)&& __hc_move(T&& t) __noexcept {
 /// Checked condition in debug.
 # define __hc_assert(expr...) \
   [&] () __attribute__((always_inline, artificial)) { \
-    if __expect_false(!bool(expr)) \
+    if (__builtin_expect(!bool(expr), 0)) \
       ::__hc_dbg_unreachable(); \
   }();
 /// Use this when you need something to be evaluated in release.
@@ -198,7 +198,7 @@ HC_HAS_BUILTIN(is_constant_evaluated);
 
 extern "C" { 
 #if !__has_builtin(__builtin_stack_address)
-  __attribute__((noinline)) static 
+  [[maybe_unused, gnu::noinline]] static 
    void* __builtin_stack_address(void) {
 # if __has_builtin(__builtin_frame_address)
     return __builtin_frame_address(0);

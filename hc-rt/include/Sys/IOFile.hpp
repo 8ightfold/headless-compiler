@@ -38,7 +38,7 @@ namespace hc {
       static constexpr usize invalArgMax = 3U;
       using InvalArgsType = bool(&)[invalArgMax];
     public:
-      constexpr File(IIOFileBuf& buf) : buf(&buf) { }
+      constexpr File(IIOFileBuf& buf) : buf(&buf) { (void) this->buf; }
       /// Opens a file, same flag syntax as `std::fopen`'s extended mode.
       IIOFile* openFileRaw(common::StrRef path, common::StrRef flags);
       /// Closes a file, returns `true` if handle was valid.
