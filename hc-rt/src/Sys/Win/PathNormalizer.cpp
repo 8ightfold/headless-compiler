@@ -20,6 +20,7 @@
 #include <Common/MMatch.hpp>
 #include <Bootstrap/Win64KernelDefs.hpp>
 #include <Sys/Args.hpp>
+#include <Sys/Win/Volume.hpp>
 #include "PathNormalizer.hpp"
 
 using namespace hc;

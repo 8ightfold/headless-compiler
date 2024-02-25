@@ -34,11 +34,14 @@
 #define $NtFail(ex...)    ($NtWarn(ex) || $NtErr(ex))
 
 namespace hc::sys::win {
+  using bootstrap::StaticUnicodeString;
   using UnicodeString = bootstrap::Win64UnicodeString;
-  using NtStatus  = i32;
-  using ULong     = u32;
-  using DWord     = ULong;
-  using Boolean   = bool; // AKA. u8
+  using WNameRange    = common::PtrRange<wchar_t>;
+  using NtStatus      = i32;
+  using Long          = i32;
+  using ULong         = u32;
+  using DWord         = ULong;
+  using Boolean       = bool; // AKA. u8
   
   union LargeInt {
     __ndbg_inline operator i64() const {

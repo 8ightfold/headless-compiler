@@ -41,6 +41,9 @@ namespace hc::sys::win {
     SyncIOAlert         = 0x000010,
     SyncIONoAlert       = 0x000020,
     DeleteOnClose       = 0x001000,
+    OpenByFileID        = 0x002000,
+    OpenForBackup       = 0x004000,
+    OpenForSpaceQuery   = 0x008000,
     ReserveOplock       = 0x100000,
   };
 
@@ -123,7 +126,7 @@ namespace hc::sys::win {
     MaxValue
   };
 
-  enum class FilesystemInfoClass {
+  enum class FSInfoClass {
     Volume = 1,
     Label,
     Size,
@@ -134,10 +137,11 @@ namespace hc::sys::win {
     ObjectID,
     DriverPath,
     VolumeFlags,
+    // ...
     SectorSize,
     DataCopy,
     MetadataSize,
-    FullSizeInformationEx,
+    FullSizeEx,
     Guid,
     MaxValue
   };

@@ -29,12 +29,15 @@
 #include <Parcel/StaticVec.hpp>
 
 #include <Sys/Core/Nt/Structs.hpp>
+#include <Sys/Win/Volume.hpp>
 #include <Sys/Win/Filesystem.hpp>
 #include <Sys/Win/Mutant.hpp>
 #include <Sys/Win/PathNormalizer.hpp>
 #include <Sys/Args.hpp>
 #include <Sys/IOFile.hpp>
 #include <Sys/Mutex.hpp>
+
+#include "VolumeInfoDumper.hpp"
 
 #pragma push_macro("NDEBUG")
 #undef NDEBUG
@@ -66,29 +69,11 @@ struct X {
   }
 };
 
-const char* getPathType(C::StrRef S) {
-  using S::PathType;
-  PathType type = S::PathNormalizer::GetPathType(S);
-  switch (type) {
-   case PathType::DosDrive:     return "DosDrive";
-   case PathType::DosVolume:    return "DosVolume";
-   case PathType::DeviceUNC:    return "DeviceUNC";
-   case PathType::UNCNamespace: return "UNCNamespace";
-   case PathType::NtNamespace:  return "NtNamespace";
-   case PathType::LegacyDevice: return "LegacyDevice";
-   case PathType::QualDOS:      return "QualDOS";
-   case PathType::DriveRel:     return "DriveRel";
-   case PathType::CurrDriveRel: return "CurrDriveRel";
-   case PathType::DirRel:       return "DirRel";
-   default:                     return "Unknown";
-  }
-}
-
-void printPathType(C::StrRef S) {
-  std::printf("%s: %s\n", getPathType(S), S.data());
-}
-
 int main(int N, char* A[], char* Env[]) {
+  char volume_str[] = "\\??\\C:\\";
+  printVolumeInfo(volume_str);
+  return 0;
+
   printPathType("//?/PhysicalDrive0/"); // DosDrive
   printPathType("//?/X:/");             // DosVolume
   printPathType("//.\\UNC/");           // DeviceUNC
@@ -102,13 +87,13 @@ int main(int N, char* A[], char* Env[]) {
   printPathType("\\build");             // CurrDriveRel
   printPathType("contents.txt");        // DirRel
   std::puts("");
-
   
-  // wchar_t raw_name[] = L"\\??\\PhysicalDrive0\\krita-dev\\krita\\README.md";
-  wchar_t raw_name[] = L"\\GLOBAL??\\C:\\krita-dev\\krita\\README.md";
-  // wchar_t raw_name[] = L"\\??\\C:\\Program Files\\desktop.ini";
-  // wchar_t raw_name[] = L"\\??\\Program Files\\desktop.ini";
-  auto name = W::UnicodeString::New(raw_name);
+  W::StaticUnicodeString name(
+    // L"\\??\\PhysicalDrive0\\krita-dev\\krita\\README.md"
+    // L"\\??\\C:\\krita-dev\\krita\\README.md"
+    L"\\??\\C:\\Program Files\\desktop.ini"
+  );
+
   auto mask = W::GenericReadAccess;
   W::ObjectAttributes obj_attr { .object_name = &name };
   W::IoStatusBlock io {};
@@ -122,6 +107,7 @@ int main(int N, char* A[], char* Env[]) {
     createDis
   );
   if ($NtFail(io.status)) {
+    std::printf("With file `%ls`:\n", name.buffer);
     std::printf("Open failed! [0x%.8X]\n", io.status);
     return io.status;
   }
@@ -155,4 +141,11 @@ int main(int N, char* A[], char* Env[]) {
   __get_idname<X>();
   __get_idname<S::PathType>();
   assert($typeid(X) != $typeid(S::PathType));
+
+  using namespace hc::sys::win;
+  FSInfoClassWrapper<FSVolumeInfo, 16U> ICW;
+  assert(ICW->intoRange().size() == 16U);
+  assert(ICW.GetInfoClass() == FSInfoClass::Volume);
+
+  // S::query_create_volume_info()
 }

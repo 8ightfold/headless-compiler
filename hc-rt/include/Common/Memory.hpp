@@ -53,7 +53,7 @@ namespace hc::common {
 
   template <usize N, typename T, usize M>
   requires(__is_trivially_copyable(T))
-  auto __memcpy(T(&dst)[N], const T(&src)[M]) -> T(&)[N] {
+  auto __array_memcpy(T(&dst)[N], const T(&src)[M]) -> T(&)[N] {
     static constexpr usize Sz = (N >= M) ? N : M;
     __builtin_memcpy_inline(dst, src, __sizeof(T) * Sz);
     return dst;

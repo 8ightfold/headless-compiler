@@ -26,6 +26,7 @@
 
 #define $typeid(ty...) (*::hc::meta::typeID<ty>)
 
+//=== Static ===//
 namespace hc::meta {
   using UUID = const struct UID*;
 
@@ -80,4 +81,9 @@ namespace hc::meta {
 
   template <typename T>
   inline constexpr UUID typeID = &TypeID<T>::GetID();
+} // namespace hc::meta
+
+//=== Dynamic ===//
+namespace hc::meta {
+  // TODO: Static registry
 } // namespace hc::meta

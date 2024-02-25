@@ -34,7 +34,16 @@ namespace hc::sys::win {
   enum class FileAttribMask     : ULong;
   enum class FileShareMask      : ULong;
   enum class FileInfoClass;
-  enum class FilesystemInfoClass;
+  enum class FSInfoClass;
+  struct     FSAttributeInfo;
+  struct     FSControlInfo;
+  struct     FSDeviceInfo;
+  struct     FSDriverPathInfo;
+  struct     FSFullSizeInfo;
+  struct     FSObjectIDInfo;
+  struct     FSSectorSizeInfo;
+  struct     FSSizeInfo;
+  struct     FSVolumeInfo;
   struct     IoStatusBlock;
   struct     BasicFileInfo;
   union      FileSegmentElement;
@@ -51,7 +60,7 @@ inline namespace __nt {
   $NtExtract(FileShareMask);
   $NtExtract(ObjAttribMask);
   $NtExtract(FileInfoClass);
-  $NtExtract(FilesystemInfoClass);
+  $NtExtract(FSInfoClass);
 } // inline namespace __nt
 } // namespace hc::sys
 

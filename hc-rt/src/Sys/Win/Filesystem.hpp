@@ -23,7 +23,7 @@
 namespace hc::sys {
 inline namespace __nt {
   inline win::FileObjHandle open_file(
-   NtAccessMask mask, 
+   NtAccessMask mask,
    win::ObjectAttributes& attr,
    win::IoStatusBlock& io, 
    win::LargeInt* alloc_size,

@@ -2,7 +2,7 @@ include_guard(DIRECTORY)
 
 project(
   hc-runtime
-  VERSION 0.1.17
+  VERSION 0.1.18
   LANGUAGES CXX
 )
 
@@ -10,25 +10,26 @@ add_library(hcrt-dev STATIC
   src/Common/CheckFundamental.cpp
   src/Common/Memory.cpp
   src/BinaryFormat/MagicMatcher.cpp
-  src/Bootstrap/Win64KernelDefs.cpp
-  src/Bootstrap/ModuleParser.cpp
-  src/Bootstrap/COFFModule.cpp
-  src/Bootstrap/StubParser.cpp
-  src/Bootstrap/Syscalls.cpp
   src/Meta/ID.cpp
   src/Sys/IOFile.cpp
 )
 add_library(hcrt::dev ALIAS hcrt-dev)
 target_include_directories(hcrt-dev PUBLIC include PRIVATE src)
-target_forward_options(hcrt-dev PUBLIC RT_MAX_FILES RT_MAX_PATH)
+target_forward_options(hcrt-dev PUBLIC RT_MAX_FILES RT_MAX_PATH RT_STRICT_MAX_PATH)
 target_compile_definitions(hcrt-dev PRIVATE __HC_INTERNAL__=1)
-target_compile_options(hcrt-dev PUBLIC -fno-exceptions -Wall)
+target_compile_options(hcrt-dev PUBLIC -fno-exceptions PRIVATE -Wall)
 target_link_options(hcrt-dev PUBLIC -Wl,--stack,0xF42400 -nostdlib++)
 set_property(TARGET hcrt-dev PROPERTY INTERPROCEDURAL_OPTIMIZATION ${HC_ENABLE_LTO})
 
 if(WIN32)
   target_sources(hcrt-dev PUBLIC
-  src/Sys/Win/Args.cpp
+    src/Bootstrap/Win64KernelDefs.cpp
+    src/Bootstrap/ModuleParser.cpp
+    src/Bootstrap/COFFModule.cpp
+    src/Bootstrap/StubParser.cpp
+    src/Bootstrap/Syscalls.cpp
+    src/Sys/Core/Nt/CheckPacking.cpp
+    src/Sys/Win/Args.cpp
     src/Sys/Win/Mutex.cpp
     src/Sys/Win/IOFile.cpp
     src/Sys/Win/PFiles.cpp

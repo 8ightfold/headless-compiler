@@ -23,16 +23,94 @@
 #pragma once
 
 #include <Common/Fundamental.hpp>
+#include <Common/Memory.hpp>
 #include <Common/PtrRange.hpp>
 
 namespace hc::bootstrap {
-  struct Win64UnicodeString {
+  struct [[gsl::Pointer]] Win64UnicodeString {
     u16 size = 0, size_max = 0; // In bytes
     wchar_t* buffer = nullptr;
   public:
     static Win64UnicodeString New(wchar_t* str);
     static Win64UnicodeString New(wchar_t* str, usize max);
     static Win64UnicodeString New(common::PtrRange<wchar_t> R);
+    usize getSize() const { return size / sizeof(wchar_t); }
+    usize getMaxSize() const { return size_max / sizeof(wchar_t); }
     bool isEqual(const Win64UnicodeString& rhs) const;
+
+    //=== "Mutators" ===//
+
+    const wchar_t& frontSafe() const {
+      static constexpr wchar_t C = wchar_t(0);
+      if __expect_false(getSize() == 0)
+        return C;
+      __hc_invariant(buffer != nullptr);
+      return buffer[0];
+    }
+    const wchar_t& backSafe() const {
+      static constexpr wchar_t C = wchar_t(0);
+      if __expect_false(getSize() == 0)
+        return C;
+      __hc_invariant(buffer != nullptr);
+      return buffer[getSize() - 1];
+    }
   };
+
+  template <usize N>
+  struct [[gsl::Owner]] StaticUnicodeString : Win64UnicodeString {
+    static constexpr u16 sizeMax = u16(N);
+  public:
+    constexpr StaticUnicodeString(u16 init_len = 0U) :
+     Win64UnicodeString(
+       init_len * sizeof(wchar_t), 
+       sizeMax  * sizeof(wchar_t), __buffer)
+    {
+      __hc_invariant(init_len <= N);
+    }
+
+    constexpr StaticUnicodeString(wchar_t C, auto...CC) :
+     StaticUnicodeString(u16(sizeof...(CC) + 1)), 
+     __buffer{C, static_cast<wchar_t>(CC)...} {
+      static_assert(sizeof...(CC) < N);
+      // Win64UnicodeString::size = u16(sizeof...(CC) + 1);
+    }
+
+    constexpr StaticUnicodeString(char C, auto...CC) :
+     StaticUnicodeString(static_cast<wchar_t>(C), CC...) {
+      static_assert(sizeof...(CC) < N);
+    }
+    
+    template <usize M>
+    constexpr StaticUnicodeString(const wchar_t(&A)[M]) :
+     StaticUnicodeString((!A[M - 1]) ? (M - 1) : M) {
+      static_assert(M <= N);
+      common::__array_memcpy(__buffer, A);
+    }
+  
+  public:
+    Win64UnicodeString& asBase() {
+      return *static_cast<Win64UnicodeString*>(this);
+    }
+    const Win64UnicodeString& asBase() const {
+      return *static_cast<const Win64UnicodeString*>(this);
+    }
+
+    Win64UnicodeString* operator->() {
+      return static_cast<Win64UnicodeString*>(this);
+    }
+    const Win64UnicodeString* operator->() const {
+      return static_cast<const Win64UnicodeString*>(this);
+    }
+
+  public:
+    wchar_t __buffer[N] {};
+  };
+
+  template <usize N>
+  StaticUnicodeString(const wchar_t(&)[N]) 
+    -> StaticUnicodeString<N + 1>;
+
+  template <typename T, typename...TT>
+  StaticUnicodeString(T, TT...) 
+    -> StaticUnicodeString<sizeof...(TT) + 2>;
 } // namespace hc::bootstrap

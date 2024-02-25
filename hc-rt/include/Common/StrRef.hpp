@@ -98,7 +98,7 @@ namespace hc::common {
       return BaseType::New(S, __strlen(S));
     }
 
-    //=== Mutators ===//
+    //=== "Mutators" ===//
 
     Type& front() const {
       __hc_invariant(size() != 0);
