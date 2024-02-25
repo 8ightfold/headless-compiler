@@ -133,4 +133,10 @@ namespace hc::meta {
 
   template <typename T>
   using RemoveCVRef = __remove_cvref(T);
+
+  template <bool B, typename T, typename F>
+  using __conditional_t = __type_pack_element<B, F, T>;  
+
+  template <usize I, typename...TT>
+  using __selector_t = __type_pack_element<I, TT...>;
 } // namespace hc::meta

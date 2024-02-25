@@ -25,14 +25,8 @@ HC_HAS_REQUIRED(builtin, __make_integer_seq);
 
 #define $I(n) ::hc::__i<n>
 
-namespace hc {
-namespace meta {
-  template <bool B, typename T, typename F>
-  using __conditional_t = __type_pack_element<B, F, T>;  
-
-  template <usize I, typename...TT>
-  using __selector_t = __type_pack_element<I, TT...>;
-
+//=== *Node ===//
+namespace hc::meta {
   template <typename T>
   struct TyNode {
     using Type = T;
@@ -42,11 +36,7 @@ namespace meta {
   struct IdxNode {
     static constexpr usize value = I;
   };
-} // namespace meta
-
-  template <usize I>
-  __global meta::IdxNode<I> __i { };
-} // namespace hc
+} // namespace hc::meta
 
 //=== *Seq ===//
 namespace hc::meta {
@@ -87,3 +77,8 @@ namespace hc::common {
   using meta::IdxSeq;
   using meta::make_idxseq;
 } // namespace hc::common
+
+namespace hc {
+  template <usize I>
+  __global meta::IdxNode<I> __i { };
+} // namespace hc
