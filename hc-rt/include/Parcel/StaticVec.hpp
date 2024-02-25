@@ -26,7 +26,7 @@
 #include <Common/Lifetime.hpp>
 #include <Common/PtrRange.hpp>
 #include <Common/Option.hpp>
-#include <Meta/ExTraits.hpp>
+#include <Meta/Traits.hpp>
 #include "Common.hpp"
 
 /// Creates a `StaticVec` deduced from the passed arguments.

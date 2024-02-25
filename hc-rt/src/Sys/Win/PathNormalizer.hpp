@@ -25,7 +25,7 @@
 
 #include <Common/StrRef.hpp>
 #include <Common/PtrRange.hpp>
-#include <Meta/ExTraits.hpp>
+#include <Meta/Objects.hpp>
 #include <Parcel/StaticVec.hpp>
 #include <Sys/Errors.hpp>
 
@@ -88,9 +88,9 @@ namespace hc::sys {
         return;
       /// Force compiler to unroll loop
       if constexpr (N < 16) {
-        [&, this] <usize...II> (common::IdxSeq<II...>) {
+        [&, this] <usize...II> (meta::IdxSeq<II...>) {
           ((this->push(A[II])), ...);
-        } (common::make_idxseq<N>());
+        } (meta::make_idxseq<N>());
       } else {
         for (usize I = 0U; I < N; ++I)
           this->push(A[I]);

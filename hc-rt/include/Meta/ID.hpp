@@ -22,9 +22,7 @@
 
 #pragma once
 
-// TODO: Move IdxSeq outta here
-#include "ExTraits.hpp"
-#include "Traits.hpp"
+#include "Objects.hpp"
 
 #define $typeid(ty...) (*::hc::meta::typeID<ty>)
 
