@@ -16,6 +16,7 @@
 //
 //===----------------------------------------------------------------===//
 
+#include <Common/InlineMemcpy.hpp>
 #include <Common/MMatch.hpp>
 #include <Bootstrap/Win64KernelDefs.hpp>
 #include <Sys/Args.hpp>
@@ -87,21 +88,64 @@ namespace {
     // else: `~`
     return PathType::DirRel;
   }
+
+  //=== Reformatting ===//
+
+  void normalize_slashes(C::DynAllocation<char> P, C::StrRef S) {
+    __hc_assert(P.size() == S.size() + 1U);
+    C::inline_memcpy(P.data(), S.data(), S.size());
+    for (char& C : P)
+      C = __expect_true(C != '/') ? C : '\\';
+  }
 } // namespace `anonymous`
 
 [[gnu::flatten]]
-PathType PathNormalizer::GetPathType(C::StrRef path) {
-  if __expect_false(path.isEmpty())
+PathType PathNormalizer::GetPathType(C::StrRef S) {
+  if __expect_false(S.isEmpty())
     return PathType::Unknown;
-  return deduce_path_type(path);
+  return deduce_path_type(S);
 }
 
-bool PathNormalizer::operator()(C::StrRef path) {
-  this->type = GetPathType(path);
-  if (getType() == PathType::Unknown) {
+void PathNormalizer::push(common::PtrRange<wchar_t> P) {
+  const usize N = P.size();
+  if (N > path.remainingCapacity()) {
+    this->err = Error::eNameTooLong;
+    return;
+  }
+
+  __hc_assertOrIdent(path.resizeUninit(N));
+}
+
+void PathNormalizer::push(common::PtrRange<char> P) {
+  if (P.size() > path.remainingCapacity()) {
+    this->err = Error::eNameTooLong;
+    return;
+  }
+  __hc_unreachable("push(PtrRange<char>) is unimplemented.");
+}
+
+
+bool PathNormalizer::operator()(C::StrRef S) {
+  path.clear();
+  if (S.size() > path.Capacity()) {
+    err = Error::eNameTooLong;
+    return false;
+  }
+
+  this->type = GetPathType(S);
+  if (type == PathType::Unknown) {
     err = Error::eInvalName;
     return false;
   }
   
+  auto P = $zdynalloc(S.size() + 1U, char);
+  normalize_slashes(P, S);
+  if (type == PathType::LegacyDevice) {
+    if (!is_legacy_device(S))
+      this->push(L"\\\\.\\");
+    this->push(P);
+    return didError();
+  }
+
   return false;
 }

@@ -34,7 +34,7 @@ namespace S = hc::sys;
 
 namespace {
   constexpr usize max_files = RT_MAX_FILES;
-  constinit P::ALSkiplist<WinIOFile, max_files> file_slots {};
+  constinit P::Skiplist<WinIOFile, max_files> file_slots {};
 } // namespace `anonymous`
 
 //=== Implementation ===//
@@ -125,6 +125,10 @@ IOResult<> S::close_file(IIOFile* file) {
   if (F.closeFileRaw(file))
     return $Ok();
   return $Err(F.getLastError());
+}
+
+usize S::available_files() {
+  return max_files - file_slots.accumulateCount();
 }
 
 //=== Platform Functions ===//

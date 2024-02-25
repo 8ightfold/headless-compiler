@@ -25,6 +25,7 @@
 
 #include <Common/StrRef.hpp>
 #include <Common/PtrRange.hpp>
+#include <Meta/ExTraits.hpp>
 #include <Parcel/StaticVec.hpp>
 #include <Sys/Errors.hpp>
 
@@ -65,6 +66,28 @@ namespace hc::sys {
     PathRef  getPath() { return path.intoRange(); }
     PathType getType() const { return type; }
     Error getLastError() const { return err; }
+    bool didError() const {
+      return err != Error::eNone;
+    }
+  private:
+    __always_inline void push(char C) {
+      path.emplace(static_cast<wchar_t>(C));
+    }
+    __always_inline void push(wchar_t C) {
+      path.emplace(C);
+    }
+
+    template <typename CType, usize N>
+    [[gnu::flatten]]
+    constexpr void push(const CType(&A)[N]) {
+      [&, this] <usize...II> (common::IdxSeq<II...>) {
+        ((this->push(A[II])), ...);
+      } (common::make_idxseq<N>());
+    }
+
+    void push(common::PtrRange<wchar_t> P);
+    void push(common::PtrRange<char> P);
+
   private:
     alignas(8) UPathType path {};
     PathType type = PathType::Unknown;

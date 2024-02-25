@@ -63,6 +63,8 @@ namespace hc {
     IOResult<IIOFile*> open_file(common::StrRef path, IIOFileBuf& buf, common::StrRef flags);
     /// Closes a file, returns `true` if handle was valid.
     IOResult<> close_file(IIOFile* file);
+    /// Returns the number of open file slots.
+    usize available_files();
 
     // extern constinit IIOFile* pout;
     // extern constinit IIOFile* perr;
