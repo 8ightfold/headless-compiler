@@ -20,13 +20,10 @@
 
 #include <Common/Fundamental.hpp>
 #include "Traits.hpp"
+#include "Objects.hpp"
 
-HC_HAS_REQUIRED(builtin, __is_same);
-HC_HAS_REQUIRED(builtin, __decay);
 HC_HAS_REQUIRED(builtin, __type_pack_element);
 HC_HAS_REQUIRED(builtin, __make_integer_seq);
-
-#define $I(n) ::hc::__i<n>
 
 #define _HC_UNARY_OP(name, op) \
  template <typename T> \
@@ -37,63 +34,8 @@ HC_HAS_REQUIRED(builtin, __make_integer_seq);
  concept __has_binary_##name = \
   requires(T t, U u) { t op u; };
 
-namespace hc {
-namespace common {
-  template <bool B, typename T, typename F>
-  using __conditional_t = __type_pack_element<B, F, T>;  
-
-  template <usize I, typename...TT>
-  using __selector_t = __type_pack_element<I, TT...>;
-
-  template <typename T>
-  struct TyNode {
-    using Type = T;
-  };
-
-  template <usize I>
-  struct IdxNode {
-    static constexpr usize value = I;
-  };
-} // namespace common
-
-  template <usize I>
-  __global common::IdxNode<I> __i { };
-} // namespace hc
-
-//=== *Seq ===//
-namespace hc::common {
-  template <typename...TT>
-  struct TySeq {
-    static constexpr auto size = sizeof...(TT);
-  };
-
-  template <auto...VV>
-  struct ValSeq {
-    static constexpr auto size = sizeof...(VV);
-  };
-
-  // Integer sequences
-
-  template <typename I, I...NN>
-  struct IntSeq {
-    using Type = I;
-    static constexpr auto size = sizeof...(NN);
-  };
-
-  template <usize...NN>
-  using IdxSeq = IntSeq<usize, NN...>;
-
-  template <typename I, I N>
-  using make_intseq = __make_integer_seq<IntSeq, I, N>;
-
-  template <usize N>
-  using make_idxseq = __make_integer_seq<IntSeq, usize, N>;
-} // namespace hc::common
-
 //=== Uniqueness ===//
 namespace hc::meta {
-  using common::TySeq;
-
   template <typename T, typename...TT>
   concept __all_same = (true && ... && is_same<T, TT>);
 
@@ -150,7 +92,7 @@ namespace hc::meta {
   template <typename T, typename...TT>
   struct _CommonReturn2 {
     using _F = __decay(T);
-    using Type = common::__conditional_t<
+    using Type = meta::__conditional_t<
       __all_convertible<_F, __decay(TT)...>, _F, void>;
   };
 
@@ -161,7 +103,7 @@ namespace hc::meta {
 
   template <typename T, typename...TT>
   struct _CommonReturn<true, T, TT...> {
-    using Type = common::__conditional_t<
+    using Type = __conditional_t<
       __all_same<T, TT...>, T, 
       typename _CommonReturn2<T, TT...>::Type
     >;

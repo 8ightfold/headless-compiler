@@ -34,7 +34,7 @@ namespace hc::common {
     static constexpr usize value = I;
   public:
     __always_inline static constexpr 
-     IdxNode<I + 1> __GetI(TyNode<T>) __noexcept 
+     meta::IdxNode<I + 1> __GetI(TyNode<T>) __noexcept 
     { return { }; }
   };
 
@@ -42,7 +42,7 @@ namespace hc::common {
   struct _PtrUnion;
 
   template <usize...II, typename...TT>
-  struct _PtrUnion<IdxSeq<II...>, TT...> : _PtrUNode<TT, II>... {
+  struct _PtrUnion<meta::IdxSeq<II...>, TT...> : _PtrUNode<TT, II>... {
   private: 
     using _PtrUNode<TT, II>::__GetI...;
   public:
@@ -55,13 +55,13 @@ namespace hc::common {
     template <usize I>
     [[gnu::always_inline, gnu::const]] 
     static constexpr auto GetTy() __noexcept {
-      return TyNode<__selector_t<I, TT...>>{};
+      return TyNode<meta::__selector_t<I, TT...>>{};
     }
   };
 
   template <typename...TT>
   using __ptrunion_base = 
-    _PtrUnion<make_idxseq<sizeof...(TT)>, TT...>;
+    _PtrUnion<meta::make_idxseq<sizeof...(TT)>, TT...>;
   
   __global usize __ptrunion_tag_size  = __bitsizeof(u8);
   __global usize __ptrunion_addr_size = __bitsizeof(uptr) - __ptrunion_tag_size;
@@ -79,7 +79,7 @@ namespace hc::common {
     static constexpr usize _ID = BaseType::GetID((U*)nullptr);
 
     template <typename R, typename F>
-    using _RetType = __conditional_t<meta::is_same<R, _SelfTag>,
+    using _RetType = meta::__conditional_t<meta::is_same<R, _SelfTag>,
       meta::__common_return_t<F, meta::AddPointer<TT>...>, R>;
 
   public:
