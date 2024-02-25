@@ -38,13 +38,16 @@ elseif(NOT hc_ipo_supported) # Currently broken on Windows :(
 endif()
 
 option(HC_CHECK_INVARIANTS "Enable invariant checking." OFF)
+option(HC_DO_TRACING "Enable debug tracing." OFF)
 option(HC_SOFTWARE_PREFETCH "Enable software prefetching." ON)
 option(HC_ENABLE_LTO "Enable IPO/LTO." ON)
 
 valued_option(RT_MAX_FILES "Maximum amount of files to be opened at once." 16)
 valued_option(RT_MAX_PATH "Maximum length a filepath can be." 512)
+valued_option(RT_STRICT_MAX_PATH "Maximum length an internal filepath can be." 260)
 
 message(STATUS "Invariant checking: ${HC_CHECK_INVARIANTS}")
+message(STATUS "Debug tracing: ${HC_DO_TRACING}")
 message(STATUS "IPO/LTO: ${HC_ENABLE_LTO}")
 message(STATUS "Max files: ${RT_MAX_FILES}")
 message(STATUS "Max path: ${RT_MAX_PATH}")

@@ -192,6 +192,23 @@ namespace hc::common {
       return false;
     }
 
+    bool endsWith(char C) {
+      return !isEmpty() && (back() == C);
+    }
+
+    bool endsWith(auto&& R) {
+      const auto S = StrRef(R);
+      if (S.size() > this->size())
+        return false;
+      return takeBack(S.size()).isEqual(S);
+    }
+
+    bool endsWith(auto&& R, auto&&...RR)
+     requires(sizeof...(RR) > 0) {
+      return (endsWith(__hc_fwd(R)) || 
+        ... || endsWith(__hc_fwd(RR)));
+    }
+
     __always_inline friend bool 
      operator==(StrRef lhs, StrRef rhs) {
       return lhs.isEqual(rhs);

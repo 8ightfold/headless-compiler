@@ -89,6 +89,11 @@ namespace {
     return PathType::DirRel;
   }
 
+  char get_volume_letter(C::StrRef drive) {
+
+    return '\0';
+  }
+
   //=== Reformatting ===//
 
   void normalize_slashes(C::DynAllocation<char> P, C::StrRef S) {
@@ -108,46 +113,71 @@ PathType PathNormalizer::GetPathType(C::StrRef S) {
 
 void PathNormalizer::push(common::PtrRange<wchar_t> P) {
   const usize N = P.size();
-  if (N > path.remainingCapacity()) {
-    this->err = Error::eNameTooLong;
+  if (isNameTooLong(N))
     return;
-  }
-
+  // Get the old end(). We will copy from here.
   wchar_t* const old_end = path.end();
   __hc_assertOrIdent(path.resizeUninit(N));
   C::inline_memcpy(old_end, P.data(), N);
 }
 
 void PathNormalizer::push(common::PtrRange<char> P) {
-  if (P.size() > path.remainingCapacity()) {
-    this->err = Error::eNameTooLong;
+  const usize N = P.size();
+  if (isNameTooLong(N))
     return;
-  }
+  // Same as the wide version, except here we need to widen.
+  wchar_t* const old_end = path.end();
+  __hc_assertOrIdent(path.resizeUninit(N));
+  (void) old_end;
   __hc_unreachable("push(PtrRange<char>) is unimplemented.");
 }
 
 
 bool PathNormalizer::operator()(C::StrRef S) {
+  S = S.dropNull();
   path.clear();
+  // TODO: Maybe too soon?
   if (S.size() > path.Capacity()) {
     err = Error::eNameTooLong;
     return false;
   }
 
   this->type = GetPathType(S);
-  if (type == PathType::Unknown) {
+  if (type == Unknown) {
     err = Error::eInvalName;
     return false;
+  } else if (type == LegacyDevice) {
+    if (S.endsWith(".txt", ".TXT"))
+      S = S.dropBack(4);
   }
   
   auto P = $zdynalloc(S.size() + 1U, char);
-  normalize_slashes(P, S);
-  if (type == PathType::LegacyDevice) {
-    if (!is_legacy_device(S))
+  /// Check if we should immediately normalize.
+  if (MMatch(type).is(LegacyDevice, DosVolume, QualDOS)) {
+    normalize_slashes(P, S);
+    S = P.into<C::StrRef>();
+  }
+
+  switch (type) {
+   case QualDOS:
+    this->push(L"\\??\\");
+    [[fallthrough]];
+   case DosVolume:
+    if (P[2] == '?')
+      P[1] = '?';
+    [[fallthrough]];
+   case LegacyDevice:
+    if (is_legacy_device(S))
       this->push(L"\\\\.\\");
     this->push(P);
     return didError();
+   default: break;
   }
 
+  return false;
+}
+
+bool PathNormalizer::operator()(const wchar_t* wpath) {
+  __hc_unreachable("operator()(const wchar_t*) is unimplemented.");
   return false;
 }

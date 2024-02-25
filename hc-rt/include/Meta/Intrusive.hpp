@@ -25,6 +25,10 @@
 
 #include <Common/Fundamental.hpp>
 
+#define $data(ex...)      __get_data(ex)
+#define $size(ex...)      __get_size(ex)
+#define $capacity(ex...)  __get_capacity(ex)
+
 namespace hc::meta {
   template <typename T, usize N>
   constexpr T* __get_data(T(&arr)[N]) {

@@ -47,8 +47,8 @@ namespace hc::sys {
     Unknown = 0,
     DosDrive,       // `//./[drive]/~`
     DosVolume,      // `//?/[volume]:/~`
-    DeviceUNC,      // `//[.|?]/UNC/~`
-    UNCNamespace,   // `//[name]/~`
+    DeviceUNC,      // `//[.|?]/UNC/~`*
+    UNCNamespace,   // `//[name]/~`*
     NtNamespace,    // `//??/~` or `//GLOBAL??/~`
     LegacyDevice,   // `[CON|COM[1-9]|...]/~`
     QualDOS,        // `[drive]:/`
@@ -58,10 +58,12 @@ namespace hc::sys {
   };
 
   struct PathNormalizer {
+    using enum PathType;
     static PathType GetPathType(common::StrRef);
   public:
     constexpr PathNormalizer() = default;
     bool operator()(common::StrRef path);
+    bool operator()(const wchar_t* wpath);
     UPathType&& take() { return __hc_move(path); }
     PathRef  getPath() { return path.intoRange(); }
     PathType getType() const { return type; }
@@ -80,13 +82,28 @@ namespace hc::sys {
     template <typename CType, usize N>
     [[gnu::flatten]]
     constexpr void push(const CType(&A)[N]) {
-      [&, this] <usize...II> (common::IdxSeq<II...>) {
-        ((this->push(A[II])), ...);
-      } (common::make_idxseq<N>());
+      if __expect_false(isNameTooLong(N))
+        return;
+      /// Force compiler to unroll loop
+      if constexpr (N < 16) {
+        [&, this] <usize...II> (common::IdxSeq<II...>) {
+          ((this->push(A[II])), ...);
+        } (common::make_idxseq<N>());
+      } else {
+        for (usize I = 0U; I < N; ++I)
+          this->push(A[I]);
+      }
     }
 
     void push(common::PtrRange<wchar_t> P);
     void push(common::PtrRange<char> P);
+
+    bool isNameTooLong(const usize N) {
+      if __expect_true(N <= path.remainingCapacity())
+        return false;
+      this->err = Error::eNameTooLong;
+      return true;
+    }
 
   private:
     alignas(8) UPathType path {};
