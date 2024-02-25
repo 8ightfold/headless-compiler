@@ -57,13 +57,13 @@ namespace hc::sys {
     DirRel,         // `~`
   };
 
-  struct PathNormalizer {
+  struct [[gsl::Owner]] PathNormalizer {
     using enum PathType;
     static PathType GetPathType(common::StrRef);
   public:
     constexpr PathNormalizer() = default;
     bool operator()(common::StrRef path);
-    bool operator()(const wchar_t* wpath);
+    bool operator()(ImmPathRef wpath);
     UPathType&& take() { return __hc_move(path); }
     PathRef  getPath() { return path.intoRange(); }
     PathType getType() const { return type; }

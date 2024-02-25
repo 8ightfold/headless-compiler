@@ -62,7 +62,7 @@ namespace hc::common {
     __is_trivially_destructible(T);
 
   template <typename T, usize Align = alignof(T)>
-  struct DynAllocation {
+  struct [[gsl::Owner]] DynAllocation {
     using value_type = T;
     using pointer = T*;
     static constexpr usize totalAlign = Align * ::__bitcount;

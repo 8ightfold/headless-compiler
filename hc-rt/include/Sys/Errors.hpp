@@ -41,8 +41,15 @@ namespace hc::sys {
     eMaxFiles,    // Maximum files allotted for the system
     eInvalName,   // Invalid filename encountered during normalization.
     eNameTooLong, // Unnormalized filepath was larger than `RT_PATH_MAX`.
+    eUnsupported, // Filepath type not supported.
     eSetOSError,  // OS error, accessed with `SysErr::GetLastError()`.
     MaxValue,
+  };
+
+  enum class ErrorGroup {
+    GNULike,          // Found in `Error`.
+    PlatformSpecific, // OS errors.
+    UserDefined,      // User registered errors.
   };
 
   /// Pointer to an opaque error representation.
@@ -68,6 +75,15 @@ namespace hc::sys {
     static const char* GetErrorDescription(usize ID);
     /// Gets a description for an error. `nullptr` if invalid.
     static const char* GetErrorDescription(OpaqueError);
+
+    /// Gets the ID of an opaque handle.
+    static usize GetErrorID(OpaqueError);
+    /// Gets the `ErrorGroup` of an opaque handle.
+    static ErrorGroup GetErrorGroup(OpaqueError);
+
+    /// Defines a custom user error, returns `nullptr` if invalid.
+    /// Overwrites are only valid when `force` is `true`.
+    static OpaqueError RegisterUserError(struct TODO*);
   
   private:
     static void SetOpaqueError(usize ID);

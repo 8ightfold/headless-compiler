@@ -146,6 +146,9 @@ bool PathNormalizer::operator()(C::StrRef S) {
   if (type == Unknown) {
     err = Error::eInvalName;
     return false;
+  } else if (MMatch(type).is(UNCNamespace, DeviceUNC)) {
+    error = Error::eUnsupported;
+    return false;
   } else if (type == LegacyDevice) {
     if (S.endsWith(".txt", ".TXT"))
       S = S.dropBack(4);
@@ -177,7 +180,7 @@ bool PathNormalizer::operator()(C::StrRef S) {
   return false;
 }
 
-bool PathNormalizer::operator()(const wchar_t* wpath) {
-  __hc_unreachable("operator()(const wchar_t*) is unimplemented.");
+bool PathNormalizer::operator()(ImmPathRef wpath) {
+  __hc_unreachable("operator()(ImmPathRef) is unimplemented.");
   return false;
 }
