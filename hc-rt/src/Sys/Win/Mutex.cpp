@@ -41,8 +41,10 @@ namespace {
     win::LargeInt I;
     if constexpr (Alertable)
       __hc_unreachable("Fuck!");
+    // TODO: Make this do smth
     win::LargeInt* const P = 
       __mtx_time_fmt(I, ms);
+    (void) P;
     do {
       S = wait_single(nt_handle);
       if __expect_false($NtFail(S)) {

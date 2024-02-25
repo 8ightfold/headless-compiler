@@ -22,6 +22,7 @@
 #include <Meta/Refl.hpp>
 #include <Meta/Traits.hpp>
 #include <Meta/Unwrap.hpp>
+#include <Meta/ID.hpp>
 #include <Bootstrap/Win64KernelDefs.hpp>
 #include <Bootstrap/Syscalls.hpp>
 #include <Parcel/Skiplist.hpp>
@@ -44,6 +45,7 @@
 using namespace hc;
 namespace B = hc::bootstrap;
 namespace C = hc::common;
+namespace M = hc::meta;
 namespace P = hc::parcel;
 namespace S = hc::sys;
 namespace W = hc::sys::win;
@@ -148,4 +150,9 @@ int main(int N, char* A[], char* Env[]) {
   IO_TEST("ab", (Append, Binary));
   IO_TEST("r+", (Read, Plus));  
   IO_TEST("wx+", (Write, Exclude, Plus));
+
+  using hc::meta::__get_idname;
+  __get_idname<X>();
+  __get_idname<S::PathType>();
+  assert($typeid(X) != $typeid(S::PathType));
 }

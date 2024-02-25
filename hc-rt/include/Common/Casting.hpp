@@ -24,7 +24,7 @@
 namespace hc {
   template <typename U = void, typename T>
   __always_inline U* ptr_cast(T* t) __noexcept {
-    if constexpr (meta::not_void<__remove_const(T)>) {
+    if constexpr (meta::not_void<meta::RemoveConst<T>>) {
       return reinterpret_cast<U*>(t);
     } else {
       return static_cast<U*>(t);

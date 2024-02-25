@@ -32,6 +32,7 @@
 namespace hc::sys {
   static constexpr usize path_max = RT_MAX_PATH;
   using UPathType = parcel::StaticVec<wchar_t, path_max>;
+  using PathDyn = common::DynAllocation<wchar_t>;
   using PathRef = common::PtrRange<wchar_t>;
   using ImmPathRef = common::ImmPtrRange<wchar_t>;
 
@@ -59,6 +60,7 @@ namespace hc::sys {
 
   struct [[gsl::Owner]] PathNormalizer {
     using enum PathType;
+    using StrDyn = common::DynAllocation<char>;
     static PathType GetPathType(common::StrRef);
   public:
     constexpr PathNormalizer() = default;
@@ -104,6 +106,9 @@ namespace hc::sys {
       this->err = Error::eNameTooLong;
       return true;
     }
+
+    static void NormalizeSlashes(
+     common::StrRef& S, StrDyn P);
 
   private:
     alignas(8) UPathType path {};

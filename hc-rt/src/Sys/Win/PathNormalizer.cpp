@@ -132,6 +132,12 @@ void PathNormalizer::push(common::PtrRange<char> P) {
   __hc_unreachable("push(PtrRange<char>) is unimplemented.");
 }
 
+void PathNormalizer::NormalizeSlashes(
+ C::StrRef& S, StrDyn P) {
+  normalize_slashes(P, S);
+  S = P.into<C::StrRef>();
+}
+
 
 bool PathNormalizer::operator()(C::StrRef S) {
   S = S.dropNull();
@@ -147,7 +153,7 @@ bool PathNormalizer::operator()(C::StrRef S) {
     err = Error::eInvalName;
     return false;
   } else if (MMatch(type).is(UNCNamespace, DeviceUNC)) {
-    error = Error::eUnsupported;
+    err = Error::eUnsupported;
     return false;
   } else if (type == LegacyDevice) {
     if (S.endsWith(".txt", ".TXT"))
@@ -156,10 +162,8 @@ bool PathNormalizer::operator()(C::StrRef S) {
   
   auto P = $zdynalloc(S.size() + 1U, char);
   /// Check if we should immediately normalize.
-  if (MMatch(type).is(LegacyDevice, DosVolume, QualDOS)) {
-    normalize_slashes(P, S);
-    S = P.into<C::StrRef>();
-  }
+  if (MMatch(type).is(LegacyDevice, DosVolume, QualDOS))
+    NormalizeSlashes(S, P);
 
   switch (type) {
    case QualDOS:
@@ -175,6 +179,13 @@ bool PathNormalizer::operator()(C::StrRef S) {
     this->push(P);
     return didError();
    default: break;
+  }
+
+  if (type == DirRel) {
+    NormalizeSlashes(S, P);
+    ImmPathRef PP = Args::WorkingDir();
+    (void) PP;
+    (void) get_volume_letter("");
   }
 
   return false;
