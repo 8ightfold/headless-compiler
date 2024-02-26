@@ -37,28 +37,6 @@ namespace C = hc::common;
 namespace S = hc::sys;
 namespace W = hc::sys::win;
 
-inline const char* getPathType(C::StrRef S) {
-  using S::PathType;
-  PathType type = S::PathNormalizer::GetPathType(S);
-  switch (type) {
-   case PathType::DosDrive:     return "DosDrive";
-   case PathType::DosVolume:    return "DosVolume";
-   case PathType::DeviceUNC:    return "DeviceUNC";
-   case PathType::UNCNamespace: return "UNCNamespace";
-   case PathType::NtNamespace:  return "NtNamespace";
-   case PathType::LegacyDevice: return "LegacyDevice";
-   case PathType::QualDOS:      return "QualDOS";
-   case PathType::DriveRel:     return "DriveRel";
-   case PathType::CurrDriveRel: return "CurrDriveRel";
-   case PathType::DirRel:       return "DirRel";
-   default:                     return "Unknown";
-  }
-}
-
-inline void printPathType(C::StrRef S) {
-  std::printf("%s: %s\n", getPathType(S), S.data());
-}
-
 inline const char* commonNtErrors(W::NtStatus S) {
   switch (u32(S)) {
    case 0xC0000001:  return "UNSUCCESSFUL";
@@ -109,6 +87,49 @@ public:
   W::FileObjHandle  handle;
   W::IoStatusBlock& io;
 };
+
+struct ScopedFileHandle {
+  explicit ScopedFileHandle(
+    W::FileObjHandle H) :
+   __handle(H) { }
+  
+  ~ScopedFileHandle() {
+    if (__handle)
+      S::close_file(__handle);
+  }
+
+  operator W::FileObjHandle() const {
+    return this->__handle;
+  }
+  explicit operator bool() const {
+    return static_cast<bool>(this->__handle);
+  }
+
+private:
+  W::FileObjHandle __handle;
+};
+
+inline const char* getPathType(C::StrRef S) {
+  using S::PathType;
+  PathType type = S::PathNormalizer::GetPathType(S);
+  switch (type) {
+   case PathType::DosDrive:     return "DosDrive";
+   case PathType::DosVolume:    return "DosVolume";
+   case PathType::DeviceUNC:    return "DeviceUNC";
+   case PathType::UNCNamespace: return "UNCNamespace";
+   case PathType::NtNamespace:  return "NtNamespace";
+   case PathType::LegacyDevice: return "LegacyDevice";
+   case PathType::QualDOS:      return "QualDOS";
+   case PathType::DriveRel:     return "DriveRel";
+   case PathType::CurrDriveRel: return "CurrDriveRel";
+   case PathType::DirRel:       return "DirRel";
+   default:                     return "Unknown";
+  }
+}
+
+inline void printPathType(C::StrRef S) {
+  std::printf("%s: %s\n", getPathType(S), S.data());
+}
 
 inline const char* Prefix() { return "  "; }
 
@@ -335,10 +356,11 @@ inline void printSectorSizeInfo(W::FSSectorSizeInfo& V) {
 inline void printVolumeInfo(wchar_t* drive_str) {
   auto name = W::UnicodeString::New(drive_str);
   W::IoStatusBlock io {};
-  auto handle = S::get_volume_handle(name, io);
+  ScopedFileHandle handle(
+    S::get_volume_handle(name, io));
   if (!handle || $NtFail(io.status)) {
     std::printf(
-      "Unable to open volume \"%ls:\".\n", 
+      "Unable to open volume \"%ls\".\n", 
       drive_str);
     return;
   }
@@ -398,8 +420,6 @@ inline void printVolumeInfo(wchar_t* drive_str) {
     printBoolean(vol->supports_objects, "Supports Objects");
     printPtrRange(vol->intoRange(), "Volume Name");
   }
-
-  S::close_file(handle);
 }
 
 inline void printVolumeInfo(char* drive_string) {

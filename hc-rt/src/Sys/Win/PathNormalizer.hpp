@@ -29,6 +29,11 @@
 #include <Parcel/StaticVec.hpp>
 #include <Sys/Errors.hpp>
 
+// For more info:
+// https://github.com/reactos/reactos/blob/master/sdk/lib/rtl/path.c
+// https://learn.microsoft.com/en-us/dotnet/standard/io/file-path-formats
+// https://googleprojectzero.blogspot.com/2016/02/the-definitive-guide-on-win32-to-nt.html
+
 namespace hc::sys {
   static constexpr usize path_max = RT_MAX_PATH;
   using UPathType = parcel::StaticVec<wchar_t, path_max>;
@@ -46,6 +51,7 @@ namespace hc::sys {
   /// but still subject to path length limitations (buffered).
   enum class PathType : u32 {
     Unknown = 0,
+    GUIDVolume,     // `//./Volume{...}/~`
     DosDrive,       // `//./[drive]/~`
     DosVolume,      // `//?/[volume]:/~`
     DeviceUNC,      // `//[.|?]/UNC/~`*

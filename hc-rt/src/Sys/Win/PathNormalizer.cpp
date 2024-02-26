@@ -30,8 +30,10 @@ namespace C = hc::common;
 namespace P = hc::parcel;
 namespace S = hc::sys;
 
+// TODO: Needs some refactoring for sure...
+
 namespace {
-  bool __is_ascii(const char C) {
+  bool __is_alpha(const char C) {
     return (C >= 'A' && C <= 'Z')
       || (C >= 'a' && C <= 'a');
   }
@@ -52,13 +54,20 @@ namespace {
     return false;
   }
 
+  PathType dos_volume_or_unk(C::StrRef path) {
+    return __is_alpha(path.frontSafe()) ?
+      PathType::DosVolume : PathType::Unknown;
+  }
+
   PathType deduce_dos_path_type(C::StrRef path) {
     if (path.beginsWith("UNC"))
       return PathType::DeviceUNC;
     else if (path.dropFront().frontSafe() == ':')
-      return PathType::DosVolume;
+      return dos_volume_or_unk(path);
     else if (is_legacy_device(path))
       return PathType::LegacyDevice;
+    else if (path.beginsWith("Volume{"))
+      return PathType::GUIDVolume;
     return PathType::DosDrive;
   }
 
@@ -69,7 +78,7 @@ namespace {
         return deduce_dos_path_type(
           path.dropFront(2));
       // Check if probably `//[name]/~`
-      else if (__is_ascii(path.frontSafe()))
+      else if (__is_alpha(path.frontSafe()))
         return PathType::UNCNamespace;
       return PathType::Unknown;
     } else if (path.beginsWith("/", "\\")) {
@@ -153,7 +162,7 @@ bool PathNormalizer::operator()(C::StrRef S) {
   if (type == Unknown) {
     err = Error::eInvalName;
     return false;
-  } else if (MMatch(type).is(UNCNamespace, DeviceUNC)) {
+  } else if (MMatch(type).is(UNCNamespace, DeviceUNC, DosDrive)) {
     err = Error::eUnsupported;
     return false;
   } else if (type == LegacyDevice) {

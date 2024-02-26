@@ -104,7 +104,7 @@ namespace hc::common {
     __hc_invariant((dst && src) || !len);
     if __expect_false(len == 0)
       return;
-    return hcrt::__memcpy_dispatch(
+    return rt::__memcpy_dispatch(
       (u8*)dst, (const u8*)src, len);
   }
 } // namespace hc::common

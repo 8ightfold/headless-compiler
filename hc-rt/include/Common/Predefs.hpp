@@ -28,7 +28,9 @@
 # error Invalid compiler! Only Clang versions >= 10 are supported.
 #endif
 
-#if __cplusplus < 202002L
+#ifndef __cplusplus
+# error C++ is required.
+#elif __cplusplus < 202002L
 # error C++20 or greater is required.
 #endif
 
@@ -143,4 +145,15 @@ namespace hc {
 
 #ifndef HC_ARCH_X64
 # define HC_ARCH_X64 0
+#endif
+
+//=== Runtime Macros ===//
+
+#ifndef _HC_MULTITHREADED
+# define _HC_MULTITHREADED 0
+#endif
+
+#if !_HC_MULTITHREADED && (RT_MAX_THREADS != 0)
+# undef  RT_MAX_THREADS
+# define RT_MAX_THREADS 0
 #endif

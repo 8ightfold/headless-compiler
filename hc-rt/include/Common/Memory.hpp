@@ -163,7 +163,6 @@ namespace hc::common {
 namespace hc::common {
   struct Mem {
     static void* VCopy(void* __restrict dst, const void* __restrict src, usize len);
-    // TODO: This! lol!
     static void* VSet(void* __restrict dst, int ch, usize len);
 
     template <typename T>

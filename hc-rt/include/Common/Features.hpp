@@ -218,13 +218,18 @@ extern "C" {
   }
 
   /// Invokes the current panic handler and aborts.
-  /// TODO: Implement
+  /// TODO: Implement raw_panic
   __attribute__((cold, noreturn, format(__printf__, 1, 2)))
   int __hc_raw_panic(const char fmt[], ...);
 
   /// Writes a trace to the current handler.
   /// Used for logging what functions were called,
   /// and with which arguments.
+  /// TODO: Implement log_trace
   __attribute__((format(__printf__, 1, 2)))
   int __hc_log_trace(const char fmt[], ...);
-}
+} // extern "C"
+
+namespace hc {
+
+} // nanespace hc

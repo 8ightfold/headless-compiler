@@ -1,4 +1,4 @@
-//===- Phase1/Emutils.cpp -------------------------------------------===//
+//===- Phase1/Emutls.cpp --------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -17,7 +17,7 @@
 //===----------------------------------------------------------------===//
 //
 //  This file implements the underlying TLS API.
-//  Based on the LLVM implementation of glibc's emutils.
+//  Based on the LLVM implementation of glibc's Emulated TLS.
 //
 //===----------------------------------------------------------------===//
 
@@ -25,6 +25,7 @@
 #include <Common/InlineMemcpy.hpp>
 #include <Common/InlineMemset.hpp>
 #include <Common/Limits.hpp>
+#include <Common/RawLazy.hpp>
 #include <Meta/Once.hpp>
 #include <Sys/Core/Generic.hpp>
 #include <Sys/Mutex.hpp>
@@ -33,6 +34,7 @@
 
 using namespace hc;
 using namespace xcrt;
+namespace C = hc::common;
 namespace win = hc::sys::win;
 
 using ErrCode = win::DWord;
@@ -47,7 +49,7 @@ extern "C" {
 namespace {
   constexpr TLSType tls_out_of_indexes = Max<TLSType>;
   // TODO: Make RawLazy<sys::Mtx[]>
-  constinit sys::Mtx mtx {};
+  constinit C::RawLazy<sys::Mtx> mtx {};
   constinit TLSType tls_idx = tls_out_of_indexes;
 } // namespace `anonymous`
 
@@ -79,6 +81,7 @@ namespace xcrt::emutils {
 
 extern "C" {
   void __xcrt_emutils_setup(void) {
-    mtx.initialize();
+    mtx.ctor();
+    mtx->initialize();
   }
 }

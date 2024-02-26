@@ -23,7 +23,7 @@
 #pragma once
 
 #include "Features.hpp"
-#include "Fundamental.hpp"
+#include <Meta/Traits.hpp>
 
 #if __has_feature(cxx_constexpr_string_builtins)
 # define __common_strings_cxpr constexpr
@@ -45,13 +45,12 @@ HC_HAS_BUILTIN(strncmp);
 HC_HAS_BUILTIN(strlen);
 
 namespace hc::common {
-  // TODO: Update
   template <typename T>
   concept __char_type = 
-    __common_is_same(T, char)           ||
-    __common_is_same(T, signed char)    ||
-    __common_is_same(T, unsigned char)  ||
-    __common_is_same(T, char8_t);
+    meta::is_same<T, char>           ||
+    meta::is_same<T, signed char>    ||
+    meta::is_same<T, unsigned char>  ||
+    meta::is_same<T, char8_t>;
 
   //=== Constexpr Memory Functions ===//
 

@@ -142,7 +142,7 @@ namespace hc::common {
     __hc_invariant(dst || !len);
     if __expect_false(len == 0)
       return;
-    return hcrt::__memset_dispatch(
+    return rt::__memset_dispatch(
       (u8*)dst, val, len);
   }
 } // namespace hc::common

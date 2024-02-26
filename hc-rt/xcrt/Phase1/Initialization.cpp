@@ -23,7 +23,7 @@ namespace hc::bootstrap {
   extern bool are_syscalls_loaded();
 } // namespace hc::bootstrap
 
-namespace B = hc::bootstrap;
+using namespace hc::bootstrap;
 
 extern "C" {
   /// At this point, constructors still have not been called.
@@ -31,10 +31,13 @@ extern "C" {
   [[gnu::used, gnu::noinline]]
   int __xcrtCRTStartupPhase1(void) {
     // Make sure syscalls are bootstrapped.
-    B::force_syscall_reload();
+    force_syscall_reload();
+    if (!are_syscalls_loaded())
+      // TODO: Abort with message.
+      __hc_unreachable("Fuck!");
     // Setup thread_local backend.
     __xcrt_emutils_setup();
 
-    return 0;
+    return -1;
   }
 }

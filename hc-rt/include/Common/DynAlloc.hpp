@@ -41,8 +41,8 @@
   __wstr; \
 })
 
-#define $dynalloc(sz, ty...) ({ using __ty = \
- ::hc::common::DynAllocation<ty>; \
+#define $dynalloc(sz, ty...) ({ \
+ using __ty = ::hc::common::DynAllocation<ty>; \
  auto* __local_alloc = __hc_typed_alloca(sz, __ty); \
  __ty::New(__local_alloc, sz); })
 

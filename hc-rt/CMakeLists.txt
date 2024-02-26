@@ -1,7 +1,7 @@
 include_guard(DIRECTORY)
 
 project(
-  hc-runtime
+  hcrt-crt
   VERSION 0.1.18
   LANGUAGES CXX
 )
@@ -21,6 +21,21 @@ target_compile_options(hcrt-dev PUBLIC -fno-exceptions PRIVATE -Wall)
 target_link_options(hcrt-dev PUBLIC -Wl,--stack,0xF42400 -nostdlib++)
 set_property(TARGET hcrt-dev PROPERTY INTERPROCEDURAL_OPTIMIZATION ${HC_ENABLE_LTO})
 
+include(SetFlags)
+target_internal_flags(hcrt-dev PUBLIC HC_DEBUG)
+target_internal_flags(hcrt-dev PUBLIC HC_TRUE_DEBUG)
+target_internal_flags(hcrt-dev PUBLIC HC_CHECK_INVARIANTS)
+target_internal_flags(hcrt-dev PUBLIC HC_DO_TRACING)
+target_internal_flags(hcrt-dev PUBLIC HC_MULTITHREADED)
+target_internal_flags(hcrt-dev PUBLIC HC_SOFTWARE_PREFETCH)
+target_internal_flags(hcrt-dev PUBLIC HC_ENABLE_LTO)
+
+if(HC_MULTITHREADED)
+  target_forward_options(hcrt-dev PUBLIC RT_MAX_THREADS)
+else()
+  target_compile_definitions(hcrt-dev PUBLIC RT_MAX_THREADS=0)
+endif()
+
 if(WIN32)
   target_sources(hcrt-dev PUBLIC
     src/Bootstrap/Win64KernelDefs.cpp
@@ -39,38 +54,30 @@ else()
   message(FATAL_ERROR "hc is not supported on your platform.")
 endif()
 
-include(SetFlags)
-target_internal_flags(hcrt-dev PUBLIC HC_DEBUG)
-target_internal_flags(hcrt-dev PUBLIC HC_TRUE_DEBUG)
-target_internal_flags(hcrt-dev PUBLIC HC_CHECK_INVARIANTS)
-target_internal_flags(hcrt-dev PUBLIC HC_DO_TRACING)
-target_internal_flags(hcrt-dev PUBLIC HC_SOFTWARE_PREFETCH)
-target_internal_flags(hcrt-dev PUBLIC HC_ENABLE_LTO)
+# xcrt 
 
-# Runtime 
-
-add_library(hc-runtime STATIC
+add_library(hcrt-crt STATIC
   xcrt/String/Memcpy.cpp
   xcrt/String/Memset.cpp
 )
-add_library(hc::runtime ALIAS hc-runtime)
-target_link_libraries(hc-runtime PUBLIC hcrt-dev)
-target_include_directories(hc-runtime PRIVATE src xcrt)
-target_compile_definitions(hc-runtime PRIVATE __HC_INTERNAL__=1)
-target_compile_options(hc-runtime PUBLIC -fno-exceptions -nostdinc++ -nostdinc -static)
-target_link_options(hc-runtime PUBLIC -nostdlib++ -nostdlib -nostartfiles)
+add_library(hc::runtime ALIAS hcrt-crt)
+target_link_libraries(hcrt-crt PUBLIC hcrt-dev)
+target_include_directories(hcrt-crt PRIVATE src xcrt)
+target_compile_definitions(hcrt-crt PRIVATE __HC_INTERNAL__=1)
+target_compile_options(hcrt-crt PUBLIC -fno-exceptions -nostdinc++ -nostdinc -static)
+target_link_options(hcrt-crt PUBLIC -nostdlib++ -nostdlib -nostartfiles)
 
 if(WIN32)
-  target_sources(hc-runtime PRIVATE
+  target_sources(hcrt-crt PRIVATE
     xcrt/Phase0/Startup.cpp
     xcrt/Phase0/Xtors.cpp
     xcrt/Phase0/InitCookie.cpp
     xcrt/Phase1/Initialization.cpp
     xcrt/Phase1/StdIO.cpp
-    xcrt/Phase1/Emutils.cpp
+    xcrt/Phase1/Emutls.cpp
     xcrt/Mingw/NtdllLdr.cpp
   )
-  target_link_options(hc-runtime PUBLIC -Wl,-e,mainCRTStartup)
+  target_link_options(hcrt-crt PUBLIC -Wl,-e,mainCRTStartup)
 else()
   message(FATAL_ERROR "The hc runtime is not supported on your platform.")
 endif()
