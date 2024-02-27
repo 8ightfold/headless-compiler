@@ -112,7 +112,7 @@ namespace hc::bootstrap {
     [[gnu::const]] static const SelfType* GetListSentinel() __noexcept {
       // We assume the base node never changes.
       // If it does, something has gone horribly wrong...
-      static thread_local const auto base_node = Win64ListEntryNode::GetBaseNode();
+      static const auto* const base_node = Win64ListEntryNode::GetBaseNode();
       return reinterpret_cast<const SelfType*>(base_node + TableOffset);
     }
 

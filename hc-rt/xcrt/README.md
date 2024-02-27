@@ -12,7 +12,7 @@ which we implement in ``Phase1/Emutls.cpp``.
 The CRT also handles entry/startup. Many people are under the impression that ``main`` is *the*
 entry point for programs, and while it is the C++ language entry point, it is not the program's.
 The real [entry point](https://en.wikipedia.org/wiki/Entry_point) depends on the platform;
-for Windows it is ``mainCRTStartup`` (can be anything, but GCC/Clang are weird about it),
+for Windows it is ``mainCRTStartup`` (*can* be anything, but GCC/Clang are weird about it),
 and for most others, ``_start``. Before you ever reach main, you have to initialize C globals,
 call global constructors, parse ``argv``/``envp``, and much more.
 

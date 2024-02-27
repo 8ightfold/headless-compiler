@@ -41,7 +41,7 @@ auto get_sym = [&] (C::StrRef S) {
 */
 
 static inline const Win64PEB* __get_PEB() {
-  static thread_local const Win64PEB* ppeb =
+  static const Win64PEB* ppeb =
     Win64TEB::LoadTEBFromGS()->getPEB();
   return ppeb;
 }
