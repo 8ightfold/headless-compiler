@@ -23,7 +23,7 @@
 //=== Basic Casts ===//
 namespace hc {
   template <typename U = void, typename T>
-  __always_inline U* ptr_cast(T* t) __noexcept {
+  __ndbg_inline U* ptr_cast(T* t) __noexcept {
     if constexpr (meta::not_void<meta::RemoveConst<T>>) {
       return reinterpret_cast<U*>(t);
     } else {
@@ -32,8 +32,22 @@ namespace hc {
   }
 
   template <typename U = void>
-  __always_inline U* ptr_cast(uptr i) __noexcept {
+  __ndbg_inline U* ptr_cast(uptr i) __noexcept {
     return reinterpret_cast<U*>(i);
+  }
+
+  template <typename U = void, typename T>
+  __ndbg_inline U* ptr_castex(T* t) __noexcept {
+    if constexpr (meta::not_void<meta::RemoveConst<T>>) {
+      return (U*)(t);
+    } else {
+      return static_cast<U*>(t);
+    }
+  }
+
+  template <typename U = void>
+  __ndbg_inline U* ptr_castex(uptr i) __noexcept {
+    return (U*)(i);
   }
 } // namespace hc
 
@@ -49,14 +63,14 @@ namespace hc {
   
   template <typename To, typename Base>
   requires __has__isa<Base, To>
-  constexpr bool isa(Base&& B) __noexcept {
+  __ndbg_inline constexpr bool isa(Base&& B) __noexcept {
     return static_cast<bool>(
       __hc_fwd(B).template __isa<To>());
   }
 
   template <typename To, typename Base>
   requires __has__dyn_cast<Base, To>
-  decltype(auto) dyn_cast(Base&& B) __noexcept {
+  __ndbg_inline decltype(auto) dyn_cast(Base&& B) __noexcept {
     return __hc_fwd(B).template __dyn_cast<To>();
   }
 } // namespace hc
@@ -80,12 +94,12 @@ namespace hc {
 //=== Underlying ===//
 namespace hc {
   template <meta::is_enum E>
-  __always_inline constexpr auto underlying_cast(E e) {
+  __ndbg_inline constexpr auto underlying_cast(E e) {
     return static_cast<meta::UnderlyingType<E>>(e);
   }
 
   template <typename T>
-  __always_inline constexpr T underlying_cast(T&& t) {
+  __ndbg_inline constexpr T underlying_cast(T&& t) {
     return __hc_fwd(t);
   }
 } // namespace hc

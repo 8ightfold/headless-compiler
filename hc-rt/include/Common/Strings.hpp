@@ -54,8 +54,8 @@ namespace hc::common {
 
   //=== Constexpr Memory Functions ===//
 
-  template <typename T>
-  requires(__char_type<T>) __common_attrs void*
+  template <__char_type T>
+  __common_attrs void*
    __vmemchr(const T* haystack, T needle, usize len) {
     return __builtin_memchr(haystack, int(needle), /* sizeof(T) == 1 */ len);
   }
@@ -65,8 +65,8 @@ namespace hc::common {
     return __builtin_char_memchr(haystack, int(needle), len);
   }
 
-  template <typename T>
-  requires(__char_type<T>) __common_attrs int
+  template <__char_type T>
+  __common_attrs int
    __memcmp(const T* lhs, const T* rhs, usize len) {
     return __builtin_memcmp(lhs, rhs, /* sizeof(T) == 1 */ len);
   }

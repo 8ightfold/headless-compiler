@@ -69,10 +69,20 @@ struct X {
   }
 };
 
+#include <String/Utils.hpp>
+
+template <typename Char, usize N>
+void test_xstrlen(const Char(&A)[N]) {
+  const usize len = xcrt::xstringlen<Char>(A);
+  assert(len == (N - 1));
+  std::printf("Got: %zu\n", len);
+}
+
 int main(int N, char* A[], char* Env[]) {
-  char volume_str[] = "\\??\\C:\\";
-  printVolumeInfo(volume_str);
-  return 0;
+  test_xstrlen(L"Hello!");
+  test_xstrlen(L"We got a pretty damn long string here, hope this is faster!!");
+  test_xstrlen("And now we do the exact same tests with regular strings, which should work.");
+  return (1 / 2);
 
   printPathType("//?/PhysicalDrive0/"); // DosDrive
   printPathType("//?/X:/");             // DosVolume

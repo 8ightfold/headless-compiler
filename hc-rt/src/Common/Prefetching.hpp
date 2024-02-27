@@ -31,7 +31,7 @@ namespace hcrt {
   static constexpr usize cacheLinesSize = 64 * Count;
 
   enum class PrefetchMode : int {
-    Read = 0,
+    Read  = 0,
     Write = 1,
   };
 
@@ -42,7 +42,7 @@ namespace hcrt {
     Max  = 3,
   };
 
-  template <PrefetchMode M, Locality L = Locality::Max>
+  template <PrefetchMode M = PrefetchMode::Write, Locality L = Locality::Max>
   __always_inline void smart_prefetch(const u8* addr) {
     static constexpr int mode = static_cast<int>(M);
     static constexpr int locality = static_cast<int>(L);

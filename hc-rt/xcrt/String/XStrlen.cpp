@@ -1,4 +1,4 @@
-//===- String/Memset.hpp --------------------------------------------===//
+//===- String/XStrlen.hpp -------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -16,16 +16,14 @@
 //
 //===----------------------------------------------------------------===//
 
-#include <Common/InlineMemset.hpp>
-
-using namespace hc;
+#include "Utils.hpp"
 
 extern "C" {
-  void* memset(
-   void* __restrict __dst,
-   int __ch, usize __len
-  ) {
-    common::inline_memset(__dst, u8(__ch), __len);
-    return __dst;
+  usize strlen(const char* __src) {
+    return xcrt::stringlen(__src);
+  }
+
+  usize wcslen(const wchar_t* __src) {
+    return xcrt::wstringlen(__src);
   }
 } // extern "C"

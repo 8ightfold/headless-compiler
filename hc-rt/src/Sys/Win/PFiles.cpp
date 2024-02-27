@@ -33,17 +33,15 @@ namespace {
 } // namespace `anonymous`
 
 namespace hc::sys {
-
+  void __init_pfiles() {
+    static bool __init = false;
+    if __expect_true(__init)
+      return;
+    (void) pOut_buf;
+    (void) pErr_buf;
+    (void) pIn_buf;
+  }
 } // namespace hc::sys
-
-void S::__init_pfiles() {
-  static bool __init = false;
-  if __expect_false(__init)
-    return;
-  (void) pOut_buf;
-  (void) pErr_buf;
-  (void) pIn_buf;
-}
 
 $Once { 
   __init_pfiles(); 

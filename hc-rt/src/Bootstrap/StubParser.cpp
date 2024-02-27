@@ -42,7 +42,7 @@ namespace {
   }
 
   template <Instruction I>
-  static constexpr u8 primaryOpcode = u32(I) & 0xFF;
+  constexpr u8 primaryOpcode = u32(I) & 0xFF;
 
   u32 extract_syscall(const u8* bytes) {
     // Sanity checking

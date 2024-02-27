@@ -1,4 +1,4 @@
-//===- String/Memset.hpp --------------------------------------------===//
+//===- xcrtDefs.hpp -------------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -15,17 +15,20 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
+//
+//  Exposes functions used by xcrt.
+//
+//===----------------------------------------------------------------===//
 
-#include <Common/InlineMemset.hpp>
-
-using namespace hc;
-
-extern "C" {
-  void* memset(
-   void* __restrict __dst,
-   int __ch, usize __len
-  ) {
-    common::inline_memset(__dst, u8(__ch), __len);
-    return __dst;
+namespace hc {
+  namespace bootstrap {
+    // Syscalls.cpp
+    extern void force_syscall_reload();
+    extern bool are_syscalls_loaded();
   }
-} // extern "C"
+
+  namespace sys {
+    // {PLATFORM}/PFiles.cpp
+    extern void __init_pfiles();
+  }
+} // namespace hc

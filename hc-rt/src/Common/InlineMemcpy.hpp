@@ -100,7 +100,8 @@ namespace hcrt {
 } // namespace hcrt
 
 namespace hc::common {
-  static inline void inline_memcpy(void* dst, const void* src, usize len) {
+  static inline void inline_memcpy(
+   void* __restrict dst, const void* __restrict src, usize len) {
     __hc_invariant((dst && src) || !len);
     if __expect_false(len == 0)
       return;

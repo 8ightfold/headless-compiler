@@ -50,6 +50,13 @@
 # error The macro __is_identifier is required.
 #endif
 
+// Probably the minimum for C++23
+#if __cplusplus >= 202100L
+# define _HC_CXX23 1
+#else
+# define _HC_CXX23 0
+#endif
+
 //=== General Macros ===//
 
 #define __hc_4cat(w, x, y, z) w ## x ## y ## z

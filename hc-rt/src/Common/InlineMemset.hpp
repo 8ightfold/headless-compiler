@@ -77,14 +77,14 @@ namespace hcrt {
   }
 
   [[maybe_unused]] _HC_MEMSET_FN(__prefetching_memset) {
-    static constexpr usize prefetchDistance = cacheLinesSize<5>;
+    static constexpr usize prefetchDist = cacheLinesSize<5>;
     static constexpr usize prefetchDegree = cacheLinesSize<2>;
     static constexpr usize kSize = sizeof(v512);
     // Prefetch a single cache line
-    smart_prefetch<PrefetchMode::Write>(dst + cacheLinesSize<1>);
+    smart_prefetch<>(dst + cacheLinesSize<1>);
     if (len <= 128)
       $tail_return __set_first_last_block<v512>(dst, val, len);
-    smart_prefetch<PrefetchMode::Write>(dst + cacheLinesSize<2>);
+    smart_prefetch<>(dst + cacheLinesSize<2>);
     __set_block<v512>(dst, val);
     align_to_next_boundary<32>(dst, len);
     if (len <= 192) {
@@ -93,8 +93,8 @@ namespace hcrt {
       __set_block_seq<v512, v256>(dst, val);
       usize off = 96;
       while (off + prefetchDegree + kSize <= len) {
-        smart_prefetch<PrefetchMode::Write>(dst + off + prefetchDistance);
-        smart_prefetch<PrefetchMode::Write>(dst + off + prefetchDistance + cacheLinesSize<1>);
+        smart_prefetch<>(dst + off + prefetchDist);
+        smart_prefetch<>(dst + off + prefetchDist + cacheLinesSize<1>);
         for (usize I = 0; I < prefetchDegree; I += kSize, off += kSize)
           __set_block<v256>(dst + off, val);
       }
@@ -144,6 +144,14 @@ namespace hc::common {
       return;
     return rt::__memset_dispatch(
       (u8*)dst, val, len);
+  }
+
+  static inline void inline_bzero(void* dst, usize len) {
+    __hc_invariant(dst || !len);
+    if __expect_false(len == 0)
+      return;
+    return rt::__memset_dispatch(
+      (u8*)dst, u8(0U), len);
   }
 } // namespace hc::common
 

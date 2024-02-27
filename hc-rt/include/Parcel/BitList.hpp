@@ -23,15 +23,6 @@
 namespace hc::parcel {
   using BitListType = u64;
 
-  template <meta::is_integral Int>
-  __always_inline constexpr
-   Int popcnt(Int I) noexcept {
-    if constexpr (sizeof(I) == 8)
-      return __builtin_popcountll(I);
-    else
-      return __builtin_popcount(I);
-  }
-
   template <typename BType = BitListType>
   struct _BitRef {
     static constexpr auto __perIx = __bitsizeof(BType);
@@ -70,8 +61,8 @@ namespace hc::parcel {
   template <usize N, typename BType = BitListType>
   struct BitList {
     using SelfType = BitList;
-    static constexpr auto __perIx = __bitsizeof(BType);
-    static constexpr auto __count = (N / __perIx) + 1;
+    static constexpr usize __perIx = __bitsizeof(BType);
+    static constexpr usize __count = (N / __perIx) + 1;
     /// The total allotted bits.
     static constexpr usize bitCount = __count * __perIx;
   public:
@@ -80,19 +71,26 @@ namespace hc::parcel {
       return {__data[Idx(I)], I % __perIx};
     }
 
-    constexpr BitList& reset() {
-      return (*this = BitList{});
+    inline constexpr BitList& reset() {
+      for (usize I = 0; I < __count; ++I)
+        __data[I] = BType(0);
+      return *this;
     }
 
-    constexpr bool flip(usize I) {
+    inline constexpr bool flip(usize I) {
       __hc_invariant(I < Size());
       const BType V = Off(I);
       return (__data[Idx(I)] ^= V) & V;
     }
 
-    constexpr bool get(usize I) const {
+    inline constexpr bool get(usize I) const {
       __hc_invariant(I < Size());
       return __data[Idx(I)] & Off(I);
+    }
+
+    inline constexpr void set(usize I) {
+      __hc_invariant(I < Size());
+      __data[Idx(I)] |= Off(I);
     }
 
     constexpr usize accumulateCount() const {

@@ -40,6 +40,7 @@
 #define $FSIsDyn(B) static constexpr bool isDynamic = B
 #define $FAMLen(name) \
  union [[gnu::packed]] { ULong name; ULong FAM_len; }
+#define $FAMArr __counted_by(FAM_len) wchar_t
 #define $FSIntoRange(name) \
  WNameRange intoRange() { \
   return WNameRange::New(this->name, \
@@ -202,7 +203,7 @@ namespace hc::sys::win {
     VFSAttribMask fs_attribs;
     Long max_component_name_len;
     $FAMLen(name_len);
-    wchar_t fs_name[];
+    $FAMArr fs_name[];
   public:
     $FSIntoRange(fs_name)
   };
@@ -227,7 +228,7 @@ namespace hc::sys::win {
     $FSIsDyn(true);
     Boolean in_path;
     $FAMLen(name_len);
-    wchar_t driver_name[];
+    $FAMArr driver_name[];
   public:
     $FSIntoRange(driver_name)
   };
@@ -275,7 +276,7 @@ namespace hc::sys::win {
     ULong    serial_number;
     $FAMLen(label_len);
     Boolean  supports_objects;
-    wchar_t  volume_name[];
+    $FAMArr  volume_name[];
   public:
     $FSIntoRange(volume_name)
   };
@@ -359,4 +360,5 @@ namespace hc::sys::win {
 #undef $DeclFSTy
 #undef $FSIsDyn
 #undef $FAMLen
+#undef $FAMArr
 #undef $FSIntoRange

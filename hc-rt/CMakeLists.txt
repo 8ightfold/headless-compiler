@@ -2,7 +2,7 @@ include_guard(DIRECTORY)
 
 project(
   hcrt-crt
-  VERSION 0.1.18
+  VERSION 0.1.19
   LANGUAGES CXX
 )
 
@@ -59,6 +59,7 @@ endif()
 add_library(hcrt-crt STATIC
   xcrt/String/Memcpy.cpp
   xcrt/String/Memset.cpp
+  xcrt/String/XStrlen.cpp
 )
 add_library(hc::runtime ALIAS hcrt-crt)
 target_link_libraries(hcrt-crt PUBLIC hcrt-dev)

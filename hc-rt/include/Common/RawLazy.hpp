@@ -85,6 +85,16 @@ namespace hc::common {
       return V;
     }
 
+    __ndbg_inline constexpr T*
+     operator->() noexcept {
+      return this->data();
+    }
+
+    __ndbg_inline constexpr const T*
+     operator->() const noexcept {
+      return this->data();
+    }
+
     //=== Internals ===//
 
     __ndbg_inline constexpr
@@ -129,6 +139,16 @@ namespace hc::common {
 
     __ndbg_inline constexpr T take() noexcept {
       return __data;
+    }
+
+    __ndbg_inline constexpr T*
+     operator->() noexcept {
+      return &__data;
+    }
+
+    __ndbg_inline constexpr const T*
+     operator->() const noexcept {
+      return &__data;
     }
 
   public:

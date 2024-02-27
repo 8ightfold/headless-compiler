@@ -52,11 +52,12 @@ namespace hc::meta {
 
   template <typename T>
   __visibility(hidden) constexpr auto __get_idname() {
-    static constexpr usize Sz = sizeof(__PRETTY_FUNCTION__);
-    static constexpr usize F  = sizeof("auto hc::meta::__get_idname() [T =");
-    static constexpr usize B  = sizeof("]");
-    static constexpr usize Total = Sz - F - B;
+    __cxstatic constexpr usize Sz = sizeof(__PRETTY_FUNCTION__);
+    __cxstatic constexpr usize F  = sizeof("auto hc::meta::__get_idname() [T =");
+    __cxstatic constexpr usize B  = sizeof("]");
+    __cxstatic constexpr usize Total = Sz - F - B;
     constexpr auto pretty = __PRETTY_FUNCTION__;
+    // IILE may be faster than "calling" another function.
     return [&] <usize...II> (common::IdxSeq<II...>) {
       return IDName<Total + 1> {
         .size = Total,

@@ -17,11 +17,7 @@
 //===----------------------------------------------------------------===//
 
 #include <Phase1/Initialization.hpp>
-
-namespace hc::bootstrap {
-  extern void force_syscall_reload();
-  extern bool are_syscalls_loaded();
-} // namespace hc::bootstrap
+#include <xcrtDefs.hpp>
 
 using namespace hc::bootstrap;
 

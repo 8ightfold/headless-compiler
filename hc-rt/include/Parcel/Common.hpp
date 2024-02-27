@@ -28,4 +28,12 @@
 
 namespace hc::parcel {
   namespace CC = hc::common;
+  template <meta::is_integral Int>
+  __always_inline constexpr
+   Int popcnt(Int I) noexcept {
+    if constexpr (sizeof(I) == 8)
+      return __builtin_popcountll(I);
+    else
+      return __builtin_popcount(I);
+  }
 } // namespace hc::parcel

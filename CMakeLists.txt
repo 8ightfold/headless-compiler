@@ -38,7 +38,7 @@ elseif(NOT hc_ipo_supported) # Currently broken on Windows :(
 endif()
 
 option(HC_CHECK_INVARIANTS "Enable invariant checking." OFF)
-option(HC_MULTITHREADED "Enable threads (fibers still allowed)." ON)
+option(HC_MULTITHREADED "Enable threads (fibers always allowed)." ON)
 option(HC_DO_TRACING "Enable tracing in debug mode." OFF)
 option(HC_SOFTWARE_PREFETCH "Enable software prefetching." ON)
 option(HC_ENABLE_LTO "Enable IPO/LTO." ON)
@@ -63,7 +63,7 @@ message(STATUS "Max path: ${RT_MAX_PATH}")
 add_subdirectory(hc-rt)
 add_executable(driver Driver.cpp)
 target_link_libraries(driver PRIVATE hcrt::dev)
-target_include_directories(driver PRIVATE hc-rt/src)
+target_include_directories(driver PRIVATE hc-rt/src hc-rt/xcrt)
 target_compile_definitions(driver PRIVATE __HC_INTERNAL__=1)
 
 # add_executable(nostartup NoStartup.cpp)

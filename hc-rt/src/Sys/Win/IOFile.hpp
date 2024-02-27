@@ -32,6 +32,4 @@ namespace hc::sys {
   public:
     win::IoStatusBlock io_block;
   };
-
-  extern void __init_pfiles();
 } // namespace hc::sys

@@ -31,20 +31,12 @@ namespace C = hc::common;
 
 void* C::Mem::VCopy(void* __restrict dst, const void* __restrict src, usize len) {
   if __expect_false(!dst || !src) return nullptr;
-  rt::__memcpy_dispatch(
-    ptr_cast<u8>(dst), 
-    ptr_cast<const u8>(src), 
-    len
-  );
+  inline_memcpy(dst, src, len);
   return dst;
 }
 
 void* C::Mem::VSet(void* __restrict dst, int ch, usize len) {
   if __expect_false(!dst) return nullptr;
-  rt::__memset_dispatch(
-    ptr_cast<u8>(dst), 
-    static_cast<u8>(ch), 
-    len
-  );
+  inline_memset(dst, u8(ch), len);
   return dst;
 }

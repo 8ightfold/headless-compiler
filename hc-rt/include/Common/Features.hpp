@@ -107,6 +107,14 @@
 #define __unpredictable(expr...)  (__builtin_unpredictable(bool(expr)))
 #define __global inline constexpr
 
+#if _HC_CXX23
+// statics in constexpr functions
+# define __cxstatic static
+#else
+// static not available in constexpr.
+# define __cxstatic
+#endif
+
 #if HC_EXCEPTIONS
 # define __throw(ty...) throw(ty)
 # define __noexcept noexcept(false)

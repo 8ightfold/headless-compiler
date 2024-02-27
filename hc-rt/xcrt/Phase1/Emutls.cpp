@@ -77,7 +77,7 @@ namespace xcrt::emutils {
   static void emutils_exit() {
 
   }
-} // namespace hcrt
+} // namespace hcrt::emutils
 
 extern "C" {
   void __xcrt_emutils_setup(void) {

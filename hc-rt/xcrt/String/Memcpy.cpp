@@ -16,18 +16,23 @@
 //
 //===----------------------------------------------------------------===//
 
-#include <Common/Casting.hpp>
 #include <Common/InlineMemcpy.hpp>
 
 using namespace hc;
 
 extern "C" {
-  void* memcpy(void* __restrict __dst, const void* __restrict __src, usize __len) {
-    rt::__memcpy_dispatch(
-      ptr_cast<u8>(__dst), 
-      ptr_cast<const u8>(__src), 
-      __len
-    );
+  void* memcpy(
+   void* __restrict __dst, 
+   const void* __restrict __src, usize __len) {
+    common::inline_memcpy(__dst, __src, __len);
+    return __dst;
+  }
+
+  wchar_t* wmemcpy(
+   wchar_t* __restrict __dst, 
+   const wchar_t* __restrict __src, usize __len) {
+    static constexpr usize __wcl = sizeof(wchar_t); 
+    common::inline_memcpy(__dst, __src, __len * __wcl);
     return __dst;
   }
 } // extern "C"
