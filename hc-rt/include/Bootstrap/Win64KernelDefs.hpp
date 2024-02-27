@@ -275,6 +275,9 @@ namespace hc::bootstrap {
     Win64Handle       image_base_addr;
     Win64PEBLDRData*  LDR_data;
     Win64ProcParams*  process_params;
+    Win64Addr         subsystem_data;
+    Win64Handle       process_heap;
+    Win64Addr         fast_PEB_lock;
     // ...
     HC_MARK_DELETED(Win64PEB);
   public:
