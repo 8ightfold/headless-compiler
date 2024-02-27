@@ -15,14 +15,20 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
+//
+//  A wrapper around platform-specific synchronization mechanisms.
+//  If you want a simpler (and possibly faster under low contention)
+//  underlying implementation, use AtomicMtx (unimplemented).
+//
+//===----------------------------------------------------------------===//
 
 #pragma once
 
 #include <Common/Fundamental.hpp>
 #include <Common/Limits.hpp>
 #include <Common/PtrUnion.hpp>
+#include "Locks.hpp"
 
-// TODO: Make atomic or sumn
 // For more info:
 // https://doxygen.reactos.org/de/db1/Mutex_8h_source.html
 // https://github.com/llvm/llvm-project/blob/main/libc/src/__support/threads/linux/mutex.h
@@ -78,20 +84,22 @@ namespace hc::sys {
     Mtx& operator=(const Mtx&) = delete;
 
     ~Mtx() {
-      if (!__data.isInitialized())
-        return;
-      this->lock();
-      RawMtxHandle::Delete(__data);
+      if __expect_true(*this) {
+        this->lock();
+        RawMtxHandle::Delete(__data);
+      }
     }
 
   public:
     void initialize() {
-      if (__data.isInitialized()) return;
+      if __expect_true(__data.isInitialized())
+        return;
       this->__data = RawMtxHandle::New();
     }
 
     void initialize(common::DualString S) {
-      if (__data.isInitialized()) return;
+      if __expect_true(__data.isInitialized())
+        return;
       S.visit([this] (auto* name) {
         this->__data = 
           RawMtxHandle::New(name);
@@ -99,6 +107,8 @@ namespace hc::sys {
     }
 
     void lock() {
+      if __expect_false(!*this)
+        this->initialize();
       __locked = true;
       RawMtxHandle::Lock(__data);
       __lock_count += 1;
@@ -129,26 +139,5 @@ namespace hc::sys {
     RawMtxHandle __data {};
     u32  __lock_count = 0;
     bool __locked = false;
-  };
-
-  template <typename MutexType>
-  struct ScopedLock {
-    using MtxType = MutexType;
-  public:
-    __always_inline 
-     ScopedLock(MutexType& mtx) 
-     : __mtx(mtx) {
-      __mtx.lock();
-    }
-
-    ScopedLock(const ScopedLock&) = delete;
-    ScopedLock& operator=(const ScopedLock&) = delete;
-
-    ~ScopedLock() {
-      __mtx.unlock();
-    }
-
-  private:
-    MutexType& __mtx;
   };
 } // namespace hc::sys

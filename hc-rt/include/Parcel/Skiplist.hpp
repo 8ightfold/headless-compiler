@@ -58,6 +58,8 @@ namespace hc::parcel {
     SKType* __list;
   };
 
+  /// Uses a `BitList` to manage `RawLazy<T>` instances.
+  /// Probably not the best choice for massive blocks.
   template <typename T, usize N>
   struct Skiplist {
     using SelfType = Skiplist;
