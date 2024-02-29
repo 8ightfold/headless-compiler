@@ -1,4 +1,4 @@
-//===- String/XStrlen.cpp -------------------------------------------===//
+//===- String/Memcmp.cpp --------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -16,14 +16,10 @@
 //
 //===----------------------------------------------------------------===//
 
-#include "Utils.hpp"
+#include <Common/InlineMemcmp.hpp>
+
+using namespace hc;
 
 extern "C" {
-  usize strlen(const char* __src) {
-    return xcrt::stringlen(__src);
-  }
-
-  usize wcslen(const wchar_t* __src) {
-    return xcrt::wstringlen(__src);
-  }
+  
 } // extern "C"

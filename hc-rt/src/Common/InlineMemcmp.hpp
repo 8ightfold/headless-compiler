@@ -1,4 +1,4 @@
-//===- String/XStrlen.cpp -------------------------------------------===//
+//===- Common/InlineMemcpy.hpp --------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -16,14 +16,23 @@
 //
 //===----------------------------------------------------------------===//
 
-#include "Utils.hpp"
+#pragma once
 
-extern "C" {
-  usize strlen(const char* __src) {
-    return xcrt::stringlen(__src);
-  }
+#include <Common/Features.hpp>
+#include "IAlign.hpp"
+#include "Prefetching.hpp"
 
-  usize wcslen(const wchar_t* __src) {
-    return xcrt::wstringlen(__src);
-  }
-} // extern "C"
+#define _HC_MEMCMP_FN(name) \
+ inline MemcmpRetType name(u8* __restrict lhs, \
+  u8* __restrict rhs, [[maybe_unused]] usize len = 0)
+
+namespace hc::rt {
+  using MemcmpRetType = isize;
+
+} // namespace hc::rt
+
+namespace hc::common {
+  
+} // namespace hc::common
+
+#undef _HC_MEMCMP_FN

@@ -1,4 +1,4 @@
-//===- String/XStrlen.cpp -------------------------------------------===//
+//===- Meta/StatefulRegistry.hpp ------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -15,15 +15,14 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
+//
+//  This file defines some macros for generating stateful registries.
+//  The idea is you'll be able to create dynamic objects given a set
+//  of types in a TU. This means we can't have anything be inline, it
+//  all has to be static to avoid ODR violations.
+//
+//===----------------------------------------------------------------===//
 
-#include "Utils.hpp"
+#pragma once
 
-extern "C" {
-  usize strlen(const char* __src) {
-    return xcrt::stringlen(__src);
-  }
 
-  usize wcslen(const wchar_t* __src) {
-    return xcrt::wstringlen(__src);
-  }
-} // extern "C"

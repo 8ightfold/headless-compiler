@@ -94,14 +94,14 @@ namespace hc::sys {
     /// Unsets the error if set, otherwise does nothing.
     static void ResetLastError();
 
-    /// Gets a description for an ID. `""` if invalid.
+    /// Gets a description for an ID. Empty if invalid.
     static const char* GetErrorName(OpqErrorID ID);
-    /// Gets a description for an error. `""` if invalid.
+    /// Gets a description for an error. Empty if invalid.
     static const char* GetErrorName(OpaqueError);
 
-    /// Gets a description for an ID. `""` if invalid.
+    /// Gets a description for an ID. Empty if invalid.
     static const char* GetErrorDescription(OpqErrorID ID);
-    /// Gets a description for an error. `""` if invalid.
+    /// Gets a description for an error. Empty if invalid.
     static const char* GetErrorDescription(OpaqueError);
 
     /// Gets the ID of an opaque handle.

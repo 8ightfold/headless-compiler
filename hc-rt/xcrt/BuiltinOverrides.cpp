@@ -24,10 +24,6 @@
 using namespace hc;
 
 extern "C" {
-  [[gnu::flatten]] usize wcslen(const wchar_t* __str) {
-    $tail_return common::__wstrlen(__str);
-  }
-
   [[gnu::flatten]] int wcsncmp(
    const wchar_t* __lhs, const wchar_t* __rhs, usize __len) {
     $tail_return common::__wstrncmp(__lhs, __rhs, __len);

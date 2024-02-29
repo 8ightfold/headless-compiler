@@ -97,7 +97,7 @@ int main(int N, char* A[], char* Env[]) {
     // L"\\??\\PhysicalDrive0\\krita-dev\\krita\\README.md"
     // L"\\??\\C:\\krita-dev\\krita\\README.md"
     // L"\\??\\C:\\Program Files\\desktop.ini"
-    L"\\\\?\\C:\\Program Files\\desktop.ini"
+    L"\\??\\C:\\fake-file.txt"
   );
 
   auto mask = W::GenericReadAccess;
@@ -115,8 +115,9 @@ int main(int N, char* A[], char* Env[]) {
   if ($NtFail(io.status)) {
     std::printf("With file `%ls`:\n", name.buffer);
     // std::printf("Open failed! [0x%.8X]\n", io.status);
-    std::printf("Open failed! [%s]\n", 
-      S::SysErr::GetErrorName(io.status));
+    std::printf("Open failed! [%s] - %s\n", 
+      S::SysErr::GetErrorName(io.status),
+      S::SysErr::GetErrorDescription(io.status));
     return io.status;
   }
   std::printf("Opened file `%ls`.\n", name.buffer);

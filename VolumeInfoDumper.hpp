@@ -37,21 +37,7 @@ namespace S = hc::sys;
 namespace W = hc::sys::win;
 
 inline const char* commonNtErrors(W::NtStatus S) {
-  switch (u32(S)) {
-   case 0xC0000001:  return "UNSUCCESSFUL";
-   case 0xC0000003:  return "INVALID_INFO_CLASS";
-   case 0xC0000004:  return "INFO_LENGTH_MISMATCH";
-   case 0xC0000005:  return "ACCESS_VIOLATION";
-   case 0xC0000008:  return "INVALID_HANDLE";
-   case 0xC000000D:  return "INVALID_PARAMETER";
-   case 0xC000000E:  return "NO_SUCH_DEVICE";
-   case 0xC000000F:  return "NO_SUCH_FILE";
-   case 0xC0000022:  return "ACCESS_DENIED";
-   case 0xC0000023:  return "BUFFER_TOO_SMALL";
-   case 0xC0000025:  return "OBJECT_TYPE_MISMATCH";
-   case 0xC0000033:  return "OBJECT_NAME_INVALID";
-   default:          return nullptr;
-  }
+  return S::SysErr::GetErrorName(S);
 }
 
 struct VolumeInfoBinding {

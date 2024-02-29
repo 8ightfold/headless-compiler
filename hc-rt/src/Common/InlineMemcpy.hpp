@@ -33,7 +33,7 @@
  static inline void name(u8* __restrict dst, \
   const u8* __restrict src, [[maybe_unused]] usize len = 0)
 
-namespace hcrt {
+namespace hc::rt {
   template <usize BlockSize>
   _HC_MEMCPY_FN(__copy_block) {
     __builtin_memcpy_inline(dst, src, BlockSize);
@@ -97,7 +97,7 @@ namespace hcrt {
     // else:
     $tail_return __copy_aligned_blocks<32>(dst, src, len);
   }
-} // namespace hcrt
+} // namespace hc::rt
 
 namespace hc::common {
   static inline void inline_memcpy(

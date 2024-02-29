@@ -1,4 +1,4 @@
-//===- Common/IAlign.hpp --------------------------------------------===//
+//===- Common/MemUtils.hpp ------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -20,27 +20,31 @@
 
 #include <Common/Fundamental.hpp>
 #include <Common/Memory.hpp>
+#include "SSEVec.hpp"
 
 namespace hc::rt {
-  template <usize Align>
-  inline uptr offset_from_last_align(const void* ptr) {
-    static_assert((Align & (Align - 1)) == 0,
-      "Align must be a power of 2");
-    return Align - (uptr(ptr) & (Align - 1U));
+  template <typename T, typename PtrType>
+  constexpr void store(PtrType* dst, T value) {
+    static_assert(!__is_void(PtrType));
+    __builtin_memcpy_inline(dst, &value, sizeof(T));
   }
 
-  template <typename T, typename U>
-  inline void adjust(uptrdiff offset, 
-   T* __restrict& t, U* __restrict& u, usize& len) {
-    t += offset;
-    u += offset;
-    len -= offset;
-  }
-
-  template <usize Align, typename T>
-  inline void align_to_next_boundary(T* __restrict& t, usize& len) {
-    const T* og = t;
-    adjust(offset_from_last_align<Align>(t), t, og, len);
-    t = hc::common::__assume_aligned<Align>(t);
+  template <typename T>
+  inline constexpr T splat(u8 value) {
+    if constexpr (__is_scalar(T)) {
+      return T(~0) / T(0xFF) * T(value);
+    } else if constexpr(__is_vector<T>) {
+      T out;
+      for (usize I = 0; I < sizeof(T); ++I)
+        out[I] = value;
+      return out;
+    } else {
+      using U = typename T::Type;
+      const auto u = splat<U>(value);
+      T out;
+      for (usize I = 0; I < T::Size(); ++I)
+        out[I] = u;
+      return out;
+    }
   }
 } // namespace hc::rt

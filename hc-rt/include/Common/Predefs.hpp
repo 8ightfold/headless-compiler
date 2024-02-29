@@ -78,11 +78,6 @@
 template <typename T>
 using __hc_tyident_ = T;
 
-namespace hcrt {}
-namespace hc {
-  namespace rt = ::hcrt;
-} // namespace hc
-
 //=== Mode Macros ===//
 
 #ifndef _HC_DEBUG

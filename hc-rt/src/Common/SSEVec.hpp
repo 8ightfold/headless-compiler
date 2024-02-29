@@ -21,7 +21,7 @@
 #include <Common/Fundamental.hpp>
 #include <Common/Array.hpp>
 
-namespace hcrt {
+namespace hc::rt {
   using Gv128 = u8 __attribute__((__vector_size__(16)));
   using Gv256 = u8 __attribute__((__vector_size__(32)));
   using Gv512 = u8 __attribute__((__vector_size__(64)));
@@ -55,4 +55,4 @@ namespace hcrt {
   using v256 = hc::common::Array<u64, 4>;
   using v512 = hc::common::Array<u64, 8>;
 #endif
-} // namespace hcrt
+} // namespace hc::rt

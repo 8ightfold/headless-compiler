@@ -31,7 +31,7 @@
  inline void name(u8* __restrict dst, \
   u8 val, [[maybe_unused]] usize len = 0)
 
-namespace hcrt {
+namespace hc::rt {
   static constexpr bool __memset_prefetch_ = _HC_SOFTWARE_PREFETCH;
 
   template <typename BlockType>
@@ -135,7 +135,7 @@ namespace hcrt {
     align_to_next_boundary<32>(dst, len);
     $tail_return __set_loop_and_last<v256>(dst, val, len);
   }
-} // namespace hcrt
+} // namespace hc::rt
 
 namespace hc::common {
   static inline void inline_memset(void* dst, u8 val, usize len) {
