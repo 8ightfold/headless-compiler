@@ -99,7 +99,9 @@ namespace hc::common {
       return BaseType::New(S, __strlen(S));
     }
 
-    //=== "Mutators" ===//
+    //==================================================================//
+    // "Mutators"
+    //==================================================================//
 
     Type& front() const {
       __hc_invariant(size() != 0);
@@ -125,14 +127,18 @@ namespace hc::common {
       return front();
     }
 
-    //=== Observers ===//
+    //==================================================================//
+    // Observers
+    //==================================================================//
 
     bool isEqual(StrRef S) const {
       if (size() != S.size()) return false;
       return __memcmp(data(), S.data(), size()) == 0;
     }
 
-    //=== Chaining ===//
+    //==================================================================//
+    // Chaining
+    //==================================================================//
 
     [[nodiscard]] StrRef slice(usize pos, usize n) const {
       __hc_invariant(begin() && (pos + n) <= size());
@@ -163,7 +169,9 @@ namespace hc::common {
       $tail_return dropFront(size() - n);
     }
 
-    //=== Comparison ===//
+    //==================================================================//
+    // Comparison
+    //==================================================================//
 
     bool beginsWith(char C) {
       return !isEmpty() && (*data() == C);
@@ -220,7 +228,9 @@ namespace hc::common {
       return S.isEqual(StrRef::NewRaw(lit));
     }
 
-    //=== Parsing ===//
+    //==================================================================//
+    // Parsing
+    //==================================================================//
 
     [[nodiscard]] StrRef dropNull() const {
       if __expect_false(size() == 0) 

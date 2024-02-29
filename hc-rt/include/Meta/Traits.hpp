@@ -20,7 +20,10 @@
 
 #include <Common/Fundamental.hpp>
 
-//=== Concepts ===//
+//======================================================================//
+// Concepts
+//======================================================================//
+
 namespace hc::meta {
   template <typename T>
   concept is_void = __is_void(T);
@@ -108,7 +111,10 @@ namespace hc::meta {
 
 } // namespace hc::meta
 
-//=== Types ===//
+//======================================================================//
+// Types
+//======================================================================//
+
 namespace hc::meta {
   template <typename T>
   using Decay = __decay(T);

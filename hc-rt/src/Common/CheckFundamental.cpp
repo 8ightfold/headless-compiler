@@ -25,6 +25,9 @@
 static_assert(sizeof(ubyte) == 1, "???");
 static_assert(__bitsizeof(ubyte) == 8);
 
+static_assert(sizeof(void*) == 8,
+  "32 bit mode is currently unsupported.");
+
 static_assert(sizeof(i8)   == 1);
 static_assert(sizeof(i16)  == 2);
 static_assert(sizeof(i32)  == 4);

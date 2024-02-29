@@ -57,7 +57,9 @@ namespace hc::binfmt {
       return chk.isEqual(m);
     }
 
-    //=== Extractors ===//
+    //==================================================================//
+    // Extractors
+    //==================================================================//
 
     template <typename T>
     __always_inline T* into() const __noexcept {
@@ -89,7 +91,9 @@ namespace hc::binfmt {
       return __image.takeFront(n).intoRange<T>();
     }
 
-    //=== Consumers ===//
+    //==================================================================//
+    // Consumers
+    //==================================================================//
 
     template <typename T>
     __always_inline T* consume() __noexcept {
@@ -126,7 +130,9 @@ namespace hc::binfmt {
       return range;
     }
 
-    //=== Consume with Subtraction ===//
+    //==================================================================//
+    // Consume with Subtraction
+    //==================================================================//
 
     template <typename T, typename Int>
     __always_inline T* consumeAndSub(Int& i) __noexcept
@@ -143,7 +149,9 @@ namespace hc::binfmt {
       return nullptr;
     }
 
-    //=== Dropping ===//
+    //==================================================================//
+    // Dropping
+    //==================================================================//
 
     template <typename T>
     Consumer& drop(usize n) __noexcept {

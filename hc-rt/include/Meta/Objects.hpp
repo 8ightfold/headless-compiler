@@ -25,7 +25,10 @@ HC_HAS_REQUIRED(builtin, __make_integer_seq);
 
 #define $I(n) ::hc::__i<n>
 
-//=== *Node ===//
+//======================================================================//
+// *Node
+//======================================================================//
+
 namespace hc::meta {
   template <typename T>
   struct TyNode {
@@ -38,7 +41,10 @@ namespace hc::meta {
   };
 } // namespace hc::meta
 
-//=== *Seq ===//
+//======================================================================//
+// *Seq
+//======================================================================//
+
 namespace hc::meta {
   template <typename...TT>
   struct TySeq {
@@ -68,7 +74,10 @@ namespace hc::meta {
   using make_idxseq = __make_integer_seq<IntSeq, usize, N>;
 } // namespace hc::meta
 
-//=== Pull In ===//
+//======================================================================//
+// Pull In
+//======================================================================//
+
 namespace hc::common {
   using meta::TyNode;
   using meta::IdxNode;

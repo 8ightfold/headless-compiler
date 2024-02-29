@@ -38,7 +38,9 @@ namespace hc::common {
       return this->__data[IX];
     }
 
-    //=== Observers ===//
+    //==================================================================//
+    // Observers
+    //==================================================================//
 
     [[nodiscard, gnu::const]]
     constexpr T* data() __noexcept {
@@ -143,4 +145,31 @@ namespace hc::common {
   Array(T&&, TT&&...) -> Array<__decay(T), sizeof...(TT) + 1>;
 
   Array() -> Array<void, 0>;
+
+  //====================================================================//
+  // Traits
+  //====================================================================//
+
+  template <typename>
+  struct _IsArray {
+    using Type = void;
+    static constexpr usize size = 0;
+    static constexpr bool value = false;
+  };
+
+  template <typename T, usize N>
+  struct _IsArray<Array<T, N>> {
+    using Type = T;
+    static constexpr usize size = N;
+    static constexpr bool value = true;
+  };
+
+  template <typename T>
+  concept __is_Array = _IsArray<T>::value;
+
+  template <__is_Array T>
+  using __array_type_t = typename _IsArray<T>::Type;
+
+  template <__is_Array T>
+  __global usize __array_size_v = _IsArray<T>::size;
 } // namespace hc::common

@@ -161,7 +161,9 @@ namespace hc::sys {
     usize bufSize() const { return buf->size; }
     IIOFileBuf& getFileBuf() const { return *buf; }
 
-    //=== IO ===//
+    //==================================================================//
+    // IO
+    //==================================================================//
 
     FileResult readUnlocked(common::AddrRange data);
     FileResult read(common::AddrRange data) {
@@ -204,7 +206,9 @@ namespace hc::sys {
       return close_fn(this);
     }
 
-    //=== Meta ===//
+    //==================================================================//
+    // Meta
+    //==================================================================//
 
     bool errorUnlocked() const { return err; }
     bool error() {

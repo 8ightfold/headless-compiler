@@ -69,7 +69,9 @@ namespace hc::common {
       return this->__data == nullptr;
     }
 
-    //=== Arithmetic Operators ===//
+    //==================================================================//
+    // Arithmetic Operators
+    //==================================================================//
 
     template <meta::is_integral T>
     friend Type operator+(const Type& lhs, T rhs) {
@@ -173,7 +175,9 @@ namespace hc::common {
       return { A, A + N };
     }
 
-    //=== Observers ===//
+    //==================================================================//
+    // Observers
+    //==================================================================//
 
     __always_inline SelfType& checkInvariants() {
       __hc_assert(__begin <= __end);
@@ -218,7 +222,9 @@ namespace hc::common {
     T* begin() const { return this->__begin; }
     T* end() const { return this->__end; }
 
-    //=== Chaining ===//
+    //==================================================================//
+    // Chaining
+    //==================================================================//
 
     [[nodiscard]] SelfType slice(usize pos, usize n) const {
       __hc_invariant(__begin && (pos + n) <= size());

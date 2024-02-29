@@ -20,7 +20,10 @@
 
 #include <Meta/Traits.hpp>
 
-//=== Basic Casts ===//
+//======================================================================//
+// Basic Casts
+//======================================================================//
+
 namespace hc {
   template <typename U = void, typename T>
   __ndbg_inline U* ptr_cast(T* t) __noexcept {
@@ -51,7 +54,10 @@ namespace hc {
   }
 } // namespace hc
 
-//=== isa/dyn_cast ===//
+//======================================================================//
+// isa/dyn_cast
+//======================================================================//
+
 namespace hc {
   template <typename Base, typename To>
   concept __has__isa = 
@@ -75,8 +81,12 @@ namespace hc {
   }
 } // namespace hc
 
-//=== Handles ===//
+//======================================================================//
+// Handles
+//======================================================================//
+
 namespace hc {
+  // TODO: Move into Handle.hpp?
   template <typename T, 
     typename ID, typename...AA>
   struct Handle;
@@ -91,7 +101,10 @@ namespace hc {
   }
 } // namespace hc
 
-//=== Underlying ===//
+//======================================================================//
+// Underlying
+//======================================================================//
+
 namespace hc {
   template <meta::is_enum E>
   __ndbg_inline constexpr auto underlying_cast(E e) {
@@ -104,7 +117,10 @@ namespace hc {
   }
 } // namespace hc
 
-//=== Reinterpreting ===//
+//======================================================================//
+// Reinterpreting
+//======================================================================//
+
 namespace hc {
   template <typename U, typename T>
   requires meta::is_same_size<T, U>

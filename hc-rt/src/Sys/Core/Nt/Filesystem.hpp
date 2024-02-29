@@ -91,7 +91,9 @@ namespace hc::sys::win {
     AccessMask::StdRightsExec | AccessMask::Execute
    | AccessMask::ReadAttributes | AccessMask::Sync;
 
-  //=== Info Classes ===//
+  //====================================================================//
+  // Info Classes
+  //====================================================================//
 
   // TODO: Implement buffer shit
   enum class FileInfoClass {
@@ -146,7 +148,9 @@ namespace hc::sys::win {
     MaxValue
   };
 
-  //=== Misc. ===//
+  //====================================================================//
+  // Misc.
+  //====================================================================//
 
   struct IoStatusBlock {
     explicit operator bool() const {

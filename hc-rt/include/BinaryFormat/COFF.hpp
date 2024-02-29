@@ -49,7 +49,9 @@ namespace COFF {
 
   $MarkPrefix(COFFInfo, "e")
 
-  //=== DOS ===//
+  //====================================================================//
+  // DOS
+  //====================================================================//
 
   struct DosHeader {
     u16 magic = COFFInfo::eDosMagic;
@@ -72,7 +74,9 @@ namespace COFF {
     u16 coff_header_offset;
   };
 
-  //=== COFF Header ===//
+  //====================================================================//
+  // COFF Header
+  //====================================================================//
 
   $Enum((MachineType, u16),
     (eMachineAny,    0x0000), // ugh
@@ -137,7 +141,9 @@ namespace COFF {
   using OptPEHeader = $PUnion(
     OptPE64Header, OptPE32Header);
 
-  //=== Windows COFF Extension ===//
+  //====================================================================//
+  // Windows COFF Extension
+  //====================================================================//
 
   $Enum((WindowsSubsystemType, u16),
     (eSubsystemUnknown,    0),
@@ -202,7 +208,9 @@ namespace COFF {
   using PEWindowsHeader = $PUnion(
     OptPEWindowsHeader<8>, OptPEWindowsHeader<4>);
 
-  //=== Data Directory ===//
+  //====================================================================//
+  // Data Directory
+  //====================================================================//
 
   struct DataDirectoryHeader {
     u32 RVA;
@@ -231,7 +239,9 @@ namespace COFF {
   $MarkPrefix(DataDirectories, "eDirectory")
   using DataDirectoryTable = $PRange(DataDirectoryHeader);
 
-  //=== Section Data ===//
+  //====================================================================//
+  // Section Data
+  //====================================================================//
 
   $Enum((SectionFlags, u32),
     // ...
@@ -288,7 +298,9 @@ namespace COFF {
 
   using SectionTable = $PRange(SectionHeader);
 
-  //=== Other Types ===//
+  //====================================================================//
+  // Misc.
+  //====================================================================//
 
   struct [[gnu::packed]] Symbol {
     char name[eCOFFNameSize];

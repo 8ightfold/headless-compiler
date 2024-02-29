@@ -21,7 +21,6 @@
 #include <Meta/Traits.hpp>
 #include "Lifetime.hpp"
 
-//=== Globals ===//
 namespace hc {
   struct Nullopt { };
   struct Unexpect { };
@@ -32,7 +31,10 @@ namespace hc {
   __global InPlace in_place { };
 } // namespace hc
 
-//=== Backend ===//
+//======================================================================//
+// Backend
+//======================================================================//
+
 namespace hc::common {
   struct _Eater {
     constexpr _Eater() = default;

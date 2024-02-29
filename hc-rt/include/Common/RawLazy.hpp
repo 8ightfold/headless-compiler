@@ -95,7 +95,9 @@ namespace hc::common {
       return this->data();
     }
 
-    //=== Internals ===//
+    //==================================================================//
+    // Internals
+    //==================================================================//
 
     __ndbg_inline constexpr
      BufType& __buf() noexcept {

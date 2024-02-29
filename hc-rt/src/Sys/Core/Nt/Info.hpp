@@ -124,7 +124,9 @@ namespace hc::sys::win {
   $MarkBitwise(VFSDeviceMask);
   $MarkBitwise(VFSSSizeMask);
 
-  //=== Classes ===//
+  //====================================================================//
+  // Classes
+  //====================================================================//
 
   enum class DeviceType : ULong {
     UTCPPort            = 0x0027,
@@ -193,7 +195,9 @@ namespace hc::sys::win {
     u8  postfix[8];
   };
 
-  //=== Definitions ===//
+  //====================================================================//
+  // Definitions
+  //====================================================================//
 
   template <typename>
   struct FSInfoAssoc {
@@ -301,7 +305,9 @@ namespace hc::sys::win {
   __global FSInfoClass fsInfoAssoc 
     = FSInfoAssoc<FSInfoType>::value;
   
-  //=== Wrapper ===//
+  //====================================================================//
+  // Wrapper
+  //====================================================================//
 
   template <typename FSInfoType, usize ExBytes = 0U>
   constexpr FSInfoType __fsi_FAM_init() {

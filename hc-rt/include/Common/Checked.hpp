@@ -62,7 +62,9 @@ namespace hc::common {
       return static_cast<U>(_Checked{B});
     }
 
-    //=== Checks ===//
+    //==================================================================//
+    // Checks
+    //==================================================================//
 
     template <typename U>
     static constexpr bool IsSameSignedness() {
@@ -131,6 +133,10 @@ namespace hc::common {
   public:
     Int __data;
   };
+
+  //====================================================================//
+  // Creation Functions
+  //====================================================================//
 
   template <bool IsCapped, typename Int>
   requires meta::is_integral<meta::RemoveCVRef<Int>>

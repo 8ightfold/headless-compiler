@@ -52,7 +52,9 @@ namespace hc::common {
     meta::is_same<T, unsigned char>  ||
     meta::is_same<T, char8_t>;
 
-  //=== Constexpr Memory Functions ===//
+  //====================================================================//
+  // Constexpr Memory Functions
+  //====================================================================//
 
   template <__char_type T>
   __common_attrs void*
@@ -71,7 +73,9 @@ namespace hc::common {
     return __builtin_memcmp(lhs, rhs, /* sizeof(T) == 1 */ len);
   }
 
-  //=== Non-constexpr Memory Functions ===//
+  //====================================================================//
+  // Non-constexpr Memory Functions
+  //====================================================================//
 
   template <typename T>
   requires(!__char_type<T>) __always_inline void*
@@ -101,7 +105,9 @@ namespace hc::common {
     return __builtin_memcmp(lhs, rhs, __sizeof(T) * len);
   }
 
-  //=== String Functions ===//
+  //====================================================================//
+  // String Functions
+  //====================================================================//
 
   __common_attrs const char*
    __strchr(const char* haystack, char needle) {
@@ -128,7 +134,9 @@ namespace hc::common {
     return __builtin_strlen(str);
   }
 
-  //=== Wide String Functions ===//
+  //====================================================================//
+  // Wide String Functions
+  //====================================================================//
 
   __common_attrs const wchar_t*
    __wstrchr(const wchar_t* haystack, wchar_t needle) {

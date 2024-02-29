@@ -122,7 +122,9 @@ namespace hc::parcel {
 
     constexpr ~StaticVec() { __destroy(); }
 
-    //=== Mutators/Accessors ===//
+    //==================================================================//
+    // Mutators/Accessors
+    //==================================================================//
 
     [[nodiscard]] constexpr T& 
      operator[](usize n) __noexcept {
@@ -196,7 +198,9 @@ namespace hc::parcel {
       $tail_return __destroy();
     }
 
-    //=== Observers ===//
+    //==================================================================//
+    // Observers
+    //==================================================================//
 
     static constexpr usize Capacity() __noexcept {
       return SelfType::__capacity;
@@ -256,7 +260,9 @@ namespace hc::parcel {
       return this->__size == 0;
     }
 
-    //=== Internals ===//
+    //==================================================================//
+    // Internals
+    //==================================================================//
 
     friend constexpr usize& __get_size_ref(StaticVec& V) {
       return V.__size;
@@ -360,7 +366,9 @@ namespace hc::parcel {
   template <typename T, usize N>
   StaticVec(StaticVec<T, N>&&) -> StaticVec<T, N>;
 
-  //=== Deduction ===//
+  //====================================================================//
+  // Deduction
+  //====================================================================//
 
   template <typename T, usize N>
   using ALStaticVec = StaticVec<T, CC::Align::Up(N)>;

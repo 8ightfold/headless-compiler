@@ -140,7 +140,9 @@ namespace hc::common {
       return SelfType(unexpect, __hc_fwd(args)...);
     }
 
-    //=== Accessors ===//
+    //==================================================================//
+    // Accessors
+    //==================================================================//
 
     constexpr _T& ok()& {
       __hc_invariant(isOk());
@@ -188,14 +190,18 @@ namespace hc::common {
       return this->__pok();
     }
 
-    //=== Observers ===//
+    //==================================================================//
+    // Observers
+    //==================================================================//
 
     // isOk, isErr
 
     explicit constexpr operator bool() const __noexcept 
     { return BaseType::__is_value; }
 
-    //=== Monads ===//
+    //==================================================================//
+    // Monads
+    //==================================================================//
 
     template <typename U>
     constexpr _T okOr(U&& u) const& {
@@ -229,7 +235,9 @@ namespace hc::common {
         return _E{__hc_fwd(g)};
     }
 
-    //=== Internals ===//
+    //==================================================================//
+    // Internals
+    //==================================================================//
 
     template <typename U>
     [[gnu::always_inline, gnu::nodebug]]

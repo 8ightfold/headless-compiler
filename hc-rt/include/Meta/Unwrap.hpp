@@ -30,7 +30,10 @@
   ::hc::_FwdWrapper{*obj}; \
 }).get()
 
-//=== Forward Decls ===//
+//======================================================================//
+// Forward Decls
+//======================================================================//
+
 namespace hc::common {
   template <typename>
   struct Err;
@@ -42,7 +45,10 @@ namespace hc::common {
   struct Option;
 } // namespace hc::common
 
-//=== Implementation ===//
+//======================================================================//
+// Implementation
+//======================================================================//
+
 namespace hc {
   template <typename...TT>
   struct _Wrapper {

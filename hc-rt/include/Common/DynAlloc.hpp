@@ -84,11 +84,6 @@ namespace hc::common {
       return {begin(), end()};
     }
 
-    [[nodiscard]] T& operator[](usize I) const __noexcept {
-      __hc_invariant(__data != nullptr && I < __size);
-      return this->__data[I];
-    }
-
     template <typename...Args>
     DynAllocation& init(Args&...args) __noexcept
      requires(__is_trivial_alloc<T>) {
@@ -119,7 +114,14 @@ namespace hc::common {
       return *this;
     }
 
-    //=== Observers ===//
+    [[nodiscard]] T& operator[](usize I) const __noexcept {
+      __hc_invariant(__data != nullptr && I < __size);
+      return this->__data[I];
+    }
+
+    //==================================================================//
+    // Observers
+    //==================================================================//
 
     [[nodiscard, gnu::const]]
     T* data() const __noexcept {

@@ -37,7 +37,9 @@ namespace {
   constinit P::Skiplist<WinIOFile, max_files> file_slots {};
 } // namespace `anonymous`
 
-//=== Implementation ===//
+//======================================================================//
+// Implementation
+//======================================================================//
 
 namespace {
   WinIOFile* __nt_openfile(FileAdaptor& self, C::PtrRange<wchar_t> wpath, IIOMode flags) {
@@ -109,7 +111,9 @@ void FileAdaptor::clearError() {
   err = Error::eNone;
 }
 
-//=== Free Functions ===//
+//======================================================================//
+// Free Functions
+//======================================================================//
 
 IOResult<IIOFile*> S::open_file(C::StrRef path, IIOFileBuf& buf, C::StrRef flags) {
   FileAdaptor F(buf);
@@ -131,7 +135,9 @@ usize S::available_files() {
   return max_files - file_slots.accumulateCount();
 }
 
-//=== Platform Functions ===//
+//======================================================================//
+// Platform Functions
+//======================================================================//
 
 FileResult S::win_file_read(IIOFile* file, common::AddrRange in) {
   return $FileErr(0);

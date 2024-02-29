@@ -122,7 +122,9 @@ namespace hc::bootstrap {
       return mem_node->prev()->asLDRDataTableEntry();
     }
 
-    //=== General ===//
+    //==================================================================//
+    // General
+    //==================================================================//
 
     Win64LDRDataTableEntry* findModule(const wchar_t* S, bool ignore_extension = false) const {
       (void)ignore_extension;
@@ -152,7 +154,9 @@ namespace hc::bootstrap {
       );
     }
 
-    //=== Observers ===//
+    //==================================================================//
+    // Observers
+    //==================================================================//
 
     bool isSentinel() const __noexcept {
       return this == GetListSentinel();
@@ -175,7 +179,9 @@ namespace hc::bootstrap {
       return this->asLDRDataTableEntry()->fullName();
     }
   
-    //=== Conversions ===//
+    //==================================================================//
+    // Conversions
+    //==================================================================//
 
     [[gnu::always_inline, gnu::const]]
     TblType* asLDRDataTableEntry() const {
@@ -205,7 +211,9 @@ namespace hc::bootstrap {
   concept __is_win64_list_entry = 
     __is_base_of(Win64ListEntryNode, T);
 
-  //=== PEB Data ===//
+  //====================================================================//
+  // PEB Data
+  //====================================================================//
 
   struct Win64PEBLDRData {
     u32                length;
@@ -286,7 +294,9 @@ namespace hc::bootstrap {
     Win64LoadOrderList* getLDRModulesInLoadOrder() const;
   };
 
-  //=== TEB Data ===//
+  //====================================================================//
+  // TEB Data
+  //====================================================================//
 
   struct Win64TIB {
     Win64Addr SEH_frame;

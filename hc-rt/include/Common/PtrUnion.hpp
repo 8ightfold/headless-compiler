@@ -164,7 +164,9 @@ namespace hc::common {
       }
     }
 
-    //=== Observers ===//
+    //==================================================================//
+    // Observers
+    //==================================================================//
 
     bool isEmpty() const __noexcept {
       return this->__tag == 0;
@@ -174,7 +176,9 @@ namespace hc::common {
       return !this->isEmpty();
     }
 
-    //=== Internals ===//
+    //==================================================================//
+    // Internals
+    //==================================================================//
 
     template <typename U>
     [[gnu::always_inline, gnu::nodebug]]

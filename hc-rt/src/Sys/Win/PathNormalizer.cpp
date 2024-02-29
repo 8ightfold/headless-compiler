@@ -104,7 +104,9 @@ namespace {
     return '\0';
   }
 
-  //=== Reformatting ===//
+  //====================================================================//
+  // Reformatting
+  //====================================================================//
 
   void normalize_slashes(C::DynAllocation<char> P, C::StrRef S) {
     __hc_assert(P.size() == S.size() + 1U);

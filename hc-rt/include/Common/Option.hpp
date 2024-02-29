@@ -110,7 +110,9 @@ namespace hc::common {
       return SelfType(nullopt);
     }
 
-    //=== Accessors ===//
+    //==================================================================//
+    // Accessors
+    //==================================================================//
 
     constexpr T& some()& {
       __hc_invariant(isSome());
@@ -145,7 +147,9 @@ namespace hc::common {
       return this->__pok();
     }
 
-    //=== Observers ===//
+    //==================================================================//
+    // Observers
+    //==================================================================//
 
     constexpr bool isSome() const __noexcept {
       return BaseType::__is_value;
@@ -159,7 +163,9 @@ namespace hc::common {
       return BaseType::__is_value;
     }
 
-    //=== Monads ===//
+    //==================================================================//
+    // Monads
+    //==================================================================//
 
     template <typename U>
     constexpr T valueOr(U&& u) const& {
@@ -177,7 +183,9 @@ namespace hc::common {
         return T{__hc_fwd(u)};
     }
 
-    //=== Internals ===//
+    //==================================================================//
+    // Internals
+    //==================================================================//
 
     template <typename U>
     [[gnu::always_inline, gnu::nodebug]]
@@ -250,7 +258,9 @@ namespace hc::common {
       return SelfType(nullopt);
     }
 
-    //=== Accessors ===//
+    //==================================================================//
+    // Accessors
+    //==================================================================//
 
     constexpr T& some() const {
       __hc_invariant(isSome());
@@ -267,7 +277,9 @@ namespace hc::common {
       return this->__data;
     }
 
-    //=== Observers ===//
+    //==================================================================//
+    // Observers
+    //==================================================================//
 
     constexpr bool isSome() const __noexcept {
       return !!this->__data;
@@ -281,7 +293,9 @@ namespace hc::common {
       return !!this->__data;
     }
 
-    //=== Monads ===//
+    //==================================================================//
+    // Monads
+    //==================================================================//
 
     constexpr T& valueOr(T& t) const& {
       if(this->isSome()) 
@@ -290,7 +304,9 @@ namespace hc::common {
         return t;
     }
 
-    //=== Internals ===//
+    //==================================================================//
+    // Internals
+    //==================================================================//
 
     template <typename U>
     [[gnu::always_inline, gnu::nodebug]]

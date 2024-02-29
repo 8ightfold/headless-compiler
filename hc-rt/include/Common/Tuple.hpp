@@ -98,7 +98,10 @@ namespace hc::common {
 
 } // namespace hc::common
 
-//=== Tuple Selector ===//
+//======================================================================//
+// Tuple Selector
+//======================================================================//
+
 namespace hc::common {
   template <typename T, typename...TT>
   concept __array_compatible = 
@@ -120,7 +123,10 @@ namespace hc::common {
     make_idxseq<sizeof...(TT)>, TT...>::Type;
 } // namespace hc::common
 
-//=== Implementation ===//
+//======================================================================//
+// Implementation
+//======================================================================//
+
 namespace hc::common {
   template <typename...TT>
   struct Tuple {

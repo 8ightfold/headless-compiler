@@ -23,7 +23,6 @@
 HC_HAS_REQUIRED(builtin, __is_signed);
 HC_HAS_REQUIRED(builtin, __is_unsigned);
 
-//=== Max ===//
 namespace hc {
   template <typename T>
   struct _Limits {

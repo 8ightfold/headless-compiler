@@ -34,7 +34,10 @@ HC_HAS_REQUIRED(builtin, __make_integer_seq);
  concept __has_binary_##name = \
   requires(T t, U u) { t op u; };
 
-//=== Uniqueness ===//
+//======================================================================//
+// Uniqueness
+//======================================================================//
+
 namespace hc::meta {
   template <typename T, typename...TT>
   concept __all_same = (true && ... && is_same<T, TT>);
@@ -70,7 +73,10 @@ namespace hc::meta {
     TySeq<TT...>, __unique_list_t<TT...>>;
 } // namespace hc::meta
 
-//=== Function Stuff ===//
+//======================================================================//
+// Function Stuff
+//======================================================================//
+
 namespace hc::meta {
   template <typename T> 
   __add_rvalue_reference(T) Decl() noexcept {
@@ -115,7 +121,10 @@ namespace hc::meta {
     __return_t<F, TT>...>::Type;
 } // namespace hc::meta
 
-//=== Operator Stuff ===//
+//======================================================================//
+// Operator Stuff
+//======================================================================//
+
 namespace hc::meta {
   _HC_UNARY_OP(plus, +)
   _HC_UNARY_OP(minus, -)

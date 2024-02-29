@@ -51,7 +51,9 @@ namespace hc::common {
       return this->__data[IX];
     }
 
-    //=== Observers ===//
+    //==================================================================//
+    // Observers
+    //==================================================================//
 
     [[nodiscard, gnu::const]]
     constexpr T* data() const __noexcept {

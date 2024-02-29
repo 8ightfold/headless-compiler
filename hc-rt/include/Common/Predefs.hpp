@@ -57,7 +57,9 @@
 # define _HC_CXX23 0
 #endif
 
-//=== General Macros ===//
+//======================================================================//
+// General Macros
+//======================================================================//
 
 #define __hc_4cat(w, x, y, z) w ## x ## y ## z
 #define $4cat(x, y, z) __hc_4cat(w, x, y, z)
@@ -78,7 +80,9 @@
 template <typename T>
 using __hc_tyident_ = T;
 
-//=== Mode Macros ===//
+//======================================================================//
+// Mode Macros
+//======================================================================//
 
 #ifndef _HC_DEBUG
 # define _HC_DEBUG 0
@@ -94,7 +98,9 @@ using __hc_tyident_ = T;
 # error LTO cannot be used in debug mode!
 #endif
 
-//=== Platform Macros ===//
+//======================================================================//
+// Platform Macros
+//======================================================================//
 
 #if defined(_WIN64)
 # define HC_PLATFORM_WIN64 1
@@ -129,7 +135,9 @@ using __hc_tyident_ = T;
 # define __thiscall
 #endif
 
-//=== Architecture Macros ===//
+//======================================================================//
+// Architecture Macros
+//======================================================================//
 
 #if defined(__i386__) || defined(__i386)
 # define HC_ARCH_X32 1
@@ -149,7 +157,9 @@ using __hc_tyident_ = T;
 # define HC_ARCH_X64 0
 #endif
 
-//=== Runtime Macros ===//
+//======================================================================//
+// Runtime Macros
+//======================================================================//
 
 #ifndef _HC_MULTITHREADED
 # define _HC_MULTITHREADED 0

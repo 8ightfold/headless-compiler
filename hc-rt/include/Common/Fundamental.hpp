@@ -25,7 +25,9 @@ HC_HAS_REQUIRED(builtin, __make_unsigned);
 
 __global decltype(sizeof(0)) __bitcount = __CHAR_BIT__;
 
-//=== Integrals ===//
+//======================================================================//
+// Integrals
+//======================================================================//
 
 using ibyte = signed char;
 using ubyte = unsigned char;
@@ -84,7 +86,9 @@ using uptr = hc::common::uintty_t<void*>;
 using ihalfptr = hc::common::intn_t<sizeof(void*) / 2>;
 using uhalfptr = __make_unsigned(ihalfptr);
 
-//=== Floating Point ===//
+//======================================================================//
+// Floating Point
+//======================================================================//
 
 #if __is_reserved(_Float16)
 using f16 = _Float16;
@@ -110,7 +114,9 @@ namespace hc::common {
 
 using nullptr_t = decltype(nullptr);
 
-//=== Pseudofunctions ===//
+//======================================================================//
+// Pseudofunctions
+//======================================================================//
 
 #undef __sizeof
 #undef __bitsizeof
