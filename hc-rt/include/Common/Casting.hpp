@@ -103,3 +103,14 @@ namespace hc {
     return __hc_fwd(t);
   }
 } // namespace hc
+
+//=== Reinterpreting ===//
+namespace hc {
+  template <typename U, typename T>
+  requires meta::is_same_size<T, U>
+  U pun_cast(const T& V) __noexcept {
+    U u;
+    __builtin_memcpy_inline(&u, &V, sizeof(U));
+    return u;
+  }
+} // namespace hc

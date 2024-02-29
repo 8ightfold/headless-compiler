@@ -21,12 +21,10 @@
 //===----------------------------------------------------------------===//
 
 #pragma once
+#pragma clang system_header
 
 #include "Fundamental.hpp"
 #include <Meta/Preproc.hpp>
-
-__cldiag(push)
-__cldiag(ignored "-Wvariadic-macros")
 
 #define $MarkPrefix(type, prefix) \
 inline constexpr usize __refl_markprefix(enum type) { \
@@ -89,5 +87,3 @@ enum __Enum_def(name_type)
 enum class __Enum_def(name_type) { __Enum_values(fields) }; \
 $EnumFields(__Enum_name(name_type), fields) \
 enum class __Enum_def(name_type)
-
-__cldiag(pop)

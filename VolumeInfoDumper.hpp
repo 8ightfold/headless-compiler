@@ -25,7 +25,6 @@
 #include <cstdio>
 
 #define MAX_PATH RT_STRICT_MAX_PATH
-#define $Block for (u8 __I_ = 0; __I_ < 1; ++__I_)
 #define $ChkFlag(V, F) \
 if (bool(V & F)) {  \
   std::printf("%s-%s\n", Prefix(), #F); \
@@ -319,15 +318,17 @@ inline void printDeviceCharacteristics(W::VFSDeviceMask V) {
   $ChkFlag(V, PortableDevice)
 }
 
-inline void printObjectUUID(u8(&UUID)[16]) {
-  const char HexTable[] = "0123456789ABCDEF";
-  std::printf(" UUID: {");
-  for (int I = 0; I < 16; ++I) {
-    const u8 B = UUID[I];
-    std::putchar(HexTable[B & 0xF]);
-    std::putchar(HexTable[B >> 4]);
-    if (I && (I % 4 == 0))
-      std::putchar('-');
+inline void printObjectUUID(W::GUID& UUID, bool upper = false) {
+  const char* HexTable[2] = {
+    "0123456789abcdef",
+    "0123456789ABCDEF"
+  };
+  std::printf(" UUID: {%.8lx-%.4hx-%.4hx-",
+    UUID.prefix, UUID.groupA, UUID.groupB);
+  for (int I = 0; I < 8; ++I) {
+    const u8 B = UUID.postfix[I];
+    std::putchar(HexTable[upper][B & 0xF]);
+    std::putchar(HexTable[upper][B >> 4]);
   }
   std::printf("}\n");
 }
@@ -353,8 +354,9 @@ inline void printSectorSizeInfo(W::FSSectorSizeInfo& V) {
 }
 
 
-inline void printVolumeInfo(wchar_t* drive_str) {
-  auto name = W::UnicodeString::New(drive_str);
+inline void printVolumeInfo(const wchar_t* drive_str) {
+  wchar_t* const mdrive_str = const_cast<wchar_t*>(drive_str);
+  auto name = W::UnicodeString::New(mdrive_str);
   W::IoStatusBlock io {};
   ScopedFileHandle handle(
     S::get_volume_handle(name, io));
@@ -367,42 +369,42 @@ inline void printVolumeInfo(wchar_t* drive_str) {
 
   VolumeInfoBinding V(handle, io);
   std::printf("Info for \"%ls\":\n", drive_str);
-  $Block {
+  $scope {
     auto attr = V.load<W::FSAttributeInfo, 64>();
     if (V.failed("AttributeInfo")) break;
     std::printf("Volume Attributes:\n");
     printVFSAttribMask(attr->fs_attribs);
     printPtrRange(attr->intoRange(), "Filesystem Name");
-  } $Block {
+  } $scope {
     auto ctrl = V.load<W::FSControlInfo>();
     if (V.failed("ControlInfo")) break;
     printControlInfo(ctrl);
-  } $Block {
+  } $scope {
     auto dev = V.load<W::FSDeviceInfo, 8>();
     if (V.failed("DeviceInfo")) break;
     std::printf("Device Info:\n");
     std::printf(" Device Type: %s\n", 
       getDeviceTypeStr(dev->device_type));
     printDeviceCharacteristics(dev->characteristics);
-  } $Block {
+  } $scope {
     auto drv = V.load<W::FSDriverPathInfo, MAX_PATH>();
     if (V.failed("DriverPath")) break;
     std::printf("Driver Path Info:\n");
     printBoolean(drv->in_path, "In Path");
     printPtrRange(drv->intoRange(), "Path");
-  } $Block {
+  } $scope {
     auto obj = V.load<W::FSObjectIDInfo>();
     if (V.failed("ObjectID")) break;
     std::printf("Object ID:\n");
     printObjectUUID(obj->object_id);
     // std::printf(" Extended Info: ...\n");
     (void) obj->extended_info;
-  } $Block {
+  } $scope {
     auto ssz = V.load<W::FSSectorSizeInfo>();
     if (V.failed("SectorSize")) break;
     std::printf("Sector Size Info:\n");
     printSectorSizeInfo(ssz);
-  } $Block {
+  } $scope {
     auto sz = V.load<W::FSSizeInfo>();
     if (V.failed("Size")) break;
     std::printf("Volume Size:\n");
@@ -411,7 +413,7 @@ inline void printVolumeInfo(wchar_t* drive_str) {
     std::printf(" Sectors Per Allocation Unit: %u\n",
       sz->sectors_per_alloc_unit);
     std::printf(" Bytes Per Sector: %u\n", sz->bytes_per_sector);
-  } $Block {
+  } $scope {
     auto vol = V.load<W::FSVolumeInfo, MAX_PATH>();
     if (V.failed("Volume")) break;
     std::printf("Volume Info:\n");
@@ -422,6 +424,6 @@ inline void printVolumeInfo(wchar_t* drive_str) {
   }
 }
 
-inline void printVolumeInfo(char* drive_string) {
+inline void printVolumeInfo(const char* drive_string) {
   return printVolumeInfo($to_wstr(drive_string).data());
 }

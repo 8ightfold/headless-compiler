@@ -181,6 +181,9 @@ namespace hc::sys {
       return flushUnlocked();
     }
 
+    IOResult<long> seek(long offset, int /* whence */);
+    IOResult<long> tell();
+
     IOResult<> close() {
       {
         FileLock L(this);

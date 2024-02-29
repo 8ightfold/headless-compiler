@@ -126,7 +126,7 @@ namespace hc::common {
   public:
     template <typename U = T>
     [[gnu::always_inline, gnu::const]]
-    static PtrRange<U> New(U* begin, U* end) {
+    constexpr static PtrRange<U> New(U* begin, U* end) {
       return { begin, end };
     }
 
@@ -151,7 +151,7 @@ namespace hc::common {
 
     template <typename U = T>
     [[gnu::always_inline, gnu::const]]
-    static PtrRange<U> New(U* begin, usize size) {
+    constexpr static PtrRange<U> New(U* begin, usize size) {
       if constexpr (__is_void(U)) {
         PtrType begin_adaptor { begin };
         return { begin_adaptor, begin_adaptor + size };
@@ -168,7 +168,7 @@ namespace hc::common {
 
     template <typename U = T, usize N>
     [[gnu::always_inline, gnu::const]]
-    static PtrRange<U> New(U(&A)[N])
+    constexpr static PtrRange<U> New(U(&A)[N])
      requires meta::not_void<U> {
       return { A, A + N };
     }

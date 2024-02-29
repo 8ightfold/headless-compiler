@@ -40,14 +40,14 @@ namespace {
 //=== Implementation ===//
 
 namespace {
-  WinIOFile* __nt_openfile(File& self, C::PtrRange<wchar_t> wpath, IIOMode flags) {
+  WinIOFile* __nt_openfile(FileAdaptor& self, C::PtrRange<wchar_t> wpath, IIOMode flags) {
     __hc_invariant(!wpath.isEmpty());
     auto name  = win::UnicodeString::New(wpath);
     (void) name;
     return nullptr;
   }
 
-  WinIOFile* __nt_openfile(File& self, C::StrRef path, IIOMode flags) {
+  WinIOFile* __nt_openfile(FileAdaptor& self, C::StrRef path, IIOMode flags) {
     __hc_invariant(!path.isEmpty());
     auto wpath = $to_wstr(path.data());
     if (path.beginsWith("\\\\?\\"))
@@ -57,7 +57,7 @@ namespace {
   }
 } // namespace `anonymous`
 
-IIOFile* File::openFileRaw(C::StrRef path, C::StrRef flags) {
+IIOFile* FileAdaptor::openFileRaw(C::StrRef path, C::StrRef flags) {
   const auto F = IIOFile::ParseModeFlags(flags);
   if (F == IIOMode::Err) {
     err = Error::eInval;
@@ -87,7 +87,7 @@ IIOFile* File::openFileRaw(C::StrRef path, C::StrRef flags) {
   return __nt_openfile(*this, normalizer.getPath(), F);
 }
 
-bool File::closeFileRaw(IIOFile* file) {
+bool FileAdaptor::closeFileRaw(IIOFile* file) {
   const auto F = ptr_cast<WinIOFile>(file);
   if (!file_slots.inRange(F)) {
     err = Error::eBadFD;
@@ -102,7 +102,7 @@ bool File::closeFileRaw(IIOFile* file) {
   return R;
 }
 
-void File::clearError() {
+void FileAdaptor::clearError() {
   invals[0] = false;
   invals[1] = false;
   invals[2] = false;
@@ -112,7 +112,7 @@ void File::clearError() {
 //=== Free Functions ===//
 
 IOResult<IIOFile*> S::open_file(C::StrRef path, IIOFileBuf& buf, C::StrRef flags) {
-  File F(buf);
+  FileAdaptor F(buf);
   if (IIOFile* file = F.openFileRaw(path, flags))
     return $Ok(file);
   return $Err(F.getLastError());
@@ -121,7 +121,7 @@ IOResult<IIOFile*> S::open_file(C::StrRef path, IIOFileBuf& buf, C::StrRef flags
 IOResult<> S::close_file(IIOFile* file) {
   if (!file)
     return $Err(Error::eInval);
-  File F(file->getFileBuf());
+  FileAdaptor F(file->getFileBuf());
   if (F.closeFileRaw(file))
     return $Ok();
   return $Err(F.getLastError());

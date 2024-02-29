@@ -92,6 +92,13 @@ namespace hc::common {
     __builtin_memcpy_inline(&dst, &src, __sizeof(T));
     return dst;
   }
+
+  template <typename T, typename U>
+  requires meta::is_same_size<T, U>
+  inline T& __pun(T& dst, const U& src) {
+    __builtin_memcpy_inline(&dst, &src, sizeof(T));
+    return dst;
+  }
 } // namespace hc::common
 
 namespace hc::common {

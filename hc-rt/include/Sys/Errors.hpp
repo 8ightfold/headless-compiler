@@ -21,10 +21,14 @@
 //  SysErr::*:
 //    OpaqueError.hpp 
 //    {PLATFORM}/OpaqueError.cpp
+//  SysErr::GetOpaqueError:
+//    {PLATFORM}/PlatformStatus.cpp
 //
 //===----------------------------------------------------------------===//
 
 #pragma once
+
+#include <Common/Fundamental.hpp>
 
 namespace hc::sys {
   enum class Error : int {
@@ -46,22 +50,41 @@ namespace hc::sys {
     MaxValue,
   };
 
-  enum class ErrorGroup {
-    GNULike,          // Found in `Error`.
-    PlatformSpecific, // OS errors.
-    UserDefined,      // User registered errors.
+  enum class ErrorGroup : uptr {
+    Unknown     = 0, // Null/Unknown
+    GNULike     = 1, // Found in `Error`.
+    OSError     = 2, // Platform specific errors.
+    UserDefined = 3, // User registered errors.
   };
 
+  enum class ErrorSeverity : u8 {
+    Unset       = 0,
+    Success     = 1,
+    Info        = 2,
+    Warning     = 3,
+    Error       = 4,
+  };
+
+  /// Implementation defined error identifier.
+  using OpqErrorID  = u64;
+  using OpqErrorTy  = const void*;
   /// Pointer to an opaque error representation.
-  using OpaqueError = struct IOpaqueError*;
+  using OpaqueError = const struct IOpaqueError*;
+
+  template <typename T>
+  concept is_valid_opqerr = (__sizeof(T) < 8)
+    && __is_trivially_constructible(T)
+    && __is_trivially_constructible(T, const T&)
+    && __is_trivially_assignable(T&, const T&)
+    && __is_trivially_destructible(T);
 
   /// Wrapper class for system errors.
   class SysErr {
-    friend struct WinSysErr;
-    friend struct LinuxSysErr;
+    using enum ErrorGroup;
+    friend struct _OSErr;
   public:
     /// Converts some ID error to a platform-specific handle.
-    static OpaqueError GetOpaqueError(usize ID);
+    static OpaqueError GetOpaqueError(OpqErrorID ID);
     /// Converts GCC Error to an opaque handle.
     static OpaqueError GetOpaqueError(Error E);
 
@@ -71,22 +94,55 @@ namespace hc::sys {
     /// Unsets the error if set, otherwise does nothing.
     static void ResetLastError();
 
-    /// Gets a description for an ID. `nullptr` if invalid.
-    static const char* GetErrorDescription(usize ID);
-    /// Gets a description for an error. `nullptr` if invalid.
+    /// Gets a description for an ID. `""` if invalid.
+    static const char* GetErrorName(OpqErrorID ID);
+    /// Gets a description for an error. `""` if invalid.
+    static const char* GetErrorName(OpaqueError);
+
+    /// Gets a description for an ID. `""` if invalid.
+    static const char* GetErrorDescription(OpqErrorID ID);
+    /// Gets a description for an error. `""` if invalid.
     static const char* GetErrorDescription(OpaqueError);
 
     /// Gets the ID of an opaque handle.
-    static usize GetErrorID(OpaqueError);
+    static OpqErrorID GetErrorID(OpaqueError);
     /// Gets the `ErrorGroup` of an opaque handle.
     static ErrorGroup GetErrorGroup(OpaqueError);
 
     /// Defines a custom user error, returns `nullptr` if invalid.
     /// Overwrites are only valid when `force` is `true`.
-    static OpaqueError RegisterUserError(struct TODO*);
+    template <is_valid_opqerr T, usize N>
+    static OpaqueError RegisterUserError(
+     T V, const char(&S)[N], bool force = false) {
+      const OpqErrorTy G  = ErrorTy(V);
+      const OpqErrorID ID = ErrorID(V);
+      return RegisterUserError(G, ID, S, force);
+    }
   
   private:
-    static void SetOpaqueError(usize ID);
-    static void SetOpaqueError(OpaqueError);
+    static OpaqueError RegisterUserError(
+      OpqErrorTy G, OpqErrorID ID, 
+      const char* S, bool force);
+    
+    template <typename T>
+    static inline constinit char errID = 1;
+
+    template <typename T>
+    static inline OpqErrorTy ErrorTy(const T& = T()) {
+      return &SysErr::errID<T>;
+    }
+
+    template <typename T>
+    static inline OpqErrorID ErrorID(T V) {
+      static constexpr bool is_pow2 = !(sizeof(T) & (sizeof(T) - 1));
+      static_assert(is_pow2, "sizeof(Err) must be a power of 2.");
+      using TypeVal = common::uintty_t<T>;
+      auto preID = __builtin_bit_cast(TypeVal, V);
+      return static_cast<OpqErrorID>(preID);
+    }
+
+  private:
+    static void SetLastError(OpqErrorID ID);
+    static void SetLastError(OpaqueError);
   };
 } // namespace hc::sys

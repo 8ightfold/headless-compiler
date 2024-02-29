@@ -21,6 +21,7 @@
 //===----------------------------------------------------------------===//
 
 #pragma once
+#pragma clang system_header
 
 #include "Checked.hpp"
 #include "PtrRange.hpp"
@@ -46,12 +47,12 @@ namespace hc::common {
     using BaseType::intoRange;
     using BaseType::operator[];
   public:
-    StrRef() = default;
-    StrRef(const StrRef&) = default;
-    StrRef(StrRef&&) = default;
-    StrRef(nullptr_t) = delete;
-    StrRef(BaseType B) : BaseType(B) { }
+    constexpr StrRef() = default;
+    constexpr StrRef(const StrRef&) = default;
+    constexpr StrRef(StrRef&&) = default;
+    constexpr StrRef(BaseType B) : BaseType(B) { }
     StrRef(PtrType S) : BaseType(StrRef::NewRaw(S)) { }
+    StrRef(nullptr_t) = delete;
     
     template <__strref_compatible T>
     StrRef(PtrRange<T> P) : StrRef(SelfType::New(P)) { }
@@ -70,29 +71,29 @@ namespace hc::common {
   public:
     template <__strref_compatible T>
     [[gnu::always_inline, gnu::const]]
-    static StrRef New(PtrRange<T> P) {
+    constexpr static StrRef New(PtrRange<T> P) {
       return StrRef(P);
     }
 
     [[gnu::always_inline, gnu::const]]
-    static StrRef New(PtrType begin, PtrType end) {
+    constexpr static StrRef New(PtrType begin, PtrType end) {
       __hc_invariant(begin || !end);
       return BaseType::New(begin, end);
     }
 
     [[gnu::always_inline, gnu::const]]
-    static StrRef New(PtrType begin, usize size) {
+    constexpr static StrRef New(PtrType begin, usize size) {
       __hc_invariant(begin || !size);
       return BaseType::New(begin, size);
     }
 
     template <usize N>
     [[gnu::always_inline, gnu::const]]
-    static StrRef New(Type(&arr)[N]) {
+    constexpr static StrRef New(Type(&arr)[N]) {
       return New(arr, arr + N);
     }
 
-    static StrRef NewRaw(PtrType S) {
+    constexpr static StrRef NewRaw(PtrType S) {
       if __expect_false(!S) 
         return StrRef();
       return BaseType::New(S, __strlen(S));
@@ -254,3 +255,9 @@ namespace hc::common {
     }
   };
 } // namespace hc::common
+
+namespace hc {
+  constexpr common::StrRef operator""sv(const char* S, usize N) {
+    return common::StrRef::New(S, N);
+  }
+} // namespace hc

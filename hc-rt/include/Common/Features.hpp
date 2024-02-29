@@ -144,10 +144,16 @@ constexpr __remove_reference_t(T)&& __hc_move(T&& t) __noexcept {
 # define __hc_trap() __builtin_trap()
 #endif
 
+/// A constexpr-only assertion.
+#define __hc_cxassert(expr...) do { \
+  if (__builtin_is_constant_evaluated() && !bool(expr)) \
+    __builtin_unreachable(); \
+} while(0)
+
 #if _HC_DEBUG
 /// Checked condition in debug.
 # define __hc_assert(expr...) \
-  [&] () __attribute__((always_inline, artificial)) { \
+  [&] () __attribute__((always_inline, nodebug)) { \
     if (__builtin_expect(!bool(expr), 0)) \
       ::__hc_dbg_unreachable(); \
   }();
@@ -155,15 +161,20 @@ constexpr __remove_reference_t(T)&& __hc_move(T&& t) __noexcept {
 # define __hc_assertOrIdent(expr...) __hc_assert(expr)
 #else // _HC_DEBUG
 /// Noop in release.
-# define __hc_assert(...) (void)(0)
+# define __hc_assert(...) __hc_cxassert(expr)
+/// Evaluated but unchecked.
 # define __hc_assertOrIdent(expr...) (void) expr
 #endif // _HC_DEBUG
 
 #if _HC_CHECK_INVARIANTS
 # define __hc_invariant(expr...) __hc_assert(expr)
 #else
-# define __hc_invariant(expr...) (void)(0)
+# define __hc_invariant(expr...) __hc_cxassert(expr)
 #endif // __hc_invariant
+
+#define __hc_todo(name, ret...) \
+ do { __hc_unreachable(name " is unimplemented."); \
+  return ret; } while(0)
 
 // TODO: Add __hc_trace("msg", args...)
 
@@ -174,6 +185,7 @@ constexpr __remove_reference_t(T)&& __hc_move(T&& t) __noexcept {
 #define $tail_return [[clang::musttail]] return
 #define $unreachable __builtin_unreachable()
 #define $unreachable_msg(message) __builtin_unreachable()
+#define $scope switch (0) case 0:
 
 namespace hc {
   template <typename T>

@@ -79,11 +79,6 @@ void test_xstrlen(const Char(&A)[N]) {
 }
 
 int main(int N, char* A[], char* Env[]) {
-  test_xstrlen(L"Hello!");
-  test_xstrlen(L"We got a pretty damn long string here, hope this is faster!!");
-  test_xstrlen("And now we do the exact same tests with regular strings, which should work.");
-  return (1 / 2);
-
   printPathType("//?/PhysicalDrive0/"); // DosDrive
   printPathType("//?/X:/");             // DosVolume
   printPathType("//.\\UNC/");           // DeviceUNC
@@ -101,7 +96,8 @@ int main(int N, char* A[], char* Env[]) {
   W::StaticUnicodeString name(
     // L"\\??\\PhysicalDrive0\\krita-dev\\krita\\README.md"
     // L"\\??\\C:\\krita-dev\\krita\\README.md"
-    L"\\??\\C:\\Program Files\\desktop.ini"
+    // L"\\??\\C:\\Program Files\\desktop.ini"
+    L"\\\\?\\C:\\Program Files\\desktop.ini"
   );
 
   auto mask = W::GenericReadAccess;
@@ -118,7 +114,9 @@ int main(int N, char* A[], char* Env[]) {
   );
   if ($NtFail(io.status)) {
     std::printf("With file `%ls`:\n", name.buffer);
-    std::printf("Open failed! [0x%.8X]\n", io.status);
+    // std::printf("Open failed! [0x%.8X]\n", io.status);
+    std::printf("Open failed! [%s]\n", 
+      S::SysErr::GetErrorName(io.status));
     return io.status;
   }
   std::printf("Opened file `%ls`.\n", name.buffer);

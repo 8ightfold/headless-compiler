@@ -2,7 +2,7 @@ include_guard(DIRECTORY)
 
 project(
   hcrt-crt
-  VERSION 0.1.19
+  VERSION 0.1.20
   LANGUAGES CXX
 )
 
@@ -17,9 +17,24 @@ add_library(hcrt::dev ALIAS hcrt-dev)
 target_include_directories(hcrt-dev PUBLIC include PRIVATE src)
 target_forward_options(hcrt-dev PUBLIC RT_MAX_FILES RT_MAX_PATH RT_STRICT_MAX_PATH)
 target_compile_definitions(hcrt-dev PRIVATE __HC_INTERNAL__=1)
-target_compile_options(hcrt-dev PUBLIC -fno-exceptions PRIVATE -Wall)
+target_compile_options(hcrt-dev PUBLIC -fno-exceptions -fdiagnostics-show-template-tree PRIVATE -Wall)
 target_link_options(hcrt-dev PUBLIC -Wl,--stack,0xF42400 -nostdlib++)
 set_property(TARGET hcrt-dev PROPERTY INTERPROCEDURAL_OPTIMIZATION ${HC_ENABLE_LTO})
+
+if(HC_EXTRA_DIAGNOSTICS)
+  target_compile_options(hcrt-dev 
+    PUBLIC
+    -fdiagnostics-show-category=name
+    -ggdb
+  )
+endif()
+
+if(HC_MULTITHREADED)
+  target_forward_options(hcrt-dev PUBLIC RT_MAX_THREADS)
+else()
+  target_compile_definitions(hcrt-dev PUBLIC RT_MAX_THREADS=0)
+  target_compile_options(hcrt-dev PUBLIC -fno-threadsafe-statics)
+endif()
 
 include(SetFlags)
 target_internal_flags(hcrt-dev PUBLIC HC_DEBUG)
@@ -29,12 +44,6 @@ target_internal_flags(hcrt-dev PUBLIC HC_DO_TRACING)
 target_internal_flags(hcrt-dev PUBLIC HC_MULTITHREADED)
 target_internal_flags(hcrt-dev PUBLIC HC_SOFTWARE_PREFETCH)
 target_internal_flags(hcrt-dev PUBLIC HC_ENABLE_LTO)
-
-if(HC_MULTITHREADED)
-  target_forward_options(hcrt-dev PUBLIC RT_MAX_THREADS)
-else()
-  target_compile_definitions(hcrt-dev PUBLIC RT_MAX_THREADS=0)
-endif()
 
 if(WIN32)
   target_sources(hcrt-dev PUBLIC
@@ -47,6 +56,8 @@ if(WIN32)
     src/Sys/Win/Args.cpp
     src/Sys/Win/Mutex.cpp
     src/Sys/Win/IOFile.cpp
+    src/Sys/Win/OpaqueError.cpp
+    src/Sys/Win/PlatformStatus.cpp
     src/Sys/Win/PFiles.cpp
     src/Sys/Win/PathNormalizer.cpp
   )

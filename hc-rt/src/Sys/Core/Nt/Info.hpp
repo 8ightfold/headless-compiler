@@ -17,6 +17,7 @@
 //===----------------------------------------------------------------===//
 
 #pragma once
+#pragma clang system_header
 
 #include "Structs.hpp"
 #include "Filesystem.hpp"
@@ -185,6 +186,13 @@ namespace hc::sys::win {
     WaveOut             = 0x0026,
   };
 
+  struct [[gnu::packed]] GUID {
+    u32 prefix;
+    u16 groupA;
+    u16 groupB;
+    u8  postfix[8];
+  };
+
   //=== Definitions ===//
 
   template <typename>
@@ -246,7 +254,7 @@ namespace hc::sys::win {
 
   $DeclFSTy(ObjectID) {
     $FSIsDyn(false);
-    ubyte object_id[16];
+    GUID object_id;
     ubyte extended_info[48];
   };
 
@@ -294,9 +302,6 @@ namespace hc::sys::win {
     = FSInfoAssoc<FSInfoType>::value;
   
   //=== Wrapper ===//
-
-  __cldiag(push)
-  __cldiag(ignored "-Wgnu-variable-sized-type-not-at-end")
 
   template <typename FSInfoType, usize ExBytes = 0U>
   constexpr FSInfoType __fsi_FAM_init() {
@@ -352,8 +357,6 @@ namespace hc::sys::win {
   public:
     FSInfoType body = __fsi_FAM_init<FSInfoType>();
   };
-
-  __cldiag(pop)
 } // namespace hc::sys::win
 
 #undef $AssocType

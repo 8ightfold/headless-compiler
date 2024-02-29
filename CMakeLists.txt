@@ -42,21 +42,30 @@ option(HC_MULTITHREADED "Enable threads (fibers always allowed)." ON)
 option(HC_DO_TRACING "Enable tracing in debug mode." OFF)
 option(HC_SOFTWARE_PREFETCH "Enable software prefetching." ON)
 option(HC_ENABLE_LTO "Enable IPO/LTO." ON)
+option(HC_EXTRA_DIAGNOSTICS "Extra Clang messages." OFF)
 
 valued_option(RT_MAX_THREADS "Maximum amount of threads that can be created." 8)
 valued_option(RT_MAX_FILES "Maximum amount of files to be opened at once." 16)
 valued_option(RT_MAX_PATH "Maximum length a filepath can be." 512)
 valued_option(RT_STRICT_MAX_PATH "Maximum length an internal filepath can be." 260)
 
+if(NOT RT_MAX_THREADS)
+  set(HC_MULTITHREADED OFF CACHE BOOL "" FORCE)
+endif()
+
+message(STATUS "IPO/LTO: ${HC_ENABLE_LTO}")
 message(STATUS "Invariant checking: ${HC_CHECK_INVARIANTS}")
 message(STATUS "Debug tracing: ${HC_DO_TRACING}")
-message(STATUS "IPO/LTO: ${HC_ENABLE_LTO}")
 
+if(HC_EXTRA_DIAGNOSTICS)
+  message(STATUS "Extra diagnostics: ${HC_EXTRA_DIAGNOSTICS}")
+endif()
+
+message(STATUS "Multithreading: ${HC_MULTITHREADED}")
 if(HC_MULTITHREADED)
   message(STATUS "Max threads: ${RT_MAX_THREADS}")
-else()
-  message(STATUS "Max threads: DISABLED")
 endif()
+
 message(STATUS "Max files: ${RT_MAX_FILES}")
 message(STATUS "Max path: ${RT_MAX_PATH}")
 

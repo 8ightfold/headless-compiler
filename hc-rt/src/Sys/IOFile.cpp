@@ -174,6 +174,17 @@ Error IIOFile::flushUnlocked() {
   return eNone;
 }
 
+IOResult<long> IIOFile::seek(long offset, int whence) {
+  __hc_unreachable("seek is unimplemented.");
+  seek_fn(this, offset, whence);
+  return $Err(ePIO);
+}
+
+IOResult<long> IIOFile::tell() {
+  __hc_unreachable("tell is unimplemented.");
+  return $Err(ePIO);
+}
+
 // impl
 
 FileResult IIOFile::writeUnlockedNone(C::ImmPtrRange<u8> data) {
