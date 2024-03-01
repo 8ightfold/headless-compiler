@@ -1,4 +1,4 @@
-//===- Sys/IOFile.hpp -----------------------------------------------===//
+//===- Sys/File.hpp -------------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -78,11 +78,3 @@ namespace hc {
   // using sys::perr;
   // using sys::pin;
 } // namespace hc
-
-#ifdef  __HC_INTERNAL__
-#ifndef _HC_IOFILE_STNL
-// honestly wanted to fuck with include_next
-# define _HC_IOFILE_STNL
-# include_next <Sys/IOFile.hpp>
-#endif // !_HC_IOFILE_STNL
-#endif // __HC_INTERNAL__

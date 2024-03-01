@@ -25,16 +25,12 @@
 
 #pragma once
 
-#ifndef _HC_IOFILE_STNL
-# define _HC_IOFILE_STNL
-# include_next <Sys/IOFile.hpp>
-#endif // _HC_IOFILE_STNL
-
 #include <Common/EnumBitwise.hpp>
 #include <Meta/Traits.hpp>
 #include <Sys/Errors.hpp>
 #include <Sys/Mutex.hpp>
 #include <Sys/IOFileBuf.hpp>
+#include <Sys/File.hpp>
 
 // For more info:
 // https://github.com/llvm/llvm-project/blob/main/libc/src
