@@ -62,7 +62,9 @@ namespace xcrt {
     return (subtracted & (~block) & hiBits) != 0;
   }
 
+  //====================================================================//
   // [w]strlen:
+  //====================================================================//
 
   template <typename Int, typename Char>
   inline usize xstringlen_wide_read(const Char* src) {
@@ -109,7 +111,9 @@ namespace xcrt {
     return xstringlen<wchar_t>(src);
   }
 
+  //====================================================================//
   // [w]strchr:
+  //====================================================================//
 
   template <typename Int, typename Char>
   inline void* xFFC_wide_read(const Char* src, Char C, const usize n) {
@@ -172,7 +176,36 @@ namespace xcrt {
     return static_cast<wchar_t*>(P);
   }
 
-  // misc.
+  //====================================================================//
+  // [w]str[n]cmp:
+  //====================================================================//
+
+  template <typename Char, typename Cmp>
+  inline constexpr i32 xstrcmp(
+   const Char* lhs, const Char* rhs, Cmp&& cmp) {
+    using ConvType = const hc::common::uintty_t<Char>*;
+    for (; *lhs && !cmp(*lhs, *rhs); ++lhs, ++rhs);
+    return cmp(*ConvType(lhs), *ConvType(rhs));
+  }
+
+  template <typename Char, typename Cmp>
+  inline constexpr i32 xstrncmp(
+   const Char* lhs, const Char* rhs, usize n, Cmp&& cmp) {
+    using ConvType = const hc::common::uintty_t<Char>*;
+    if __expect_false(n == 0)
+      return 0;
+    
+    for (; n > 1; --n, ++lhs, ++rhs) {
+      const Char C = *lhs;
+      if (!cmp(C, Char(0)) || cmp(C, *rhs))
+        break;
+    }
+    return cmp(*ConvType(lhs), *ConvType(rhs));
+  }
+
+  //====================================================================//
+  // Misc.
+  //====================================================================//
 
   // Returns the maximum offset that contains characters not found in `seg`.
   inline usize compliment_span(const char* src, const char* seg) {

@@ -70,6 +70,7 @@ namespace hc::common {
   template <__char_type T>
   __COMMON_ATTRS int
    __memcmp(const T* lhs, const T* rhs, usize len) {
+    // TODO: Implement on xcrt
     return __builtin_memcmp(lhs, rhs, /* sizeof(T) == 1 */ len);
   }
 
