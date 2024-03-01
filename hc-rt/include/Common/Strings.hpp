@@ -32,7 +32,7 @@
 #endif
 
 #define __common_is_same(t, u) (__is_same(t, u) && __is_same(u, t))
-#define __common_attrs __always_inline __common_strings_cxpr
+#define __COMMON_ATTRS __always_inline __common_strings_cxpr
 
 static_assert(__is_reserved(char8_t));
 HC_HAS_REQUIRED(builtin, __is_same);
@@ -57,18 +57,18 @@ namespace hc::common {
   //====================================================================//
 
   template <__char_type T>
-  __common_attrs void*
+  __COMMON_ATTRS void*
    __vmemchr(const T* haystack, T needle, usize len) {
     return __builtin_memchr(haystack, int(needle), /* sizeof(T) == 1 */ len);
   }
 
-  __common_attrs char* 
+  __COMMON_ATTRS char* 
    __memchr(const char* haystack, char needle, usize len) {
     return __builtin_char_memchr(haystack, int(needle), len);
   }
 
   template <__char_type T>
-  __common_attrs int
+  __COMMON_ATTRS int
    __memcmp(const T* lhs, const T* rhs, usize len) {
     return __builtin_memcmp(lhs, rhs, /* sizeof(T) == 1 */ len);
   }
@@ -109,27 +109,27 @@ namespace hc::common {
   // String Functions
   //====================================================================//
 
-  __common_attrs const char*
+  __COMMON_ATTRS const char*
    __strchr(const char* haystack, char needle) {
     return __builtin_strchr(haystack, int(needle));
   }
 
-  __common_attrs char*
+  __COMMON_ATTRS char*
    __strchr(char* haystack, char needle) {
     return __builtin_strchr(haystack, int(needle));
   }
 
-  __common_attrs int
+  __COMMON_ATTRS int
    __strcmp(const char* lhs, const char* rhs) {
     return __builtin_strcmp(lhs, rhs);
   }
 
-  __common_attrs int
+  __COMMON_ATTRS int
    __strncmp(const char* lhs, const char* rhs, usize len) {
     return __builtin_strncmp(lhs, rhs, len);
   }
 
-  __common_attrs usize
+  __COMMON_ATTRS usize
    __strlen(const char* str) {
     return __builtin_strlen(str);
   }
@@ -138,27 +138,27 @@ namespace hc::common {
   // Wide String Functions
   //====================================================================//
 
-  __common_attrs const wchar_t*
+  __COMMON_ATTRS const wchar_t*
    __wstrchr(const wchar_t* haystack, wchar_t needle) {
     return __builtin_wcschr(haystack, needle);
   }
 
-  __common_attrs wchar_t*
+  __COMMON_ATTRS wchar_t*
    __wstrchr(wchar_t* haystack, wchar_t needle) {
     return __builtin_wcschr(haystack, needle);
   }
 
-  __common_attrs int
+  __COMMON_ATTRS int
    __wstrcmp(const wchar_t* lhs, const wchar_t* rhs) {
     return __builtin_wcscmp(lhs, rhs);
   }
 
-  __common_attrs int
+  __COMMON_ATTRS int
    __wstrncmp(const wchar_t* lhs, const wchar_t* rhs, usize len) {
     return __builtin_wcsncmp(lhs, rhs, len);
   }
 
-  __common_attrs usize
+  __COMMON_ATTRS usize
    __wstrlen(const wchar_t* str) {
     return __builtin_wcslen(str);
   }
@@ -166,4 +166,4 @@ namespace hc::common {
 } // namespace hc::common
 
 #undef __common_is_same
-#undef __common_attrs
+#undef __COMMON_ATTRS

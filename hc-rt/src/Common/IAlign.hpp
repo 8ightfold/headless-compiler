@@ -37,6 +37,13 @@ namespace hc::rt {
     len -= offset;
   }
 
+  template <typename T, typename U>
+  inline void adjust_nr(uptrdiff offset, T*& t, U*& u, usize& len) {
+    t += offset;
+    u += offset;
+    len -= offset;
+  }
+
   template <usize Align, typename T>
   inline void align_to_next_boundary(T* __restrict& t, usize& len) {
     const T* og = t;

@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "SSEVec.hpp"
 #include "MemUtils.hpp"
 
 #ifndef  _HC_SOFTWARE_PREFETCH
@@ -39,4 +40,11 @@ namespace hc::rt {
     High = 2,
     Max  = 3,
   };
+
+  template <PrefetchMode M = PrefetchMode::Write, Locality L = Locality::Max>
+  __always_inline void smart_prefetch(const u8* addr) {
+    static constexpr int mode = static_cast<int>(M);
+    static constexpr int locality = static_cast<int>(L);
+    __builtin_prefetch(addr, mode, locality);
+  }
 } // namespace hc::rt

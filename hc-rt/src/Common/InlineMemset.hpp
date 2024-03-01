@@ -76,6 +76,10 @@ namespace hc::rt {
     return __set_loop_and_last_off<BlockType>(dst, val, len, 0);
   }
 
+  //====================================================================//
+  // Implementation
+  //====================================================================//
+
   [[maybe_unused]] _HC_MEMSET_FN(__prefetching_memset) {
     static constexpr usize prefetchDist = cacheLinesSize<5>;
     static constexpr usize prefetchDegree = cacheLinesSize<2>;

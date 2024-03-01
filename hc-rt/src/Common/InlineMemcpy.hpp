@@ -68,6 +68,10 @@ namespace hc::rt {
     $tail_return __copy_last_block<BlockSize>(dst, src, len);
   }
 
+  //====================================================================//
+  // Implementation
+  //====================================================================//
+
   _HC_MEMCPY_FN(__memcpy_small) {
     if (len == 1)
       $tail_return __copy_block<1>(dst, src, len);

@@ -21,5 +21,7 @@
 using namespace hc;
 
 extern "C" {
-  
+  int memcmp(const void* lhs, const void* rhs, usize len) {
+    $tail_return common::inline_memcmp(lhs, rhs, len);
+  }
 } // extern "C"
