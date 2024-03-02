@@ -35,7 +35,7 @@ extern "C" {
   __attribute__((selectany))
   constinit uptr __security_cookie_complement = ~__hc_dsec_cookie_;
 
-  void __security_init_cookie(void) {
+  [[gnu::used]] void __security_init_cookie(void) {
     if (__security_cookie != __hc_dsec_cookie_) {
       __security_cookie_complement = ~__security_cookie;
       return;

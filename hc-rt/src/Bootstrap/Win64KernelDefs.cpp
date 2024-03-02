@@ -111,6 +111,10 @@ Win64TEB* Win64TEB::LoadTEBFromGS() {
   return static_cast<Win64TEB*>(raw_addr);
 }
 
+Win64TIB* Win64TEB::LoadTIBFromGS() {
+  return &LoadTEBFromGS()->tib;
+}
+
 Win64PEB* Win64TEB::LoadPEBFromGS() {
   return LoadTEBFromGS()->getPEB();
 }

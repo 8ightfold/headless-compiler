@@ -23,7 +23,7 @@ extern "C" {
   static constinit bool __did_init_ctors_ = false;
 
   [[gnu::used]] void __do_global_ctors(void) {
-    if __expect_false(__did_init_ctors_)
+    if __expect_true(__did_init_ctors_)
       return;
     __did_init_ctors_ = true;
 
@@ -46,9 +46,8 @@ extern "C" {
   }
 
   [[gnu::used]] void __main(void) {
-    if __expect_false(__did_init_ctors_)
+    if __expect_true(__did_init_ctors_)
       return;
-    __did_init_ctors_ = true;
     __do_global_ctors();
   }
 } // extern "C"

@@ -23,6 +23,16 @@
 # error Invalid main signature! Only mainCRTStartup is supported.
 #endif
 
+#ifdef __has_attribute
+# if __has_attribute(externally_visible)
+#  define __externally_visible __attribute__((externally_visible))
+# endif
+#endif // __has_attribute?
+
+#ifndef __externally_visible
+# define __externally_visible
+#endif
+
 extern "C" {
   extern void __security_init_cookie(void);
   extern int  __xcrtCRTStartupPhase1(void);
@@ -30,7 +40,7 @@ extern "C" {
 
 extern "C" {
   [[gnu::force_align_arg_pointer]]
-  int mainCRTStartup(void) {
+  __externally_visible int mainCRTStartup(void) {
     int __ret = 255;
     __security_init_cookie();
     __ret = __xcrtCRTStartupPhase1();

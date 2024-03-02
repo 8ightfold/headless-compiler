@@ -31,7 +31,9 @@ extern "C" {
     if (!are_syscalls_loaded())
       // TODO: Abort with message.
       __hc_unreachable("Fuck!");
-    // Setup thread_local backend.
+    // Set up standard files.
+    __xcrt_sysio_setup();
+    // Set up thread_local backend.
     __xcrt_emutils_setup();
 
     return -1;

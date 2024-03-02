@@ -330,6 +330,7 @@ namespace hc::bootstrap {
     // ...
     HC_MARK_DELETED(Win64TEB);
   public:
+    static Win64TIB* LoadTIBFromGS();
     static Win64TEB* LoadTEBFromGS();
     static Win64PEB* LoadPEBFromGS();
     static Win64ProcParams* GetProcessParams();
