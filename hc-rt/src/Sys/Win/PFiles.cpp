@@ -17,19 +17,23 @@
 //===----------------------------------------------------------------===//
 
 #include <Sys/Win/IOFile.hpp>
+#include <Common/RawLazy.hpp>
 #include <Meta/Once.hpp>
 
 using namespace hc::sys;
+namespace C = hc::common;
 namespace S = hc::sys;
+
+using LazyIIOFile = C::RawLazy<WinIOFile>;
 
 namespace {
   constinit IIOFileArray<1024> pOut_buf {};
   constinit IIOFileArray<0>    pErr_buf {};
-  constinit IIOFileArray<512>  pIn_buf {};
+  constinit IIOFileArray<512>  pInp_buf {};
 
-  // constinit IIOFile pOut;
-  // constinit IIOFile pErr;
-  // constinit IIOFile pIn;
+  constinit LazyIIOFile pOut;
+  constinit LazyIIOFile pErr;
+  constinit LazyIIOFile pInp;
 } // namespace `anonymous`
 
 namespace hc::sys {
@@ -37,12 +41,26 @@ namespace hc::sys {
     static bool __init = false;
     if __expect_true(__init)
       return;
-    (void) pOut_buf;
-    (void) pErr_buf;
-    (void) pIn_buf;
+    __init = true;
+    pOut.ctor(pOut_buf, BufferMode::Full, IIOMode::Write);
+    pErr.ctor(pErr_buf, BufferMode::None, IIOMode::Write);
+    pInp.ctor(pInp_buf, BufferMode::Full, IIOMode::Read);
   }
-} // namespace hc::sys
 
-$Once { 
-  __init_pfiles(); 
-};
+  void __fini_pfiles() {
+    static bool __fini = false;
+    if __expect_false(__fini)
+      return;
+    __fini = true;
+    pOut.dtor();
+    pErr.dtor();
+    pInp.dtor();
+  }
+
+  $Once { __init_pfiles(); };
+  $OnExit { __fini_pfiles(); };
+
+  constinit IIOFile* pout = pOut.data();
+  constinit IIOFile* perr = pErr.data();
+  constinit IIOFile* pin  = pInp.data();
+} // namespace hc::sys

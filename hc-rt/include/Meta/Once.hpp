@@ -20,8 +20,13 @@
 
 #include <Common/Features.hpp>
 
-#define $OnceEx(extra...) static ::hc::meta::_Once $var(once) = [extra] ()
+#define $OnceEx(extra...) static \
+  ::hc::meta::_Once $var(once) = [extra] ()
 #define $Once $OnceEx()
+
+#define $OnExitEx(extra...) static \
+  ::hc::meta::_OnceExit $var(onex) = [extra] ()
+#define $OnExit $OnExitEx()
 
 namespace hc::meta {
   struct _Once {
@@ -30,4 +35,16 @@ namespace hc::meta {
       (void) __hc_fwd(F)();
     }
   };
+
+  template <typename F>
+  struct _OnceExit {
+    _OnceExit(const F& f) : __onexit(f) {}
+    _OnceExit(F&& f) : __onexit(__hc_move(f)) {}
+    ~_OnceExit() { (void) __onexit(); }
+  private:
+    F __onexit;
+  };
+
+  template <typename F>
+  _OnceExit(F&&) -> _OnceExit<__remove_cvref(F)>;
 } // namespace hc::meta

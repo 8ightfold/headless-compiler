@@ -32,6 +32,7 @@ namespace hc::common {
     using SelfType = _RawLazyBase<T>;
     using BufType = ubyte[sizeof(T)];
   public:
+    constexpr _RawLazyBase() : __buf() {}
     constexpr ~_RawLazyBase() { }
   public:
     alignas(T) BufType __buf;
@@ -45,6 +46,7 @@ namespace hc::common {
     using BaseType = _RawLazyBase<T>;
     using BufType  = typename BaseType::BufType;
   public:
+    constexpr RawLazy() = default;
     constexpr ~RawLazy() = default;
 
     __always_inline constexpr 

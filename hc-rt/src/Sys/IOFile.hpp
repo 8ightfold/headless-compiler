@@ -105,8 +105,8 @@ namespace hc::sys {
     constexpr IIOFile(
       FReadType* read, FWriteType* write,
       FSeekType* seek, FCloseType* close,
-      IIOFileBuf& buf, BufferMode buf_mode, IIOMode mode,
-      bool is_owned = false) : 
+      IIOFileBuf& buf, BufferMode buf_mode,
+      IIOMode mode, bool is_owned = false) : 
      read_fn(read), write_fn(write), seek_fn(seek), close_fn(close),
      mtx(), buf(&buf), pos(0), read_limit(0),
      buf_mode(buf_mode), mode(RawFlags(mode)), last_op(IIOOp::None),

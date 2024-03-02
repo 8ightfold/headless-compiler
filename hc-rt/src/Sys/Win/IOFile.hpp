@@ -28,6 +28,14 @@ namespace hc::sys {
   IOResult<>     win_file_close(IIOFile* file);
 
   struct WinIOFile : IIOFile {
+    constexpr WinIOFile(
+      IIOFileBuf& buf, BufferMode buf_mode,
+      IIOMode mode, bool is_owned = false) :
+     IIOFile(
+      &win_file_read, &win_file_write,
+      &win_file_seek, &win_file_close,
+      buf, buf_mode, mode, is_owned),
+     io_block() { }
 
   public:
     win::IoStatusBlock io_block;

@@ -27,6 +27,7 @@ namespace hc {
   namespace sys { 
     struct IIOFile;
     struct IIOFileBuf;
+
     enum BufferMode {
       None, Line, Full
     };
@@ -66,15 +67,22 @@ namespace hc {
     IOResult<> close_file(IIOFile* file);
     /// Returns the number of open file slots.
     usize available_files();
-
-    // extern constinit IIOFile* pout;
-    // extern constinit IIOFile* perr;
-    // extern constinit IIOFile* pin;
   } // namespace sys
 
   using RawIOFile = sys::IIOFile;
   using IOFile    = RawIOFile*;
-  // using sys::pout;
-  // using sys::perr;
-  // using sys::pin;
+
+  //====================================================================//
+  // Standard File Handles
+  //====================================================================//
+
+  namespace sys {
+    extern constinit IIOFile* pout;
+    extern constinit IIOFile* perr;
+    extern constinit IIOFile* pin;
+  } // namespace sys
+
+  using sys::pout;
+  using sys::perr;
+  using sys::pin;
 } // namespace hc
