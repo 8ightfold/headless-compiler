@@ -66,10 +66,15 @@ namespace hc::sys {
   };
 
   /// Implementation defined error identifier.
+  /// TODO: Add _EOpqErrorID
   using OpqErrorID  = u64;
   using OpqErrorTy  = const void*;
   /// Pointer to an opaque error representation.
   using OpaqueError = const struct IOpaqueError*;
+
+  //====================================================================//
+  // Opaque Errors
+  //====================================================================//
 
   template <typename T>
   concept is_valid_opqerr = (__sizeof(T) < 8)
@@ -93,6 +98,12 @@ namespace hc::sys {
     static OpaqueError GetLastError();
     /// Unsets the error if set, otherwise does nothing.
     static void ResetLastError();
+    /// Gets last error (if exists) and resets.
+    static OpaqueError TakeLastError() {
+      OpaqueError last_err = GetLastError();
+      ResetLastError();
+      return last_err;
+    }
 
     /// Gets a description for an ID. Empty if invalid.
     static const char* GetErrorName(OpqErrorID ID);
@@ -103,9 +114,6 @@ namespace hc::sys {
     static const char* GetErrorDescription(OpqErrorID ID);
     /// Gets a description for an error. Empty if invalid.
     static const char* GetErrorDescription(OpaqueError);
-
-    /// Gets the ID of an opaque handle.
-    static OpqErrorID GetErrorID(OpaqueError);
     /// Gets the `ErrorGroup` of an opaque handle.
     static ErrorGroup GetErrorGroup(OpaqueError);
 

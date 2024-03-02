@@ -17,6 +17,7 @@
 //===----------------------------------------------------------------===//
 
 #include <Common/DynAlloc.hpp>
+#include <Sys/OpaqueError.hpp>
 #include <Sys/Mutex.hpp>
 #include "Mutant.hpp"
 #include "Wait.hpp"
@@ -42,13 +43,12 @@ namespace {
     if constexpr (Alertable)
       __hc_unreachable("Fuck!");
     // TODO: Make this do smth
-    win::LargeInt* const P = 
-      __mtx_time_fmt(I, ms);
+    win::LargeInt* const P = __mtx_time_fmt(I, ms);
     (void) P;
     do {
       S = wait_single(nt_handle);
       if __expect_false($NtFail(S)) {
-        // TODO: Set last error
+        OSErr::SetLastError(S);
         S = hc::Max<win::NtStatus>; // WAIT_FAILED
       }
     } while((S == alerted) && Alertable);
@@ -104,7 +104,7 @@ i32 S::RawMtxHandle::Unlock(RawMtxHandle H) {
   const auto nt_handle = win::MutexHandle::New(H.__ptr);
   i32 last_count = 0;
   [[maybe_unused]] auto S = 
-    release_mutant(nt_handle, &last_count);
+   release_mutant(nt_handle, &last_count);
   __hc_invariant($NtSuccess(S));
   return last_count;
 }

@@ -21,17 +21,26 @@
 #include <Sys/OpaqueError.hpp>
 
 #define $NewPErr(val, msg) \
- $NewOpqErr(ErrorGroup::OSError, val, msg, \
-  OpqErrorExtra {.severity = ErrorSeverity::CURR_SEVERITY})
+  $NewOpqErr(val, msg, ErrorSeverity::CURR_SEVERITY)
 
 using namespace hc;
 using namespace hc::sys;
 
 namespace {
 
+struct IPlatformError : IOpaqueError {
+  constexpr IPlatformError(const char* V, 
+    const char* M, ErrorSeverity S) :
+   IOpaqueError(V, M, S) {}
+public:
+  ErrorGroup getErrorGroup() const override {
+    return ErrorGroup::OSError;
+  }
+};
+
 #define CURR_SEVERITY Success
 struct _SuccessGroup {
-  static constexpr IOpaqueError table[] {
+  static constexpr IPlatformError table[] {
     $NewPErr("Success", "The operation completed successfully. "),
     $NewPErr("Wait1", "The caller specified WaitAny for WaitType and one of the dispatcher objects in the Object array has been set to the signaled state."),
     $NewPErr("Wait2", "The caller specified WaitAny for WaitType and one of the dispatcher objects in the Object array has been set to the signaled state."),
@@ -142,7 +151,7 @@ struct _SuccessGroup {
 
 #define CURR_SEVERITY Info
 struct _InfoGroup {
-  static constexpr IOpaqueError table[] {
+  static constexpr IPlatformError table[] {
     $NewPErr("ObjectNameExists", "{Object Exists} An attempt was made to create an object but the object name already exists."),
     $NewPErr("ThreadWasSuspended", "{Thread Suspended} A thread termination occurred while the thread was suspended. The thread resumed, and termination proceeded."),
     $NewPErr("WorkingSetLimitRange", "{Working Set Range Error} An attempt was made to set the working set minimum or maximum to values that are outside the allowable range."),
@@ -325,7 +334,7 @@ struct _InfoGroup {
 
 #define CURR_SEVERITY Warning
 struct _WarningGroup {
-  static constexpr IOpaqueError table[] {
+  static constexpr IPlatformError table[] {
     $NewPErr("GuardPageViolation", "{EXCEPTION} Guard Page Exception A page of memory that marks the end of a data structure, such as a stack or an array, has been accessed."),
     $NewPErr("DatatypeMisalignment", "{EXCEPTION} Alignment Fault A data type misalignment was detected in a load or store instruction."),
     $NewPErr("Breakpoint", "{EXCEPTION} Breakpoint A breakpoint has been reached."),
@@ -458,7 +467,7 @@ struct _WarningGroup {
 
 #define CURR_SEVERITY Error
 struct _ErrorGroup {
-  static constexpr IOpaqueError table[] {
+  static constexpr IPlatformError table[] {
     $NewPErr("FileNotAvailable", "The file is temporarily unavailable."),
     $NewPErr("ShareUnavailable", "The share is temporarily unavailable."),
     $NewPErr("CallbackReturnedThreadAffinity", "A threadpool worker thread entered a callback at thread affinity %p and exited at affinity %p."),

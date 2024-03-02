@@ -19,31 +19,43 @@
 #include <Meta/Unwrap.hpp>
 #include <Sys/OpaqueError.hpp>
 
-#define $NewGErr(val, msg, sev) \
- $NewOpqErr(ErrorGroup::GNULike, val, msg, \
-  OpqErrorExtra {.severity = ErrorSeverity::sev})
-
 using namespace hc;
 using namespace hc::sys;
 
+//======================================================================//
+// Implementation
+//======================================================================//
+
 namespace {
-  constexpr IOpaqueError gnuTable[] {
-    $NewGErr("", "No error.", Success),
-    $NewGErr("", "Operation requires special priveleges.", Error),
-    $NewGErr("", "File or directory expected to exist, but doesn't.", Error),
-    $NewGErr("", "Physical read/write error.", Error),
-    $NewGErr("", "Operations on closed file or insufficient perms.", Error),
-    $NewGErr("", "No virtual memory.", Error),
-    $NewGErr("", "File permissions do not allow the operation.", Error),
-    $NewGErr("", "Access violation.", Error),
-    $NewGErr("", "Invalid argument for library function.", Error),
-    $NewGErr("", "Maximum files allotted for the process.", Error),
-    $NewGErr("", "Maximum files allotted for the system.", Error),
-    $NewGErr("", "Invalid filename encountered during normalization.", Error),
-    $NewGErr("", "Unnormalized filepath was larger than RT_PATH_MAX.", Error),
-    $NewGErr("", "Filepath type not supported.", Error),
-    $NewGErr("", "OS error, accessed with SysErr::GetLastError().", Error)
+  struct IGNUError : IOpaqueError {
+    constexpr IGNUError(const char* V, const char* M, 
+      ErrorSeverity S = ErrorSeverity::Error) :
+     IOpaqueError(V, M, S) {}
+  public:
+    ErrorGroup getErrorGroup() const override {
+      return ErrorGroup::GNULike;
+    }
   };
+
+  constexpr IGNUError gnuTable[] {
+    $NewOpqErr("Success", "No error.", ErrorSeverity::Success),
+    $NewOpqErr("Perms", "Operation requires special priveleges."),
+    $NewOpqErr("NoEntry", "File or directory expected to exist, but doesn't."),
+    $NewOpqErr("PhysicalIO", "Physical read/write error."),
+    $NewOpqErr("BadFileDescriptor", "Operations on closed file or insufficient perms."),
+    $NewOpqErr("NoMemory", "No virtual memory."),
+    $NewOpqErr("AccessDened", "File permissions do not allow the operation."),
+    $NewOpqErr("Segfault", "Access violation."),
+    $NewOpqErr("InvalidArgument", "Invalid argument for library function."),
+    $NewOpqErr("NoFileSlots", "Maximum files allotted for the process."),
+    $NewOpqErr("MaxFiles", "Maximum files allotted for the system."),
+    $NewOpqErr("InvalidFilepath", "Invalid filepath encountered during normalization."),
+    $NewOpqErr("FilepathTooLong", "Unnormalized filepath was larger than RT_PATH_MAX."),
+    $NewOpqErr("UnsupportedFilepath", "Filepath type not supported."),
+    $NewOpqErr("OSError", "OS error, accessed with SysErr::GetLastError().")
+  };
+
+  thread_local OpaqueError __lasterr_ = nullptr;
 } // namespace `anonymous`
 
 OpaqueError SysErr::RegisterUserError(
@@ -51,25 +63,30 @@ OpaqueError SysErr::RegisterUserError(
   __hc_todo("RegisterUserError", nullptr);
 }
 
-// TODO: getters/setters
+//======================================================================//
+// Getters/Setters
+//======================================================================//
 
 OpaqueError SysErr::GetLastError() {
-  __hc_todo("GetLastError", nullptr);
+  return __lasterr_;
 }
 
 void SysErr::SetLastError(OpqErrorID ID) {
-  __hc_todo("SetLastError");
+  const auto E = GetOpaqueError(ID);
+  SetLastError(E);
 }
 
 void SysErr::SetLastError(OpaqueError E) {
-  __hc_todo("SetLastError");
+  __lasterr_ = E;
 }
 
 void SysErr::ResetLastError() {
-  __hc_todo("ResetLastError");
+  __lasterr_ = nullptr;
 }
 
-// error info
+//======================================================================//
+// Error Info
+//======================================================================//
 
 OpaqueError SysErr::GetOpaqueError(Error E) {
   const auto I = usize(E);
@@ -84,7 +101,8 @@ const char* SysErr::GetErrorName(OpqErrorID ID) {
 }
 
 const char* SysErr::GetErrorName(OpaqueError E) {
-  return $unwrap(E, "").error_val;
+  if (!E) return nullptr;
+  return E->error_val;
 }
 
 const char* SysErr::GetErrorDescription(OpqErrorID ID) {
@@ -93,17 +111,11 @@ const char* SysErr::GetErrorDescription(OpqErrorID ID) {
 }
 
 const char* SysErr::GetErrorDescription(OpaqueError E) {
- return $unwrap(E, "").message;
-}
-
-OpqErrorID SysErr::GetErrorID(OpaqueError E) {
-  __hc_todo("GetErrorDescription", 0U);
+  if (!E) return nullptr;
+  return E->message;
 }
 
 ErrorGroup SysErr::GetErrorGroup(OpaqueError E) {
-  if (!E)
-    return ErrorGroup::Unknown;
-  if (E->error_class.isUserDefined())
-    return ErrorGroup::UserDefined;
-  return E->error_class.group;    
+  if (!E) return ErrorGroup::Unknown;
+  return E->getErrorGroup();
 }

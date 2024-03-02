@@ -112,8 +112,6 @@ namespace hc::common {
   using floatn_t = typename _FloatN<N>::type;
 } // namespace hc::common
 
-using nullptr_t = decltype(nullptr);
-
 //======================================================================//
 // Pseudofunctions
 //======================================================================//
@@ -138,3 +136,15 @@ __global usize __bitsizeof = __sizeof<T> * __bitcount;
 
 #define __sizeof(...) ::__sizeof<__VA_ARGS__>
 #define __bitsizeof(...) ::__bitsizeof<__VA_ARGS__>
+
+//======================================================================//
+// Misc.
+//======================================================================//
+
+template <typename Ret, typename...Args>
+using function_t = Ret(Args...);
+
+template <typename Ret, class Obj, typename...Args>
+using method_t = Ret(Obj::*)(Args...);
+
+using nullptr_t = decltype(nullptr);

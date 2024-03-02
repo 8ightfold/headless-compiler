@@ -21,44 +21,10 @@
 
 #include <Sys/Errors.hpp>
 
-#define $NewOpqErr(cls, val, msg, extra...) \
- { OpqErrorClass::New(cls), val, msg __VA_OPT__(,) extra }
+#define $NewOpqErr(val, msg, extra...) \
+ { val, msg __VA_OPT__(,) extra }
 
 namespace hc::sys {
-  union OpqErrorClass {
-    static constexpr OpqErrorClass New(ErrorGroup G) {
-      return { .group = G };
-    }
-    static constexpr OpqErrorClass New(OpqErrorTy V) {
-      return { .id = V };
-    }
-    bool isUserDefined() const {
-      const auto V = uptr(this->id);
-      return (V > 3U);
-    }
-  public:
-    ErrorGroup group;
-    OpqErrorTy id;
-    u64 __pad;
-  };
-
-  struct [[gnu::packed]] OpqErrorExtra {
-    ErrorSeverity severity 
-      = ErrorSeverity::Unset;
-    u8  __reserved8;
-    u16 __reserved16;
-    u32 __reserved32;
-  };
-
-  /// The underlying representation of an error.
-  /// Useful for wrapping objects nicely.
-  struct IOpaqueError {
-    OpqErrorClass error_class;
-    const char*   error_val;
-    const char*   message;
-    OpqErrorExtra extra;
-  };
-
   using OSErr = struct _OSErr;
   struct _OSErr {
     static void SetLastError(OpqErrorID ID) {
@@ -67,5 +33,37 @@ namespace hc::sys {
     static void SetLastError(OpaqueError E) {
       SysErr::SetLastError(E);
     }
+  };
+
+  //====================================================================//
+  // Implementation
+  //====================================================================//
+
+  struct [[gnu::packed]] OpqErrorExtra {
+    ErrorSeverity severity;
+    u8  __reserved8;
+    u16 __reserved16;
+    u32 __reserved32;
+  };
+
+  /// The underlying representation of an error.
+  /// Useful for wrapping objects nicely.
+  struct IOpaqueError {
+    using StrType = const char*;
+  public:
+    constexpr IOpaqueError(StrType V, StrType M, ErrorSeverity S) :
+     error_val(V), message(M), extra(S) { }
+    constexpr IOpaqueError(StrType V, StrType M) :
+     IOpaqueError(V, M, ErrorSeverity::Unset) { }
+    
+  public:
+    virtual ErrorGroup getErrorGroup() const {
+      return ErrorGroup::Unknown;
+    }
+    
+  public:
+    StrType error_val;
+    StrType message;
+    OpqErrorExtra extra;
   };
 } // namespace hc::sys
