@@ -22,7 +22,7 @@
 
 namespace hc::sys {
 inline namespace __nt {
-  inline win::NtStatus wait_single(
+  __nt_attrs win::NtStatus wait_single(
     win::WaitHandle handle,
     win::LargeInt* timeout,
     bool alertable
@@ -33,7 +33,7 @@ inline namespace __nt {
     );
   }
 
-  inline win::NtStatus wait_single(
+  __nt_attrs win::NtStatus wait_single(
     win::WaitHandle handle
   ) {
     return isyscall<NtSyscall::WaitForSingleObject>(

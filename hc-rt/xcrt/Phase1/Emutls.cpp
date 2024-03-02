@@ -84,4 +84,8 @@ extern "C" {
     mtx.ctor();
     mtx->initialize();
   }
+
+  void __xcrt_emutils_shutdown(void) {
+    mtx.dtor();
+  }
 }

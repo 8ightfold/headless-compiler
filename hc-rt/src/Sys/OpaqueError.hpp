@@ -30,6 +30,10 @@ namespace hc::sys {
     static void SetLastError(OpqErrorID ID) {
       SysErr::SetLastError(ID);
     }
+    static void SetLastError(Error E) {
+      const auto opq = SysErr::GetOpaqueError(E);
+      SysErr::SetLastError(opq);
+    }
     static void SetLastError(OpaqueError E) {
       SysErr::SetLastError(E);
     }

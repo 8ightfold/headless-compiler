@@ -124,11 +124,13 @@ using __hc_tyident_ = T;
 #undef __thiscall
 
 #if HC_PLATFORM_WIN64
+# define __eol "\r\n"
 # define __cdecl    __attribute__((__cdedl__))
 # define __fastcall __attribute__((__fastcall__))
 # define __stdcall  __attribute__((__stdcall__))
 # define __thiscall __attribute__((__thiscall__))
 #else
+# define __eol "\n"
 # define __cdecl
 # define __fastcall
 # define __stdcall

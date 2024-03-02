@@ -22,7 +22,7 @@
 
 namespace hc::sys {
 inline namespace __nt {
-  inline win::FileObjHandle open_file(
+  __nt_attrs win::FileObjHandle open_file(
    NtAccessMask mask,
    win::ObjectAttributes& attr,
    win::IoStatusBlock& io, 
@@ -43,7 +43,7 @@ inline namespace __nt {
     return hout;
   }
 
-  inline win::NtStatus read_file(
+  __nt_attrs win::NtStatus read_file(
    win::FileHandle handle,
    win::IoStatusBlock& io, 
    common::PtrRange<char> buf, 

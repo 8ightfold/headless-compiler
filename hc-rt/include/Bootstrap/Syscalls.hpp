@@ -88,9 +88,11 @@ namespace hc::bootstrap {
     $tail_return __syscall<C, Ret>(args...);
   }
 
+ #ifndef __XCRT__
   static struct _SyscallLoader {
     _SyscallLoader();
   } __sys_loader_ {};
+ #endif // __XCRT__?
 
   void force_syscall_reload();
   bool are_syscalls_loaded();

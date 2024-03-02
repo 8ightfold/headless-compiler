@@ -1,4 +1,4 @@
-//===- String/Memcmp.cpp --------------------------------------------===//
+//===- Locks.hpp ----------------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -15,13 +15,28 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
+//
+//  Implementation can be found in {PLATFORM}/Phase1/Locks.cpp.
+//
+//===----------------------------------------------------------------===//
 
-#include <Common/InlineMemcmp.hpp>
+#pragma once
 
-using namespace hc;
+#include <Sys/Mutex.hpp>
+#include <Sys/Locks.hpp>
 
-extern "C" {
-  int memcmp(const void* __lhs, const void* __rhs, usize __len) {
-    $tail_return common::inline_memcmp(__lhs, __rhs, __len);
-  }
-} // extern "C"
+#define $XCRTLock(value) \
+ ::hc::sys::ScopedPtrLock $var(xcrt_lock) \
+  {::__xcrt_get_lock(::xcrt::Locks::value)}
+
+namespace xcrt {
+  enum class Locks : u64 {
+    ProcessInfoBlock,
+    ThreadLocalStorage,
+    AtExit,
+    MaxValue
+  };
+
+  extern "C" hc::sys::Mtx*
+    __xcrt_get_lock(xcrt::Locks V);
+} // namespace xcrt

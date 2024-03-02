@@ -16,15 +16,17 @@
 //
 //===----------------------------------------------------------------===//
 
-#include <Sys/Win/IOFile.hpp>
 #include <Common/Casting.hpp>
 #include <Common/DynAlloc.hpp>
 #include <Common/InlineMemcpy.hpp>
 #include <Parcel/Skiplist.hpp>
+#include <Sys/OpaqueError.hpp>
+#include <Sys/Win/IOFile.hpp>
 #include "Filesystem.hpp"
 #include "PathNormalizer.hpp"
 
 #define $FileErr(e) S::FileResult::Err(e)
+#define $SetErr(e...) $Err(__set_err(e))
 
 using namespace hc;
 using namespace hc::sys;
@@ -56,6 +58,11 @@ namespace {
       // Assume the path was valid under Nt.
       wpath[1] = L'?';
     return __nt_openfile(self, wpath, flags);
+  }
+
+  inline Error __set_err(const Error E) {
+    OSErr::SetLastError(E);
+    return E;
   }
 } // namespace `anonymous`
 
@@ -119,7 +126,7 @@ IOResult<IIOFile*> S::open_file(C::StrRef path, IIOFileBuf& buf, C::StrRef flags
   FileAdaptor F(buf);
   if (IIOFile* file = F.openFileRaw(path, flags))
     return $Ok(file);
-  return $Err(F.getLastError());
+  return $SetErr(F.getLastError());
 }
 
 IOResult<> S::close_file(IIOFile* file) {
@@ -128,7 +135,7 @@ IOResult<> S::close_file(IIOFile* file) {
   FileAdaptor F(file->getFileBuf());
   if (F.closeFileRaw(file))
     return $Ok();
-  return $Err(F.getLastError());
+  return $SetErr(F.getLastError());
 }
 
 usize S::available_files() {

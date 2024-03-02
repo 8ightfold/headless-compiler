@@ -32,4 +32,10 @@ extern "C" {
     // We need these BEFORE calling ctors.
     sys::__init_pfiles();
   }
+
+  void __xcrt_sysio_shutdown(void) {
+    // Destroys at shutdown.
+    // We need these after calling dtors.
+    sys::__fini_pfiles();
+  }
 } // extern "C"

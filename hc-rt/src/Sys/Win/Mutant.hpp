@@ -22,7 +22,7 @@
 
 namespace hc::sys {
 inline namespace __nt {
-  inline win::MutexHandle create_mutant(
+  __nt_attrs win::MutexHandle create_mutant(
     win::NtStatus& S,
     NtAccessMask mask = win::MutantAllAccess,
     const wchar_t* name = nullptr,
@@ -39,7 +39,7 @@ inline namespace __nt {
     return hout;
   }
 
-  inline win::NtStatus query_mutant(
+  __nt_attrs win::NtStatus query_mutant(
     win::MutexHandle handle,
     win::MutantInfoClass type,
     win::BasicMutantInfo& info,
@@ -52,7 +52,7 @@ inline namespace __nt {
     );
   }
 
-  inline win::NtStatus release_mutant(
+  __nt_attrs win::NtStatus release_mutant(
     win::MutexHandle handle,
     i32* prev_count = nullptr
   ) {

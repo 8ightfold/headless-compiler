@@ -149,6 +149,7 @@ namespace hc::sys {
     /// r: Read, w: Write, a: Append, +: Plus, b: Binary, x: Exclude.
     static IIOMode ParseModeFlags(common::StrRef flags);
 
+    void initialize(common::DualString S) { mtx.initialize(S); }
     void initialize() { mtx.initialize(); }
     void lock() { mtx.lock(); }
     void unlock() { mtx.unlock(); }
@@ -225,6 +226,9 @@ namespace hc::sys {
     }
   
   private:
+    friend void __init_pfiles();
+    friend void __fini_pfiles();
+    
     FileResult writeUnlockedNone(common::ImmPtrRange<u8> data);
     FileResult writeUnlockedLine(common::ImmPtrRange<u8> data);
     FileResult writeUnlockedFull(common::ImmPtrRange<u8> data);

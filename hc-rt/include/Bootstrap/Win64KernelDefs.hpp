@@ -39,6 +39,14 @@
 
 static_assert(HC_PLATFORM_WIN64, "Windows only.");
 
+namespace hc {
+  namespace sys {
+    struct IIOFile;
+  } // namespace sys
+  using RawIOFile = sys::IIOFile;
+  using IOFile    = RawIOFile*;
+} // namespace hc
+
 namespace hc::bootstrap {
   using Win64Addr       = void*;
   using Win64AddrRange  = common::AddrRange;
@@ -254,9 +262,9 @@ namespace hc::bootstrap {
     u32          debug_flags;
     Win64Handle  console_handle;
     u32          console_flags;
-    Win64Handle  std_in;
-    Win64Handle  std_out;
-    Win64Handle  std_err;
+    IOFile       std_in;
+    IOFile       std_out;
+    IOFile       std_err;
     Win64CurrDir curr_dir;
     // ...
     HC_MARK_DELETED(Win64ProcParams);

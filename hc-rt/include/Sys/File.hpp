@@ -15,6 +15,10 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
+//
+//  Public API for file operations. Implementation is in IOFile.hpp.
+//
+//===----------------------------------------------------------------===//
 
 #pragma once
 

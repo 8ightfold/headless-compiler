@@ -61,6 +61,8 @@ RawMtxHandle S::RawMtxHandle::New(const wchar_t* name) {
   auto H = create_mutant(S,
     win::MutantAllAccess, name);
   __hc_invariant($NtSuccess(S));
+  if __expect_false($NtFail(S))
+    OSErr::SetLastError(S);
   return RawMtxHandle {H.__data};
 }
 
@@ -77,6 +79,8 @@ void S::RawMtxHandle::Delete(RawMtxHandle H) {
   const auto nt_handle = win::MutexHandle::New(H.__ptr);
   const win::NtStatus S = close_mutant(nt_handle);
   __hc_invariant($NtSuccess(S));
+  if __expect_false($NtFail(S))
+    OSErr::SetLastError(S);
 }
 
 [[gnu::flatten]]
@@ -85,6 +89,8 @@ void S::RawMtxHandle::Lock(RawMtxHandle H) {
   const auto nt_handle = win::MutexHandle::New(H.__ptr);
   const win::NtStatus S = wait_single(nt_handle);
   __hc_invariant($NtSuccess(S));
+  if __expect_false($NtFail(S))
+    OSErr::SetLastError(S);
 }
 
 void S::RawMtxHandle::LockMs(RawMtxHandle H, usize ms, bool alertable) {
@@ -106,5 +112,7 @@ i32 S::RawMtxHandle::Unlock(RawMtxHandle H) {
   [[maybe_unused]] auto S = 
    release_mutant(nt_handle, &last_count);
   __hc_invariant($NtSuccess(S));
+  if __expect_false($NtFail(S))
+    OSErr::SetLastError(S);
   return last_count;
 }

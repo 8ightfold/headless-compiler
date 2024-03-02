@@ -18,9 +18,10 @@
 
 #include <Common/Casting.hpp>
 #include <Common/InlineMemcpy.hpp>
-#include <Sys/IOFile.hpp>
+#include "IOFile.hpp"
+#include "OpaqueError.hpp"
 
-#define $FileErr(e) S::FileResult::Err(e)
+#define $FileErr(e) S::FileResult::Err(({ OSErr::SetLastError(e); e; }))
 
 using namespace hc;
 using namespace hc::sys;
@@ -116,6 +117,7 @@ FileResult IIOFile::readUnlocked(C::AddrRange data) {
         eof = true;
       else
         err = true;
+      OSErr::SetLastError(R.err);
       return {available_data + fetched, R.err};
     }
     return len;
@@ -134,6 +136,7 @@ FileResult IIOFile::readUnlocked(C::AddrRange data) {
     else
       err = true;
   }
+  OSErr::SetLastError(R.err);
   return {available_data + transfer_size, R.err};
 }
 
@@ -163,6 +166,7 @@ Error IIOFile::flushUnlocked() {
     // Ensure all data was flushed.
     if (R.isErr() || R.value < pos) {
       err = true;
+      OSErr::SetLastError(R.err);
       return R.err;
     }
     pos = 0;
@@ -197,6 +201,7 @@ FileResult IIOFile::writeUnlockedNone(C::ImmPtrRange<u8> data) {
     // Error, not enough bytes were written.
     if (R.value < write_size) {
       err = true;
+      OSErr::SetLastError(R.err);
       return $FileErr(R.err);
     }
   }
@@ -209,7 +214,7 @@ FileResult IIOFile::writeUnlockedNone(C::ImmPtrRange<u8> data) {
 
 FileResult IIOFile::writeUnlockedLine(C::ImmPtrRange<u8> data) {
   __hc_unreachable("`writeUnlockedLine` unimplemented.");
-  return $FileErr(0);
+  return $FileErr(0ULL);
 }
 
 FileResult IIOFile::writeUnlockedFull(C::ImmPtrRange<u8> data) {
@@ -250,6 +255,7 @@ FileResult IIOFile::writeUnlockedFull(C::ImmPtrRange<u8> data) {
   // If not all data was flushed, an error occured.
   if (flush_res.isErr() || bytes_flushed < flush_size) {
     err = true;
+    OSErr::SetLastError(flush_res.err);
     return {
       bytes_flushed <= init_pos ? 
         0 : bytes_flushed - init_pos,
@@ -270,6 +276,7 @@ FileResult IIOFile::writeUnlockedFull(C::ImmPtrRange<u8> data) {
 
     if (R.isErr() || bytes_written < remainder.size()) {
       err = true;
+      OSErr::SetLastError(R.err);
       return {first.size() + bytes_written, R.err};
     }
   }

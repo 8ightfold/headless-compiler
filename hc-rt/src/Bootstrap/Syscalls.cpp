@@ -90,6 +90,7 @@ bool B::are_syscalls_loaded() {
   return load_syscalls();
 }
 
+#ifndef __XCRT__
 B::_SyscallLoader::_SyscallLoader() {
   const bool R = are_syscalls_loaded();
   if __expect_false(!R) {
@@ -99,3 +100,4 @@ B::_SyscallLoader::_SyscallLoader() {
     __hc_trap();
   }
 }
+#endif // __XCRT__?

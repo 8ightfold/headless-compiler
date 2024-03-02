@@ -31,10 +31,19 @@ extern "C" {
     if (!are_syscalls_loaded())
       // TODO: Abort with message.
       __hc_unreachable("Fuck!");
-    // Set up standard files.
+    // Set up CRT locks.
+    __xcrt_locks_setup();
     __xcrt_sysio_setup();
     // Set up thread_local backend.
+    // After sysio as that may print on error.
     __xcrt_emutils_setup();
+
+    // TODO: Setup main here!!
+
+    // Run shutdown functions in reverse order.
+    __xcrt_emutils_shutdown();
+    __xcrt_sysio_shutdown();
+    __xcrt_locks_shutdown();
 
     return -1;
   }

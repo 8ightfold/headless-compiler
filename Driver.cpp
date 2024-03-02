@@ -79,20 +79,6 @@ void test_xstrlen(const Char(&A)[N]) {
   std::printf("Got: %zu\n", len);
 }
 
-$ASM_func(
-i64, __asm_test, (i64 input),
-  "xor  %rax, %rax",
-  "test %rcx, %rcx",
-  "jz   zero",
-  "js   neg",
-  "mov  $1, %rax",
-  "retn",
- $lbl(neg)
-  "mov  $-1, %rax;\n",
- $lbl(zero)
-  "retn"
-)
-
 int main(int N, char* A[], char* Env[]) {
   printPathType("//?/PhysicalDrive0/"); // DosDrive
   printPathType("//?/X:/");             // DosVolume
@@ -107,16 +93,12 @@ int main(int N, char* A[], char* Env[]) {
   printPathType("\\build");             // CurrDriveRel
   printPathType("contents.txt");        // DirRel
   std::puts("");
-
-  std::printf("%lli\n", __asm_test(1));
-  std::printf("%lli\n", __asm_test(0));
-  std::printf("%lli\n", __asm_test(-1));
   
   W::StaticUnicodeString name(
     // L"\\??\\PhysicalDrive0\\krita-dev\\krita\\README.md"
-    // L"\\??\\C:\\krita-dev\\krita\\README.md"
+    L"\\??\\C:\\krita-dev\\krita\\README.md"
     // L"\\??\\C:\\Program Files\\desktop.ini"
-    L"\\??\\C:\\fake-file.txt"
+    // L"\\??\\C:\\fake-file.txt"
   );
 
   auto mask = W::GenericReadAccess;
@@ -146,7 +128,7 @@ int main(int N, char* A[], char* Env[]) {
     std::printf("Read failed! [0x%.8X]\n", S);
     return S::close_file(handle);
   }
-  std::printf("Buffer contents:\n%.128s\n...\n", buf.data());
+  std::printf("Buffer contents:\n%.128s\n...\n\n", buf.data());
   
   if (W::NtStatus S = S::close_file(handle); $NtFail(S)) {
     std::printf("Closing failed! [0x%.8X]\n", S);
@@ -174,6 +156,4 @@ int main(int N, char* A[], char* Env[]) {
   FSInfoClassWrapper<FSVolumeInfo, 16U> ICW;
   assert(ICW->intoRange().size() == 16U);
   assert(ICW.GetInfoClass() == FSInfoClass::Volume);
-
-  // S::query_create_volume_info()
 }

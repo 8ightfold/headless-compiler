@@ -1,4 +1,4 @@
-//===- String/Memcmp.cpp --------------------------------------------===//
+//===- Shutdown/Atexit.cpp ------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -16,12 +16,5 @@
 //
 //===----------------------------------------------------------------===//
 
-#include <Common/InlineMemcmp.hpp>
+#include <Phase1/Initialization.hpp>
 
-using namespace hc;
-
-extern "C" {
-  int memcmp(const void* __lhs, const void* __rhs, usize __len) {
-    $tail_return common::inline_memcmp(__lhs, __rhs, __len);
-  }
-} // extern "C"

@@ -30,5 +30,6 @@ namespace hc {
   namespace sys {
     // {PLATFORM}/PFiles.cpp
     extern void __init_pfiles();
+    extern void __fini_pfiles();
   }
 } // namespace hc

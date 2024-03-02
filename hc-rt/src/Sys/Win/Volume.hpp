@@ -31,7 +31,7 @@ inline namespace __nt {
 
   template <win::is_fsinfo FSType, 
     usize ExBytes = __fsinf_exbytes<FSType>>
-  inline auto query_volume_info(
+  __nt_attrs auto query_volume_info(
     win::FileObjHandle handle,
     win::IoStatusBlock& io) 
    -> NtQueryWrapper<FSType, ExBytes> {
@@ -57,7 +57,7 @@ inline namespace __nt {
     return ICW;
   }
 
-  inline win::FileObjHandle get_volume_handle(
+  __nt_attrs win::FileObjHandle get_volume_handle(
    win::UnicodeString& name,
    win::IoStatusBlock& io
   ) {
@@ -85,7 +85,7 @@ inline namespace __nt {
 
   template <win::is_fsinfo FSType, 
     usize ExBytes = __fsinf_exbytes<FSType>>
-  inline auto query_create_volume_info(
+  __nt_attrs auto query_create_volume_info(
     win::UnicodeString& name,
     win::IoStatusBlock& io)
    -> NtQueryWrapper<FSType, ExBytes> {

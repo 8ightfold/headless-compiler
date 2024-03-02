@@ -30,7 +30,7 @@ namespace hc::common {
   template <typename T, typename E,
     E MaxValue = E::MaxValue,
     typename UType = meta::UnderlyingType<E>,
-    UType N = static_cast<UType>(MaxValue) + 1>
+    UType N = static_cast<UType>(MaxValue)>
   struct EnumArray {
     using Type = T;
     using SelfType = EnumArray;
@@ -56,7 +56,12 @@ namespace hc::common {
     //==================================================================//
 
     [[nodiscard, gnu::const]]
-    constexpr T* data() const __noexcept {
+    constexpr T* data() __noexcept {
+      return this->__data;
+    }
+
+    [[nodiscard, gnu::const]]
+    constexpr const T* data() const __noexcept {
       return this->__data;
     }
 
@@ -79,12 +84,22 @@ namespace hc::common {
     }
 
     [[nodiscard, gnu::const]]
-    constexpr T* begin() const __noexcept {
+    constexpr T* begin() __noexcept {
       return data();
     }
 
     [[nodiscard, gnu::const]]
-    constexpr T* end() const __noexcept {
+    constexpr T* end() __noexcept {
+      return data() + Size();
+    }
+
+    [[nodiscard, gnu::const]]
+    constexpr const T* begin() const __noexcept {
+      return data();
+    }
+
+    [[nodiscard, gnu::const]]
+    constexpr const T* end() const __noexcept {
       return data() + Size();
     }
 

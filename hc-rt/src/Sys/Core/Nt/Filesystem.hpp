@@ -28,7 +28,7 @@ namespace hc::sys::win {
     OpenIf              = 0x00011,
     Overwrite           = 0x00100,
     OverwriteIf         = 0x00101,
-    MaxValue            = OverwriteIf,
+    MaxValue
   };
 
   enum class CreateOptsMask : ULong {

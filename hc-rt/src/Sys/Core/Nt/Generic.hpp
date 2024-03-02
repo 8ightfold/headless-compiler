@@ -33,6 +33,8 @@
 #define $NtSuccess(ex...) ($NtOk(ex) || $NtInfo(ex))
 #define $NtFail(ex...)    ($NtWarn(ex) || $NtErr(ex))
 
+#define __nt_attrs __attribute__((noinline)) inline
+
 namespace hc::sys::win {
   using bootstrap::StaticUnicodeString;
   using UnicodeString = bootstrap::Win64UnicodeString;

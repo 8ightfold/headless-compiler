@@ -17,6 +17,7 @@
 //===----------------------------------------------------------------===//
 
 #include <Sys/Win/IOFile.hpp>
+#include <Bootstrap/Syscalls.hpp>
 #include <Common/RawLazy.hpp>
 #include <Meta/Once.hpp>
 
@@ -31,34 +32,57 @@ namespace {
   constinit IIOFileArray<0>    pErr_buf {};
   constinit IIOFileArray<512>  pInp_buf {};
 
-  constinit LazyIIOFile pOut;
-  constinit LazyIIOFile pErr;
-  constinit LazyIIOFile pInp;
+  constinit LazyIIOFile pOut {};
+  constinit LazyIIOFile pErr {};
+  constinit LazyIIOFile pInp {};
 } // namespace `anonymous`
 
 namespace hc::sys {
+  [[gnu::used, gnu::noinline]]
   void __init_pfiles() {
     static bool __init = false;
     if __expect_true(__init)
       return;
     __init = true;
+
     pOut.ctor(pOut_buf, BufferMode::Full, IIOMode::Write);
     pErr.ctor(pErr_buf, BufferMode::None, IIOMode::Write);
     pInp.ctor(pInp_buf, BufferMode::Full, IIOMode::Read);
+
+    pOut->initialize();
+    pErr->initialize();
+    pInp->initialize();
+
+    // TODO: Init file handles!!
   }
 
+  [[gnu::used, gnu::noinline]] 
   void __fini_pfiles() {
     static bool __fini = false;
     if __expect_false(__fini)
       return;
     __fini = true;
-    pOut.dtor();
-    pErr.dtor();
+
+    // TODO: Fini file handles!!
+
+    pInp->close();
+    pErr->close();
+    pOut->close();
+
     pInp.dtor();
+    pErr.dtor();
+    pOut.dtor();
   }
 
+ #ifndef __XCRT__
+  // At the moment, without the xcrt there's no way to
+  // force these to initialize early... without bullshit.
+  // I tried using an iostream-like initialization
+  // sentinel (same style used in Syscall.hpp), and
+  // no dice, I got `AccessViolation`. So that means
+  // you'll just have to hope they get initialized :P
   $Once { __init_pfiles(); };
-  $OnExit { __fini_pfiles(); };
+ #endif // __XCRT__?
 
   constinit IIOFile* pout = pOut.data();
   constinit IIOFile* perr = pErr.data();

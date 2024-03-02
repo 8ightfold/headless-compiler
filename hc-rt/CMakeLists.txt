@@ -2,12 +2,13 @@ include_guard(DIRECTORY)
 
 project(
   hcrt-xcrt
-  VERSION 0.1.20
+  VERSION 0.1.21
   LANGUAGES CXX
 )
 
 set(HC_RSYS "src/Sys/${PLATFORM}")
-set(HC_XSYS "xcrt/${PLATFORM}")
+# set(HC_XSYS "xcrt/${PLATFORM}")
+set(HC_XSYS "xcrt")
 
 ##======================================================================##
 ## Inc - Public Interface
@@ -28,6 +29,10 @@ endif()
 
 if(NOT HC_EXCEPTIONS)
   target_compile_options(hcrt-inc INTERFACE -fno-exceptions)
+  if(NOT HC_DEBUG)
+    target_compile_options(hcrt-inc INTERFACE
+      -fno-asynchronous-unwind-tables)
+  endif()
 endif()
 
 if(HC_MULTITHREADED)
@@ -95,6 +100,9 @@ endif()
 
 add_library(hcrt-xinc INTERFACE)
 add_library(hcrt::xinc ALIAS hcrt-xinc)
+target_include_directories(hcrt-xinc INTERFACE xcrt/include)
+target_forward_options(hcrt-xinc INTERFACE RT_MAX_ATEXIT)
+target_compile_definitions(hcrt-xinc INTERFACE __XCRT__=1)
 target_compile_options(hcrt-xinc INTERFACE -nostdinc++ -nostdinc -static)
 target_link_options(hcrt-xinc INTERFACE -nostdlib -nostartfiles)
 
@@ -105,20 +113,23 @@ add_library(hcrt-xcrt STATIC
   xcrt/String/XStrcmp.cpp
   xcrt/String/XStrlen.cpp
   xcrt/String/XStrncmp.cpp
+  # Platform Specific
+  ${HC_XSYS}/Phase0/Startup.cpp
+  ${HC_XSYS}/Phase0/Xtors.cpp
+  ${HC_XSYS}/Phase1/Initialization.cpp
+  ${HC_XSYS}/Phase1/Locks.cpp
+  ${HC_XSYS}/Phase1/StdIO.cpp
+  ${HC_XSYS}/Phase1/Emutls.cpp
+  ${HC_XSYS}/Shutdown/Atexit.cpp
 )
 add_library(hcrt::xcrt ALIAS hcrt-xcrt)
 target_link_libraries(hcrt-xcrt PUBLIC hcrt::xinc hcrt::dev)
-target_include_directories(hcrt-xcrt PUBLIC xcrt)
+target_include_directories(hcrt-xcrt PUBLIC xcrt ${HC_XSYS})
 
 if(WIN32)
   target_sources(hcrt-xcrt PUBLIC
-    xcrt/Phase0/Startup.cpp
-    xcrt/Phase0/Xtors.cpp
     xcrt/Phase0/Chkstk.cpp
     xcrt/Phase0/InitCookie.cpp
-    xcrt/Phase1/Initialization.cpp
-    xcrt/Phase1/StdIO.cpp
-    xcrt/Phase1/Emutls.cpp
     xcrt/Mingw/NtdllLdr.cpp
   )
   target_link_options(hcrt-xinc INTERFACE 
