@@ -37,6 +37,7 @@
 #include <Sys/IOFile.hpp>
 #include <Sys/Mutex.hpp>
 
+#include <Meta/ASM.hpp>
 #include "VolumeInfoDumper.hpp"
 
 #pragma push_macro("NDEBUG")
@@ -78,6 +79,20 @@ void test_xstrlen(const Char(&A)[N]) {
   std::printf("Got: %zu\n", len);
 }
 
+$ASM_func(
+i64, __asm_test, (i64 input),
+  "xor  %rax, %rax",
+  "test %rcx, %rcx",
+  "jz   zero",
+  "js   neg",
+  "mov  $1, %rax",
+  "retn",
+ $lbl(neg)
+  "mov  $-1, %rax;\n",
+ $lbl(zero)
+  "retn"
+)
+
 int main(int N, char* A[], char* Env[]) {
   printPathType("//?/PhysicalDrive0/"); // DosDrive
   printPathType("//?/X:/");             // DosVolume
@@ -92,6 +107,10 @@ int main(int N, char* A[], char* Env[]) {
   printPathType("\\build");             // CurrDriveRel
   printPathType("contents.txt");        // DirRel
   std::puts("");
+
+  std::printf("%lli\n", __asm_test(1));
+  std::printf("%lli\n", __asm_test(0));
+  std::printf("%lli\n", __asm_test(-1));
   
   W::StaticUnicodeString name(
     // L"\\??\\PhysicalDrive0\\krita-dev\\krita\\README.md"
