@@ -22,18 +22,47 @@
 //===----------------------------------------------------------------===//
 
 #include <xcrtDefs.hpp>
+#include <Bootstrap/Win64KernelDefs.hpp>
+#include <Sys/File.hpp>
 #include "Initialization.hpp"
 
 using namespace hc;
+using namespace hc::bootstrap;
+
+namespace {
+  constinit IOFile __old_pout = nullptr;
+  constinit IOFile __old_perr = nullptr;
+  constinit IOFile __old_pinp = nullptr;
+} // namespace `anonymous`
 
 extern "C" {
   void __xcrt_sysio_setup(void) {
+    // TODO: Check if Win64ProcParams::console_handle == nullptr.
+    Win64PEB* PEB = Win64TEB::LoadPEBFromGS();
     // Initializes at startup.
     // We need these BEFORE calling ctors.
     sys::__init_pfiles();
+    {
+      Win64ProcParams* PP = PEB->process_params;
+      $XCRTLock(ProcessInfoBlock);
+      __old_pout = PP->std_out;
+      __old_perr = PP->std_err;
+      __old_pinp = PP->std_in;
+      PP->std_out = pout;
+      PP->std_err = perr;
+      PP->std_in  = pin;
+    }
   }
 
   void __xcrt_sysio_shutdown(void) {
+    {
+      // TODO: Check if necessary...
+      Win64ProcParams* PP = Win64TEB::LoadPEBFromGS()->process_params;
+      $XCRTLock(ProcessInfoBlock);
+      PP->std_out = __old_pout;
+      PP->std_err = __old_perr;
+      PP->std_in  = __old_pinp;
+    }
     // Destroys at shutdown.
     // We need these after calling dtors.
     sys::__fini_pfiles();

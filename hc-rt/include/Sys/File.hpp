@@ -81,6 +81,13 @@ namespace hc {
   //====================================================================//
 
   namespace sys {
+    // TODO: Remove...
+  #ifndef __XCRT__
+    static struct _PFileInit {
+      _PFileInit();
+    } __pfile_init_;
+  #endif
+
     extern constinit IIOFile* pout;
     extern constinit IIOFile* perr;
     extern constinit IIOFile* pin;

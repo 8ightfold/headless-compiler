@@ -22,22 +22,27 @@
 #include <Sys/Core/Nt/Filesystem.hpp>
 
 namespace hc::sys {
+  __global wchar_t consoleFileName[] = L"CON";
+  __global wchar_t consoleInpFileName[] = L"$CONIN";
+  __global wchar_t consoleOutFileName[] = L"$CONOUT";
+
   FileResult     win_file_read(IIOFile* file, common::AddrRange in);
   FileResult     win_file_write(IIOFile* file, common::ImmAddrRange out);
   IOResult<long> win_file_seek(IIOFile* file, long offset, int);
   IOResult<>     win_file_close(IIOFile* file);
 
   struct WinIOFile : IIOFile {
-    constexpr WinIOFile(
+    constexpr WinIOFile(int fd,
       IIOFileBuf& buf, BufferMode buf_mode,
       IIOMode mode, bool is_owned = false) :
      IIOFile(
       &win_file_read, &win_file_write,
       &win_file_seek, &win_file_close,
       buf, buf_mode, mode, is_owned),
-     io_block() { }
+     fd(fd), io_block() { }
 
   public:
+    int fd;
     win::IoStatusBlock io_block;
   };
 } // namespace hc::sys

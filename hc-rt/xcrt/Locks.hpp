@@ -36,7 +36,7 @@ namespace xcrt {
     AtExit,
     MaxValue
   };
-
-  extern "C" hc::sys::Mtx*
-    __xcrt_get_lock(xcrt::Locks V);
 } // namespace xcrt
+
+extern "C" hc::sys::Mtx*
+  __xcrt_get_lock(xcrt::Locks V);

@@ -21,6 +21,10 @@
 #include <Common/RawLazy.hpp>
 #include <Meta/Once.hpp>
 
+#ifndef __XCRT__
+# include <cstdio>
+#endif // __XCRT__?
+
 using namespace hc::sys;
 namespace C = hc::common;
 namespace S = hc::sys;
@@ -45,13 +49,17 @@ namespace hc::sys {
       return;
     __init = true;
 
-    pOut.ctor(pOut_buf, BufferMode::Full, IIOMode::Write);
-    pErr.ctor(pErr_buf, BufferMode::None, IIOMode::Write);
-    pInp.ctor(pInp_buf, BufferMode::Full, IIOMode::Read);
+    pOut.ctor(1, pOut_buf, BufferMode::Full, IIOMode::Write);
+    pErr.ctor(2, pErr_buf, BufferMode::None, IIOMode::Write);
+    pInp.ctor(0, pInp_buf, BufferMode::Full, IIOMode::Read);
 
     pOut->initialize();
     pErr->initialize();
     pInp->initialize();
+
+   #ifndef __XCRT__
+    std::printf("DONE.\n");
+   #endif // __XCRT__?
 
     // TODO: Init file handles!!
   }
@@ -65,9 +73,15 @@ namespace hc::sys {
 
     // TODO: Fini file handles!!
 
-    pInp->close();
-    pErr->close();
-    pOut->close();
+    const auto close = [&](LazyIIOFile& pFile) {
+      IIOFile::FileLock L(pFile.data());
+      pFile->flushUnlocked();
+      pFile->buf->reset();
+    };
+
+    close(pInp);
+    close(pErr);
+    close(pOut);
 
     pInp.dtor();
     pErr.dtor();
@@ -75,6 +89,10 @@ namespace hc::sys {
   }
 
  #ifndef __XCRT__
+  _PFileInit::_PFileInit() {
+    // __init_pfiles();
+  }
+
   // At the moment, without the xcrt there's no way to
   // force these to initialize early... without bullshit.
   // I tried using an iostream-like initialization

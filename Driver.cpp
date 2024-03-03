@@ -70,6 +70,9 @@ struct X {
   }
 };
 
+#include <Sys/IOFile.hpp>
+#include <xcrtDefs.hpp>
+
 #include <String/Utils.hpp>
 
 template <typename Char, usize N>
@@ -80,6 +83,10 @@ void test_xstrlen(const Char(&A)[N]) {
 }
 
 int main(int N, char* A[], char* Env[]) {
+  std::puts("-------------");
+  sys::__init_pfiles();
+  return 0;
+
   printPathType("//?/PhysicalDrive0/"); // DosDrive
   printPathType("//?/X:/");             // DosVolume
   printPathType("//.\\UNC/");           // DeviceUNC
@@ -93,6 +100,9 @@ int main(int N, char* A[], char* Env[]) {
   printPathType("\\build");             // CurrDriveRel
   printPathType("contents.txt");        // DirRel
   std::puts("");
+
+  S::SysErr::ResetLastError();
+  pout->initialize();
   
   W::StaticUnicodeString name(
     // L"\\??\\PhysicalDrive0\\krita-dev\\krita\\README.md"

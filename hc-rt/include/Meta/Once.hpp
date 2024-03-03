@@ -30,9 +30,8 @@
 
 namespace hc::meta {
   struct _Once {
-    [[gnu::flatten]]
-    _Once(auto&& F) {
-      (void) __hc_fwd(F)();
+    _Once(auto __onentry) {
+      (void) __onentry();
     }
   };
 
