@@ -19,7 +19,7 @@ add_library(hcrt::inc ALIAS hcrt-inc)
 target_include_directories(hcrt-inc INTERFACE include)
 target_forward_options(hcrt-inc INTERFACE RT_MAX_FILES RT_MAX_PATH RT_STRICT_MAX_PATH)
 target_compile_options(hcrt-inc INTERFACE -march=native -ggdb)
-target_compile_options(hcrt-inc INTERFACE -fdiagnostics-show-template-tree)
+target_compile_options(hcrt-inc INTERFACE -Wno-trigraphs -fdiagnostics-show-template-tree)
 target_link_options(hcrt-inc INTERFACE -Wl,--stack,0xF42400 -nostdlib++)
 set_property(TARGET hcrt-inc PROPERTY INTERPROCEDURAL_OPTIMIZATION ${HC_ENABLE_LTO})
 
@@ -80,7 +80,7 @@ add_library(hcrt::dev ALIAS hcrt-dev)
 target_link_libraries(hcrt-dev PUBLIC hcrt::inc)
 target_include_directories(hcrt-dev PUBLIC include src)
 target_compile_definitions(hcrt-dev PUBLIC __HC_INTERNAL__=1)
-target_compile_options(hcrt-dev PRIVATE -Wall)
+target_compile_options(hcrt-dev PRIVATE -Wall -Wno-trigraphs)
 
 if(WIN32)
   target_sources(hcrt-dev PUBLIC

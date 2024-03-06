@@ -46,7 +46,8 @@ namespace hc::sys {
     eInvalName,   // Invalid filename encountered during normalization.
     eNameTooLong, // Unnormalized filepath was larger than `RT_PATH_MAX`.
     eUnsupported, // Filepath type not supported.
-    eSetOSError,  // OS error, accessed with `SysErr::GetLastError()`.
+    eResName,     // Filepath uses a reserved name.
+    eSetOSError,  // OS error, accessed with `SysErr::GetLastError()`
     MaxValue,
   };
 
@@ -105,17 +106,29 @@ namespace hc::sys {
       return last_err;
     }
 
-    /// Gets a description for an ID. Empty if invalid.
+    /// Gets a name for an ID. `nullptr` if invalid.
     static const char* GetErrorName(OpqErrorID ID);
-    /// Gets a description for an error. Empty if invalid.
+    /// Gets a name for an error. Empty if invalid.
     static const char* GetErrorName(OpaqueError);
 
-    /// Gets a description for an ID. Empty if invalid.
+    /// Gets a description for an ID. `nullptr` if invalid.
     static const char* GetErrorDescription(OpqErrorID ID);
-    /// Gets a description for an error. Empty if invalid.
+    /// Gets a description for an error. `nullptr` if invalid.
     static const char* GetErrorDescription(OpaqueError);
     /// Gets the `ErrorGroup` of an opaque handle.
     static ErrorGroup GetErrorGroup(OpaqueError);
+
+    /// Gets a name for an error. Empty if invalid.
+    static const char* GetErrorNameSafe(auto E) {
+      const auto name = SysErr::GetErrorName(E);
+      return name ? name : "";
+    }
+
+    /// Gets a description for an error. Empty if invalid.
+    static const char* GetErrorDescriptionSafe(auto E) {
+      const auto desc = SysErr::GetErrorDescription(E);
+      return desc ? desc : "";
+    }
 
     /// Defines a custom user error, returns `nullptr` if invalid.
     /// Overwrites are only valid when `force` is `true`.

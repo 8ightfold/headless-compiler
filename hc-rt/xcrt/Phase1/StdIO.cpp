@@ -39,11 +39,13 @@ extern "C" {
   void __xcrt_sysio_setup(void) {
     // TODO: Check if Win64ProcParams::console_handle == nullptr.
     Win64PEB* PEB = Win64TEB::LoadPEBFromGS();
+    Win64ProcParams* PP = PEB->process_params;
+    if (!PP->hasConsole())
+      __hc_todo("Add AllocConsole stuff.");
     // Initializes at startup.
     // We need these BEFORE calling ctors.
     sys::__init_pfiles();
     {
-      Win64ProcParams* PP = PEB->process_params;
       $XCRTLock(ProcessInfoBlock);
       __old_pout = PP->std_out;
       __old_perr = PP->std_err;

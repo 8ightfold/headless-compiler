@@ -30,14 +30,13 @@ if (bool(V & F)) {  \
   std::printf("%s-%s\n", Prefix(), #F); \
 }
 
-
 using namespace hc;
 namespace C = hc::common;
 namespace S = hc::sys;
 namespace W = hc::sys::win;
 
 inline const char* commonNtErrors(W::NtStatus S) {
-  return S::SysErr::GetErrorName(S);
+  return S::SysErr::GetErrorNameSafe(S);
 }
 
 struct VolumeInfoBinding {
@@ -94,9 +93,8 @@ private:
   W::FileObjHandle __handle;
 };
 
-inline const char* getPathType(C::StrRef S) {
+inline const char* getPathType(S::PathType type) {
   using S::PathType;
-  PathType type = S::PathNormalizer::GetPathType(S);
   switch (type) {
    case PathType::DosDrive:     return "DosDrive";
    case PathType::DosVolume:    return "DosVolume";
@@ -112,8 +110,8 @@ inline const char* getPathType(C::StrRef S) {
   }
 }
 
-inline void printPathType(C::StrRef S) {
-  std::printf("%s: %s\n", getPathType(S), S.data());
+inline const char* getPathType(C::StrRef S) {
+  return getPathType(S::PathNormalizer::GetPathType(S));
 }
 
 inline const char* Prefix() { return "  "; }
@@ -146,17 +144,22 @@ inline void printLargeInt(W::ULargeInt V, const char* Ex = "") {
   std::printf("%llu\n", LLUType(V.quad));
 }
 
-inline void printPtrRange(C::PtrRange<char> R, const char* Ex = "") {
+inline void printPtrRange(C::ImmPtrRange<char> R, const char* Ex = "") {
   if (R.isEmpty() || !hasPrintableCharacters(R)) return;
   if (Ex && *Ex)
     std::printf(" %s: ", Ex);
   std::printf("%.*s\n", int(R.size()), R.data());
 }
-inline void printPtrRange(C::PtrRange<wchar_t> R, const char* Ex = "") {
+inline void printPtrRange(C::ImmPtrRange<wchar_t> R, const char* Ex = "") {
   if (R.isEmpty() || !hasPrintableCharacters(R)) return;
   if (Ex && *Ex)
     std::printf(" %s: ", Ex);
   std::printf("%.*ls\n", int(R.size()), R.data());
+}
+
+inline void printPathType(C::StrRef S) {
+  std::printf("%s: ", getPathType(S));
+  printPtrRange(S);
 }
 
 inline void printVFSAttribMask(W::VFSAttribMask V) {

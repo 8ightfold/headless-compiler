@@ -23,8 +23,8 @@
 
 namespace hc::sys {
   __global wchar_t consoleFileName[] = L"CON";
-  __global wchar_t consoleInpFileName[] = L"$CONIN";
-  __global wchar_t consoleOutFileName[] = L"$CONOUT";
+  __global wchar_t consoleInpFileName[] = L"CONIN$";
+  __global wchar_t consoleOutFileName[] = L"CONOUT$";
 
   FileResult     win_file_read(IIOFile* file, common::AddrRange in);
   FileResult     win_file_write(IIOFile* file, common::ImmAddrRange out);
@@ -39,10 +39,15 @@ namespace hc::sys {
       &win_file_read, &win_file_write,
       &win_file_seek, &win_file_close,
       buf, buf_mode, mode, is_owned),
-     fd(fd), io_block() { }
+     fd(fd), raw_handle(nullptr), io_block() { }
+  public:
+    void setHandle(win::IOHandle H) {
+      this->raw_handle = H.__data;
+    }
 
   public:
     int fd;
+    void* raw_handle;
     win::IoStatusBlock io_block;
   };
 } // namespace hc::sys

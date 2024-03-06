@@ -35,7 +35,7 @@
 // https://googleprojectzero.blogspot.com/2016/02/the-definitive-guide-on-win32-to-nt.html
 
 namespace hc::sys {
-  static constexpr usize path_max = RT_MAX_PATH;
+  static constexpr usize path_max = RT_STRICT_MAX_PATH;
   using UPathType = parcel::StaticVec<wchar_t, path_max>;
   using PathDyn = common::DynAllocation<wchar_t>;
   using PathRef = common::PtrRange<wchar_t>;
@@ -56,7 +56,7 @@ namespace hc::sys {
     DosVolume,      // `//?/[volume]:/~`
     DeviceUNC,      // `//[.|?]/UNC/~`*
     UNCNamespace,   // `//[name]/~`*
-    NtNamespace,    // `//??/~` or `//GLOBAL??/~`
+    NtNamespace,    // `/??/~` or `/GLOBAL??/~`
     LegacyDevice,   // `[CON|COM[1-9]|...]/~`
     QualDOS,        // `[drive]:/`
     DriveRel,       // `[drive]:~`
@@ -66,7 +66,13 @@ namespace hc::sys {
 
   struct [[gsl::Owner]] PathNormalizer {
     using enum PathType;
-    using StrDyn = common::DynAllocation<char>;
+    using StrDyn  = common::DynAllocation<char>;
+    using WStrDyn = common::DynAllocation<wchar_t>;
+
+    /// May not be 100% accurate, as this is just a first pass.
+    /// For example, a UNC path with the Nt namespace prefix will resolve 
+    /// to a `NtNamespace`. To get the same results as the normalizer itself,
+    /// just do a full path resolve and then call `.getType()`.
     static PathType GetPathType(common::StrRef);
   public:
     constexpr PathNormalizer() = default;
@@ -76,9 +82,12 @@ namespace hc::sys {
     PathRef  getPath() { return path.intoRange(); }
     PathType getType() const { return type; }
     Error getLastError() const { return err; }
-    bool didError() const {
-      return err != Error::eNone;
-    }
+    bool didError() const { return err != Error::eNone; }
+
+  protected:
+    void removePathPrefix(common::StrRef& S);
+    void resolveGlobalroot(common::StrRef& S);
+
   private:
     __always_inline void push(char C) {
       path.emplace(static_cast<wchar_t>(C));
@@ -86,6 +95,9 @@ namespace hc::sys {
     __always_inline void push(wchar_t C) {
       path.emplace(C);
     }
+
+    void push(common::ImmPtrRange<wchar_t> P);
+    void push(common::ImmPtrRange<char> P);
 
     template <typename CType, usize N>
     [[gnu::flatten]]
@@ -101,10 +113,9 @@ namespace hc::sys {
         for (usize I = 0U; I < N; ++I)
           this->push(A[I]);
       }
+      if __expect_true(path.back() == L'\0')
+        path.pop();
     }
-
-    void push(common::PtrRange<wchar_t> P);
-    void push(common::PtrRange<char> P);
 
     bool isNameTooLong(const usize N) {
       if __expect_true(N <= path.remainingCapacity())
@@ -113,8 +124,8 @@ namespace hc::sys {
       return true;
     }
 
-    static void NormalizeSlashes(
-     common::StrRef& S, StrDyn P);
+    static void NormalizeSlashes(common::StrRef& S, StrDyn P);
+    static void NormalizeSlashes(common::StrRef S, WStrDyn P);
 
   private:
     alignas(8) UPathType path {};

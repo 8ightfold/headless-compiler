@@ -102,6 +102,12 @@
 # define __nodebug
 #endif
 
+#if __has_cpp_attribute(_Clang::__lifetimebound__)
+# define __lifetimebound [[_Clang::__lifetimebound__]]
+#else
+# define __lifetimebound
+#endif
+
 #define __expect_false(expr...) (__builtin_expect(bool(expr), 0))
 #define __expect_true(expr...)  (__builtin_expect(bool(expr), 1))
 #define __unpredictable(expr...)  (__builtin_unpredictable(bool(expr)))
@@ -125,8 +131,23 @@
 
 template <typename T>
 [[gnu::always_inline, gnu::nodebug]]
-constexpr __remove_reference_t(T)&& __hc_move(T&& t) __noexcept {
-  return static_cast<__remove_reference_t(T)&&>(t);
+inline constexpr __remove_reference_t(T)&&
+ __hc_move(__lifetimebound T&& V) __noexcept {
+  return static_cast<__remove_reference_t(T)&&>(V);
+}
+
+template <typename T>
+[[gnu::always_inline, gnu::nodebug]]
+inline constexpr T&& 
+ __hc_fwd_(__lifetimebound __remove_reference_t(T)& V) {
+  return static_cast<T&&>(V);
+}
+
+template <typename T>
+[[gnu::always_inline, gnu::nodebug]]
+inline constexpr T&& 
+ __hc_fwd_(__lifetimebound __remove_reference_t(T)&& V) {
+  return static_cast<T&&>(V);
 }
 
 #define __hc_fwd(expr...) static_cast<decltype(expr)&&>(expr)

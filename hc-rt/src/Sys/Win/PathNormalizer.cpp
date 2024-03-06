@@ -32,10 +32,29 @@ namespace S = hc::sys;
 
 // TODO: Needs some refactoring for sure...
 
+//======================================================================//
+// Deduction
+//======================================================================//
+
 namespace {
-  bool __is_alpha(const char C) {
-    return (C >= 'A' && C <= 'Z')
-      || (C >= 'a' && C <= 'a');
+  inline bool __is_upper(const char C) {
+    return (C >= 'A' && C <= 'Z');
+  }
+
+  inline bool __is_lower(const char C) {
+    return (C >= 'a' && C <= 'z');
+  }
+
+  inline bool __is_numeric(const char C) {
+    return (C >= '0' && C <= '9');
+  }
+
+  inline bool __is_alpha(const char C) {
+    return __is_upper(C) || __is_lower(C);
+  }
+
+  inline bool __is_alnum(const char C) {
+    return __is_alpha(C) || __is_numeric(C);
   }
 
   /// We don't do any checking for validity here.
@@ -45,17 +64,16 @@ namespace {
   inline bool is_legacy_device(C::StrRef path) {
     if (path.size() < 3)
       return false;
-    if (path.beginsWith("CON", "PRN", "AUX", "NUL"))
-      return true;
-    else if (path.beginsWith("COM", "LPT")) {
+    if (path.beginsWith("COM", "LPT")) {
       const char C = path.dropFront(3).frontSafe();
       return (C >= '0' && C <= '9');
-    }
+    } else if (path.beginsWith("CON", "PRN", "AUX", "NUL"))
+      return true;
     return false;
   }
 
   PathType dos_volume_or_unk(C::StrRef path) {
-    return __is_alpha(path.frontSafe()) ?
+    return __is_upper(path.frontSafe()) ?
       PathType::DosVolume : PathType::Unknown;
   }
 
@@ -98,22 +116,6 @@ namespace {
     // else: `~`
     return PathType::DirRel;
   }
-
-  char get_volume_letter(C::StrRef drive) {
-
-    return '\0';
-  }
-
-  //====================================================================//
-  // Reformatting
-  //====================================================================//
-
-  void normalize_slashes(C::DynAllocation<char> P, C::StrRef S) {
-    __hc_assert(P.size() == S.size() + 1U);
-    C::inline_memcpy(P.data(), S.data(), S.size());
-    for (char& C : P)
-      C = __expect_true(C != '/') ? C : '\\';
-  }
 } // namespace `anonymous`
 
 [[gnu::flatten]]
@@ -123,9 +125,35 @@ PathType PathNormalizer::GetPathType(C::StrRef S) {
   return deduce_path_type(S);
 }
 
-void PathNormalizer::push(common::PtrRange<wchar_t> P) {
+//======================================================================//
+// Reformatting
+//======================================================================//
+
+namespace {
+  void normalize_slashes(C::DynAllocation<char> P, C::StrRef S) {
+    __hc_assert(P.size() == S.size() + 1U);
+    C::inline_memcpy(P.data(), S.data(), S.size());
+    for (char& C : P)
+      C = __expect_true(C != '/') ? C : '\\';
+  }
+} // namespace `anonymous`
+
+void PathNormalizer::NormalizeSlashes(C::StrRef& S, StrDyn P) {
+  normalize_slashes(P, S);
+  S = P.into<C::StrRef>();
+}
+
+void PathNormalizer::NormalizeSlashes(C::StrRef S, WStrDyn P) {
+  auto SP = $zdynalloc(P.size(), char);
+  NormalizeSlashes(S, SP);
+  // TODO: Implement widen
+  for (usize I = 0; I < P.size(); ++I)
+    P[I] = static_cast<wchar_t>(SP[I]);
+}
+
+void PathNormalizer::push(C::ImmPtrRange<wchar_t> P) {
   const usize N = P.size();
-  if (isNameTooLong(N))
+  if (isNameTooLong(N) || P.isEmpty())
     return;
   // Get the old end(). We will copy from here.
   wchar_t* const old_end = path.end();
@@ -133,32 +161,113 @@ void PathNormalizer::push(common::PtrRange<wchar_t> P) {
   C::inline_memcpy(old_end, P.data(), N);
 }
 
-void PathNormalizer::push(common::PtrRange<char> P) {
-  const usize N = P.size();
-  if (isNameTooLong(N))
-    return;
+void PathNormalizer::push(C::ImmPtrRange<char> P) {
   // Same as the wide version, except here we need to widen.
-  wchar_t* const old_end = path.end();
-  __hc_assertOrIdent(path.resizeUninit(N));
-  (void) old_end;
-  __hc_unreachable("push(PtrRange<char>) is unimplemented.");
+  auto S = C::StrRef(P).dropNull();
+  auto WP = $to_wstr_sz(S.data(), S.size());
+  this->push(WP);
 }
 
-void PathNormalizer::NormalizeSlashes(
- C::StrRef& S, StrDyn P) {
-  normalize_slashes(P, S);
-  S = P.into<C::StrRef>();
+//======================================================================//
+// Core
+//======================================================================//
+
+namespace {
+  char current_drive_letter() {
+    const wchar_t prefix = Args::WorkingDir()[0];
+    return static_cast<char>(prefix);
+  }
+} // namespace `anonymous`
+
+void PathNormalizer::removePathPrefix(C::StrRef& S) {
+  if (MMatch(type).is(
+   GUIDVolume, DosDrive, 
+   DosVolume, DeviceUNC)) {
+    S.dropFrontMut(4);
+    // Add Nt prefix.
+    this->push(L"\\??\\");
+  } else if (MMatch(type).is(
+   UNCNamespace, NtNamespace)) {
+    S.dropFrontMut();
+    bool inject_global = 
+      S.consumeFront("GLOBAL");
+    // Eat front only if matching.
+    S.consumeFront("??");
+    S.dropFrontMut();
+    // Force the type to be a UNC path if
+    // it was originally resolved as Nt.
+    if (S.beginsWith("UNC")) {
+      this->type = UNCNamespace;
+      inject_global = false;
+    }
+    // Add a global specifier if necessary.
+    this->push(L'\\');
+    if (inject_global)
+      this->push(L"GLOBAL");
+    this->push(L"??\\");
+  }
 }
 
+void PathNormalizer::resolveGlobalroot(C::StrRef& S) {
+  if (S.consumeFront("GLOBALROOT")) {
+    if (__is_alpha(S.dropFront().frontSafe())) {
+      S.dropFrontMut();
+      this->type = UNCNamespace;
+      return;
+    }
+    this->type = GetPathType(S);
+    this->removePathPrefix(S);
+  }
+}
 
 bool PathNormalizer::operator()(C::StrRef S) {
   S = S.dropNull();
   path.clear();
-  // TODO: Maybe too soon?
-  if (S.size() > path.Capacity()) {
-    err = Error::eNameTooLong;
+
+  this->type = GetPathType(S);
+  if (type == Unknown) {
+    err = Error::eInvalName;
     return false;
   }
+
+  // First pass to remove special prefixes.
+  // Second pass to remove GLOBALROOT.
+  this->removePathPrefix(S);
+  this->resolveGlobalroot(S);
+  // Remove UNC prefix.
+  if (type == DosDrive) {
+    err = Error::eUnsupported;
+    return false;
+  } else if (MMatch(type).is(
+   DeviceUNC, UNCNamespace)) {
+    if (S.consumeFront("UNC"))
+      S.dropFrontMut();
+    this->push(L"UNC\\");
+  }
+
+  // GUIDVolume
+  // DosVolume
+  // DeviceUNC
+  // UNCNamespace
+  // NtNamespace
+  // LegacyDevice
+  // QualDOS
+  // DriveRel
+  // CurrDriveRel
+  // DirRel
+
+  return false;
+}
+
+bool PathNormalizer::operator()(ImmPathRef wpath) {
+  __hc_unreachable("operator()(ImmPathRef) is unimplemented.");
+  return false;
+}
+
+/*
+bool PathNormalizer::operator()(C::StrRef S) {
+  S = S.dropNull();
+  path.clear();
 
   this->type = GetPathType(S);
   if (type == Unknown) {
@@ -193,17 +302,6 @@ bool PathNormalizer::operator()(C::StrRef S) {
    default: break;
   }
 
-  if (type == DirRel) {
-    NormalizeSlashes(S, P);
-    ImmPathRef PP = Args::WorkingDir();
-    (void) PP;
-    (void) get_volume_letter("");
-  }
-
   return false;
 }
-
-bool PathNormalizer::operator()(ImmPathRef wpath) {
-  __hc_unreachable("operator()(ImmPathRef) is unimplemented.");
-  return false;
-}
+*/

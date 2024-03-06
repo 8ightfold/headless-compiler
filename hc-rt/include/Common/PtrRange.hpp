@@ -266,7 +266,7 @@ namespace hc::common {
       return { new_begin, new_end };
     }
 
-    template <typename U>
+    template <typename U = T>
     __always_inline PtrRange<const U> intoImmRange() const {
       return this->intoRange<const U>();
     }

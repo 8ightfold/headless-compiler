@@ -40,7 +40,7 @@ namespace hc::common {
   };
 
   template <typename T>
-  struct RawLazy {
+  struct [[gsl::Owner]] RawLazy {
     using Type = T;
     using SelfType = RawLazy<T>;
     using BaseType = _RawLazyBase<T>;
@@ -61,27 +61,28 @@ namespace hc::common {
       destroy_at_ref(this->unwrap());
     }
 
-    __ndbg_inline constexpr
-     T& unwrap() noexcept {
+    [[nodiscard]] __ndbg_inline
+    constexpr T& unwrap() noexcept {
       return __data.__data;
     }
 
-    __ndbg_inline constexpr
-     const T& unwrap() const noexcept {
+    [[nodiscard]] __ndbg_inline
+    constexpr const T& unwrap() const noexcept {
       return __data.__data;
     }
 
-    __ndbg_inline constexpr
-     T* data() noexcept {
+    __ndbg_inline
+    constexpr T* data() noexcept {
       return &__data.__data;
     }
 
-    __ndbg_inline constexpr
-     const T* data() const noexcept {
+    __ndbg_inline 
+    constexpr const T* data() const noexcept {
       return &__data.__data;
     }
 
-    __ndbg_inline constexpr T take() __noexcept {
+    [[nodiscard]] __ndbg_inline
+    constexpr T take() __noexcept {
       T V {__hc_move(this->unwrap())};
       this->dtor();
       return V;
@@ -117,7 +118,7 @@ namespace hc::common {
 
   template <typename T>
   requires(meta::is_trivial<T>)
-  struct [[clang::trivial_abi]] RawLazy<T> {
+  struct [[clang::trivial_abi, gsl::Owner]] RawLazy<T> {
     using Type = T;
     using SelfType = RawLazy<T>;
     using BaseType = T;
@@ -131,17 +132,18 @@ namespace hc::common {
     __always_inline constexpr
      void dtor() const noexcept { }
 
-    __ndbg_inline constexpr
-     T& unwrap() noexcept {
+    [[nodiscard]] __ndbg_inline
+    constexpr T& unwrap() noexcept {
       return __data;
     }
 
-    __ndbg_inline constexpr
-     const T& unwrap() const noexcept {
+    [[nodiscard]] __ndbg_inline
+    constexpr const T& unwrap() const noexcept {
       return __data;
     }
 
-    __ndbg_inline constexpr T take() noexcept {
+    [[nodiscard]] __ndbg_inline
+    constexpr T take() noexcept {
       return __data;
     }
 

@@ -128,15 +128,6 @@ namespace hc::common {
     }
 
     //==================================================================//
-    // Observers
-    //==================================================================//
-
-    bool isEqual(StrRef S) const {
-      if (size() != S.size()) return false;
-      return __memcmp(data(), S.data(), size()) == 0;
-    }
-
-    //==================================================================//
     // Chaining
     //==================================================================//
 
@@ -169,9 +160,23 @@ namespace hc::common {
       $tail_return dropFront(size() - n);
     }
 
+    StrRef& dropFrontMut(usize n = 1) {
+      return (*this = dropFront(n));
+    }
+
+    StrRef& dropBackMut(usize n = 1) {
+      return (*this = dropBack(n));
+    }
+
     //==================================================================//
     // Comparison
     //==================================================================//
+
+    bool isEqual(StrRef S) const {
+      if (size() != S.size())
+        return false;
+      return __memcmp(data(), S.data(), size()) == 0;
+    }
 
     bool beginsWith(char C) {
       return !isEmpty() && (*data() == C);
@@ -231,6 +236,32 @@ namespace hc::common {
     //==================================================================//
     // Parsing
     //==================================================================//
+
+    bool consumeFront(char C) {
+      if (!this->beginsWith(C))
+        return false;
+      ++BaseType::__begin;
+      return true;
+    }
+    bool consumeFront(StrRef S) {
+      if (!this->beginsWith(S))
+        return false;
+      BaseType::__begin += S.size();
+      return true;
+    }
+
+    bool consumeBack(char C) {
+      if (!this->endsWith(C))
+        return false;
+      --BaseType::__end;
+      return true;
+    }
+    bool consumeBack(StrRef S) {
+      if (!this->endsWith(S))
+        return false;
+      BaseType::__end -= S.size();
+      return true;
+    }
 
     [[nodiscard]] StrRef dropNull() const {
       if __expect_false(size() == 0) 

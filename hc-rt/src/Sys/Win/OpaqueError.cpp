@@ -52,6 +52,7 @@ namespace {
     $NewOpqErr("InvalidFilepath", "Invalid filepath encountered during normalization."),
     $NewOpqErr("FilepathTooLong", "Unnormalized filepath was larger than RT_PATH_MAX."),
     $NewOpqErr("UnsupportedFilepath", "Filepath type not supported."),
+    $NewOpqErr("ReservedFilename", "Filepath uses a reserved name."),
     $NewOpqErr("OSError", "OS error, accessed with SysErr::GetLastError().")
   };
 

@@ -21,10 +21,6 @@
 #include <Common/RawLazy.hpp>
 #include <Meta/Once.hpp>
 
-#ifndef __XCRT__
-# include <cstdio>
-#endif // __XCRT__?
-
 using namespace hc::sys;
 namespace C = hc::common;
 namespace S = hc::sys;
@@ -57,10 +53,6 @@ namespace hc::sys {
     pErr->initialize();
     pInp->initialize();
 
-   #ifndef __XCRT__
-    std::printf("DONE.\n");
-   #endif // __XCRT__?
-
     // TODO: Init file handles!!
   }
 
@@ -89,15 +81,11 @@ namespace hc::sys {
   }
 
  #ifndef __XCRT__
-  _PFileInit::_PFileInit() {
-    // __init_pfiles();
-  }
-
   // At the moment, without the xcrt there's no way to
-  // force these to initialize early... without bullshit.
+  // force these to initialize early... without BS.
   // I tried using an iostream-like initialization
   // sentinel (same style used in Syscall.hpp), and
-  // no dice, I got `AccessViolation`. So that means
+  // no dice, got an `AccessViolation`. So that means
   // you'll just have to hope they get initialized :P
   $Once { __init_pfiles(); };
  #endif // __XCRT__?

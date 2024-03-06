@@ -54,8 +54,6 @@ namespace P = hc::parcel;
 namespace S = hc::sys;
 namespace W = hc::sys::win;
 
-// TODO: Make types trivial
-
 #define FLAG_MAP(ty) | S::IIOMode::ty
 #define IO(ty, tys...) S::IIOMode::ty $PP_expand($PP_mapC(FLAG_MAP, ##tys))
 #define IIO(ty, tys...) (IO(ty, ##tys))
@@ -70,36 +68,68 @@ struct X {
   }
 };
 
-#include <Sys/IOFile.hpp>
 #include <xcrtDefs.hpp>
-
+#include <Sys/IOFile.hpp>
 #include <String/Utils.hpp>
 
-template <typename Char, usize N>
-void test_xstrlen(const Char(&A)[N]) {
-  const usize len = xcrt::xstringlen<Char>(A);
-  assert(len == (N - 1));
-  std::printf("Got: %zu\n", len);
+void dumpPathData(C::StrRef path) {
+  using namespace hc::sys;
+  PathNormalizer norm;
+  norm(path);
+  std::printf("%s: ", getPathType(norm.getType()));
+  printPtrRange(path);
+  // Check if valid path.
+  if (Error last = norm.getLastError(); last != Error::eNone) {
+    const auto E = SysErr::GetOpaqueError(last);
+    std::printf("[%s]: %s\n\n",
+      SysErr::GetErrorNameSafe(E),
+      SysErr::GetErrorDescriptionSafe(E));
+    return;
+  }
+
+  const auto P = norm.getPath();
+  if (!P.isEmpty()) {
+    std::printf("Normalized: ");
+    printPtrRange(norm.getPath());
+  }
+  std::puts("");
 }
 
 int main(int N, char* A[], char* Env[]) {
-  std::puts("-------------");
-  sys::__init_pfiles();
-  return 0;
+  std::printf("Current directory: ");
+  printPtrRange(S::Args::WorkingDir());
 
-  printPathType("//?/PhysicalDrive0/"); // DosDrive
-  printPathType("//?/X:/");             // DosVolume
-  printPathType("//.\\UNC/");           // DeviceUNC
-  printPathType("//RAHHHH/");           // UNCNamespace
-  printPathType("\\??\\C:");            // NtNamespace  
-  printPathType("/GLOBAL??""/C:");      // NtNamespace
-  printPathType("NUL");                 // LegacyDevice
-  printPathType("//./CON3");            // LegacyDevice
-  printPathType("D:\\ProgramData");     // QualDOS
-  printPathType("Z:code");              // DriveRel
-  printPathType("\\build");             // CurrDriveRel
-  printPathType("contents.txt");        // DirRel
-  std::puts("");
+  std::puts("Normal:");
+  dumpPathData("//?/PhysicalDrive0/"); // DosDrive
+  dumpPathData("//?/X:/");             // DosVolume
+  dumpPathData("//.\\UNC/");           // DeviceUNC
+  dumpPathData("//RAHHHH/");           // UNCNamespace
+  dumpPathData("/??/C:");              // NtNamespace  
+  dumpPathData("/GLOBAL??""/C:");      // NtNamespace
+  dumpPathData("NUL");                 // LegacyDevice
+  dumpPathData("//./CON3");            // LegacyDevice
+  dumpPathData("D:\\ProgramData");     // QualDOS
+  dumpPathData("Z:code");              // DriveRel
+  dumpPathData("\\build");             // CurrDriveRel
+  dumpPathData("contents.txt");        // DirRel
+
+  std::puts("Weird:");
+  dumpPathData("//server/share");      // UNCNamespace
+  dumpPathData("//./pipe/P/../N");     // DosDrive
+  dumpPathData("//./X:/F/../../C:/");  // DosVolume
+  dumpPathData("X:\\ABC\\..\\..\\.."); // QualDOS
+  dumpPathData("X/ABC\\../..\\..");    // DriveRel
+  dumpPathData("\\");                  // CurrDriveRel
+  dumpPathData(".");                   // DirRel
+  dumpPathData("../ABC");              // DirRel
+  dumpPathData("//./C:/abc/xyz");      // DosVolume
+
+  std::puts("Very Weird:");
+  dumpPathData("/??/UNC/abc/xyz");
+  dumpPathData("//?/GLOBALROOT/??/UNC/abc/xyz");
+  dumpPathData("//?/GLOBALROOT/DosDevices/UNC/abc/xyz");
+
+  std::puts("...\n");
 
   S::SysErr::ResetLastError();
   pout->initialize();
@@ -127,8 +157,8 @@ int main(int N, char* A[], char* Env[]) {
     std::printf("With file `%ls`:\n", name.buffer);
     // std::printf("Open failed! [0x%.8X]\n", io.status);
     std::printf("Open failed! [%s] - %s\n", 
-      S::SysErr::GetErrorName(io.status),
-      S::SysErr::GetErrorDescription(io.status));
+      S::SysErr::GetErrorNameSafe(io.status),
+      S::SysErr::GetErrorDescriptionSafe(io.status));
     return io.status;
   }
   std::printf("Opened file `%ls`.\n", name.buffer);
@@ -145,6 +175,7 @@ int main(int N, char* A[], char* Env[]) {
     return S;
   }
 
+  return 0;
   auto* preEnv = S::Args::Envp().data();
   while (const char* E = *preEnv++) {
     std::printf("%s\n", E);

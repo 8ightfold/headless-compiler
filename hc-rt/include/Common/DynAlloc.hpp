@@ -33,13 +33,15 @@
 // TODO: $to_wstr -> $widen
 // Add $narrow, add SIMD?
 
-#define $to_wstr(S) ({ \
-  const usize __len = __builtin_strlen(S); \
+#define $to_wstr_sz(S, size) ({ \
+  const usize __len = size; \
   auto __wstr = $zdynalloc(__len + 1, wchar_t); \
   for (usize I = 0; I < __len; ++I) \
     __wstr[I] = static_cast<wchar_t>(S[I]); \
   __wstr; \
 })
+
+#define $to_wstr(S) $to_wstr_sz(S, __builtin_strlen(S))
 
 #define $dynalloc(sz, ty...) ({ \
  using __ty = ::hc::common::DynAllocation<ty>; \
@@ -62,7 +64,7 @@ namespace hc::common {
     __is_trivially_destructible(T);
 
   template <typename T, usize Align = alignof(T)>
-  struct [[gsl::Owner]] DynAllocation {
+  struct [[gsl::Pointer]] DynAllocation {
     using value_type = T;
     using pointer = T*;
     static constexpr usize totalAlign = Align * ::__bitcount;
@@ -81,6 +83,12 @@ namespace hc::common {
     }
 
     operator PtrRange<T>() const __noexcept {
+      return {begin(), end()};
+    }
+
+    template <meta::is_same<T> U = T>
+    requires meta::not_const<T>
+    operator ImmPtrRange<T>() const __noexcept {
       return {begin(), end()};
     }
 
