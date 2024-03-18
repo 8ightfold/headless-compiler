@@ -109,6 +109,8 @@ int main(int N, char* A[], char* Env[]) {
     Vec.pop();
     Vec.emplace();
     Vec.emplaceBack(7)->me();
+
+    P::StringTable<64> Tbl;
   }
 
   std::printf("Current directory: ");

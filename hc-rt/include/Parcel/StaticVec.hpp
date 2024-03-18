@@ -481,7 +481,6 @@ namespace hc::parcel {
     static_assert(__is_object(T));
     using BaseType  = IStaticVec<T>;
     using StorageType = StaticVecStorage<T, BufferSize>;
-    using _BaseType = _StaticVecNPODStorage<T, BufferSize>;
     using SelfType  = StaticVec;
     using Type = T;
     static constexpr usize __capacity = BufferSize;
@@ -559,14 +558,6 @@ namespace hc::parcel {
 
     constexpr usize remainingCapacity() const __noexcept {
       return Capacity() - this->size();
-    }
-
-    //==================================================================//
-    // Internals
-    //==================================================================//
-
-    friend constexpr usize& __get_size_ref(StaticVec& V) {
-      return V.__size;
     }
   
   private:

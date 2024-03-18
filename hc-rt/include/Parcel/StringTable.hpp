@@ -28,21 +28,22 @@
 #include <Parcel/StaticVec.hpp>
 
 namespace hc::parcel {
-  template <CC::__char_type Char>
-  struct IStringTableBase {
+  template <CC::__char_type Char, usize BufferSize>
+  struct [[gsl::Owner]] IStringTable :
+   protected StaticVec<Char, BufferSize> {
+    using BaseType = StaticVec<Char, BufferSize>;
+    using SelfType = IStringTable;
+  public:
+    constexpr IStringTable() : BaseType() {}
 
+  public:
+    
   };
 
-  template <CC::__char_type Char, usize N>
-  struct IStringTable : IStringTableBase<Char> {
-
-  };
-
-/*
   template <usize N>
-  struct StringTable  = IStringTable<char, N>;
+  using StringTable = IStringTable<char, N>;
 
   template <usize N>
-  struct WStringTable = IStringTable<wchar_t, N>;
-*/
+  using WStringTable = IStringTable<wchar_t, N>;
+
 } // namespace hc::parcel
