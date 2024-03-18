@@ -27,6 +27,7 @@
 #include <Bootstrap/Syscalls.hpp>
 #include <Parcel/Skiplist.hpp>
 #include <Parcel/StaticVec.hpp>
+#include <Parcel/StringTable.hpp>
 
 #include <Sys/Core/Nt/Structs.hpp>
 #include <Sys/Win/Volume.hpp>
@@ -60,9 +61,10 @@ namespace W = hc::sys::win;
 #define IO_TEST(str, ex) assert( \
   S::IIOFile::ParseModeFlags(str) == IIO($PP_rm_parens(ex)))
 
-struct X {
-  X()  { std::printf("Ctor: %p\n", this); }
-  ~X() { std::printf("Dtor: %p\n", this); }
+struct alignas(u16) X {
+  X()      { std::printf("Ctor: %p\n", this); }
+  X(int I) { std::printf("Ctor(%i)\n", I); }
+  ~X()     { std::printf("Dtor: %p\n", this); }
   void me() const {
     std::printf("Hi in %p!\n", this);
   }
@@ -72,16 +74,21 @@ struct X {
 #include <Sys/IOFile.hpp>
 #include <String/Utils.hpp>
 
-void dumpPathData(C::StrRef path) {
+void dumpPathData(C::StrRef path,
+ S::PathType chk = S::PathType::Unknown) {
   using namespace hc::sys;
   PathNormalizer norm;
   norm(path);
+  if (chk == PathType::Unknown)
+    chk = norm.getType();
   std::printf("%s: ", getPathType(norm.getType()));
   printPtrRange(path);
+  if (PathType ty = norm.getType(); chk != ty)
+    std::printf("ERROR: Expected type %s.\n", getPathType(ty));
   // Check if valid path.
   if (Error last = norm.getLastError(); last != Error::eNone) {
     const auto E = SysErr::GetOpaqueError(last);
-    std::printf("[%s]: %s\n\n",
+    std::printf(" [%s]: %s\n\n",
       SysErr::GetErrorNameSafe(E),
       SysErr::GetErrorDescriptionSafe(E));
     return;
@@ -89,50 +96,62 @@ void dumpPathData(C::StrRef path) {
 
   const auto P = norm.getPath();
   if (!P.isEmpty()) {
-    std::printf("Normalized: ");
-    printPtrRange(norm.getPath());
+    printPtrRange(norm.getPath(), "Normalized");
   }
   std::puts("");
 }
 
 int main(int N, char* A[], char* Env[]) {
+  {
+    P::ALStaticVec<X, 16> Vec;
+    Vec.emplace();
+    Vec.emplace();
+    Vec.pop();
+    Vec.emplace();
+    Vec.emplaceBack(7)->me();
+  }
+
   std::printf("Current directory: ");
   printPtrRange(S::Args::WorkingDir());
 
-  std::puts("Normal:");
-  dumpPathData("//?/PhysicalDrive0/"); // DosDrive
-  dumpPathData("//?/X:/");             // DosVolume
-  dumpPathData("//.\\UNC/");           // DeviceUNC
-  dumpPathData("//RAHHHH/");           // UNCNamespace
-  dumpPathData("/??/C:");              // NtNamespace  
-  dumpPathData("/GLOBAL??""/C:");      // NtNamespace
-  dumpPathData("NUL");                 // LegacyDevice
-  dumpPathData("//./CON3");            // LegacyDevice
-  dumpPathData("D:\\ProgramData");     // QualDOS
-  dumpPathData("Z:code");              // DriveRel
-  dumpPathData("\\build");             // CurrDriveRel
-  dumpPathData("contents.txt");        // DirRel
+  {
+    using enum sys::PathType;
+    C::StrRef exampleVolume = "//./Volume{b75e2c83-0000-0000-0000-602f00000000}/";
+    std::puts("Normal:");
+    dumpPathData(exampleVolume,           GUIDVolume);
+    dumpPathData("//?/PhysicalDrive0/",   DosDrive);
+    dumpPathData("//?/X:/",               DosVolume);
+    dumpPathData("//.\\UNC/",             DeviceUNC);
+    dumpPathData("//RAHHHH/",             UNCNamespace);
+    dumpPathData("/??/C:",                NtNamespace);
+    dumpPathData("/GLOBAL??""/C:",        NtNamespace);
+    dumpPathData("NUL",                   LegacyDevice);
+    dumpPathData("//./CON3",              LegacyDevice);
+    dumpPathData("D:\\ProgramData",       QualDOS);
+    dumpPathData("Z:code",                DriveRel);
+    dumpPathData("\\build",               CurrDriveRel);
+    dumpPathData("contents.txt",          DirRel);
 
-  std::puts("Weird:");
-  dumpPathData("//server/share");      // UNCNamespace
-  dumpPathData("//./pipe/P/../N");     // DosDrive
-  dumpPathData("//./X:/F/../../C:/");  // DosVolume
-  dumpPathData("X:\\ABC\\..\\..\\.."); // QualDOS
-  dumpPathData("X/ABC\\../..\\..");    // DriveRel
-  dumpPathData("\\");                  // CurrDriveRel
-  dumpPathData(".");                   // DirRel
-  dumpPathData("../ABC");              // DirRel
-  dumpPathData("//./C:/abc/xyz");      // DosVolume
+    std::puts("Weird:");
+    dumpPathData("//server/share",        UNCNamespace);
+    dumpPathData("//./pipe/P/../N",       DosDrive);
+    dumpPathData("//./X:/F/../../C:/",    DosVolume);
+    dumpPathData("X:\\ABC\\..\\..\\..",   QualDOS);
+    dumpPathData("X/ABC\\../..\\..",      DriveRel);
+    dumpPathData("\\",                    CurrDriveRel);
+    dumpPathData(".",                     DirRel);
+    dumpPathData("../ABC",                DirRel);
+    dumpPathData("//./C:/abc/xyz",        DosVolume);
 
-  std::puts("Very Weird:");
-  dumpPathData("/??/UNC/abc/xyz");
-  dumpPathData("//?/GLOBALROOT/??/UNC/abc/xyz");
-  dumpPathData("//?/GLOBALROOT/DosDevices/UNC/abc/xyz");
+    std::puts("Very Weird:");
+    dumpPathData("/??/UNC/abc/xyz");
+    dumpPathData("//?/GLOBALROOT/??/UNC/abc/xyz");
+    dumpPathData("//?/GLOBALROOT/DosDevices/UNC/abc/xyz");
 
-  std::puts("...\n");
+    std::puts("...\n");
+  }
 
   S::SysErr::ResetLastError();
-  pout->initialize();
   
   W::StaticUnicodeString name(
     // L"\\??\\PhysicalDrive0\\krita-dev\\krita\\README.md"

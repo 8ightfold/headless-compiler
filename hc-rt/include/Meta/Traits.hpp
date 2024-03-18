@@ -99,7 +99,14 @@ namespace hc::meta {
   concept is_trivially_copyable = __is_trivially_copyable(T);
 
   template <typename T>
+  concept is_trivially_movable = 
+    __is_trivially_constructible(T, __add_rvalue_reference(T));
+
+  template <typename T>
   concept is_trivially_destructible = __is_trivially_destructible(T);
+
+  template <typename T>
+  concept is_trivially_relocatable = __is_trivially_relocatable(T);
 
   template <typename T>
   concept is_object = __is_object(T);

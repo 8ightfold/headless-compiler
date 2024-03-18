@@ -1,4 +1,4 @@
-//===- Common/Fundamental.hpp ---------------------------------------===//
+//===- Common/CheckFundamental.cpp ----------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //

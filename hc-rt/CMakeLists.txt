@@ -65,6 +65,7 @@ target_internal_flags(hcrt-inc INTERFACE HC_ENABLE_LTO)
 add_library(hcrt-dev STATIC
   src/Common/CheckFundamental.cpp
   src/Common/Memory.cpp
+  src/Common/StrRef.cpp
   src/BinaryFormat/MagicMatcher.cpp
   src/Meta/ID.cpp
   src/Sys/IOFile.cpp

@@ -18,10 +18,18 @@
 
 #include <Common/InlineMemcpy.hpp>
 #include <Common/MMatch.hpp>
+#include <Common/Option.hpp>
 #include <Bootstrap/Win64KernelDefs.hpp>
 #include <Sys/Args.hpp>
 #include <Sys/Win/Volume.hpp>
 #include "PathNormalizer.hpp"
+
+#ifndef __XCRT__
+# include <cstdio>
+# define $printf(...) std::printf(__VA_ARGS__)
+#else
+# define $printf(...) (void(0))
+#endif
 
 using namespace hc;
 using namespace hc::sys;
@@ -30,13 +38,24 @@ namespace C = hc::common;
 namespace P = hc::parcel;
 namespace S = hc::sys;
 
-// TODO: Needs some refactoring for sure...
+namespace {
+  struct PathSlicer {
+    PathSlicer(PathNormalizer* N, C::StrRef P) : N(N), P(P) {}
+  private:
+    PathNormalizer* N;
+    C::StrRef P;
+  };
+} // namespace `anonymous`
 
 //======================================================================//
 // Deduction
 //======================================================================//
 
 namespace {
+  inline bool __is_control(const char C) {
+    return (C < ' ' || C == '\x7F');
+  }
+
   inline bool __is_upper(const char C) {
     return (C >= 'A' && C <= 'Z');
   }
@@ -55,6 +74,17 @@ namespace {
 
   inline bool __is_alnum(const char C) {
     return __is_alpha(C) || __is_numeric(C);
+  }
+
+  inline bool __is_special_pchar(const char C) {
+    return __is_control(C) || MMatch(C).is(
+     '"', '*', '/', ':', '<', '>', '?', '|');
+  }
+
+  inline bool __is_valid_pchar(const char C) {
+    if __expect_true(__is_alnum(C))
+      return true;
+    return (C != '\\' && !__is_special_pchar(C));
   }
 
   /// We don't do any checking for validity here.
@@ -130,25 +160,31 @@ PathType PathNormalizer::GetPathType(C::StrRef S) {
 //======================================================================//
 
 namespace {
-  void normalize_slashes(C::DynAllocation<char> P, C::StrRef S) {
-    __hc_assert(P.size() == S.size() + 1U);
-    C::inline_memcpy(P.data(), S.data(), S.size());
-    for (char& C : P)
-      C = __expect_true(C != '/') ? C : '\\';
+  __always_inline char normalize_pchar(const char C) {
+    return __expect_true(C != '/') ? C : '\\';
   }
 } // namespace `anonymous`
 
-void PathNormalizer::NormalizeSlashes(C::StrRef& S, StrDyn P) {
-  normalize_slashes(P, S);
-  S = P.into<C::StrRef>();
+void PathNormalizer::appendPathSlice(C::StrRef S) {
+  S = S.dropNull();
+  if (isNameTooLong(S.size()) || S.isEmpty())
+    return;
+  for (char C : S) {
+    if __expect_false(!__is_valid_pchar(C))
+      this->err = Error::eInvalName;
+    this->push(C);
+  }
 }
-
-void PathNormalizer::NormalizeSlashes(C::StrRef S, WStrDyn P) {
-  auto SP = $zdynalloc(P.size(), char);
-  NormalizeSlashes(S, SP);
-  // TODO: Implement widen
-  for (usize I = 0; I < P.size(); ++I)
-    P[I] = static_cast<wchar_t>(SP[I]);
+void PathNormalizer::appendPath(C::StrRef S) {
+  S = S.dropNull();
+  if (isNameTooLong(S.size()) || S.isEmpty())
+    return;
+  for (char C : S) {
+    C = normalize_pchar(C);
+    if __expect_false(__is_special_pchar(C))
+      this->err = Error::eInvalName;
+    this->push(C);
+  }
 }
 
 void PathNormalizer::push(C::ImmPtrRange<wchar_t> P) {
@@ -158,7 +194,7 @@ void PathNormalizer::push(C::ImmPtrRange<wchar_t> P) {
   // Get the old end(). We will copy from here.
   wchar_t* const old_end = path.end();
   __hc_assertOrIdent(path.resizeUninit(N));
-  C::inline_memcpy(old_end, P.data(), N);
+  C::inline_memcpy(old_end, P.data(), N * sizeof(wchar_t));
 }
 
 void PathNormalizer::push(C::ImmPtrRange<char> P) {
@@ -179,13 +215,14 @@ namespace {
   }
 } // namespace `anonymous`
 
-void PathNormalizer::removePathPrefix(C::StrRef& S) {
+void PathNormalizer::removePathPrefix(C::StrRef& S, bool do_push) {
   if (MMatch(type).is(
    GUIDVolume, DosDrive, 
    DosVolume, DeviceUNC)) {
     S.dropFrontMut(4);
     // Add Nt prefix.
-    this->push(L"\\??\\");
+    if (do_push)
+      this->push(L"\\??\\");
   } else if (MMatch(type).is(
    UNCNamespace, NtNamespace)) {
     S.dropFrontMut();
@@ -201,29 +238,32 @@ void PathNormalizer::removePathPrefix(C::StrRef& S) {
       inject_global = false;
     }
     // Add a global specifier if necessary.
-    this->push(L'\\');
-    if (inject_global)
-      this->push(L"GLOBAL");
-    this->push(L"??\\");
+    if (do_push) {
+      this->push(L'\\');
+      if (inject_global)
+        this->push(L"GLOBAL");
+      this->push(L"??\\");
+    }
   }
 }
 
 void PathNormalizer::resolveGlobalroot(C::StrRef& S) {
   if (S.consumeFront("GLOBALROOT")) {
-    if (__is_alpha(S.dropFront().frontSafe())) {
+    if (__is_valid_pchar(S.dropFront().frontSafe())) {
       S.dropFrontMut();
       this->type = UNCNamespace;
       return;
     }
     this->type = GetPathType(S);
-    this->removePathPrefix(S);
+    this->removePathPrefix(S, false);
   }
 }
 
-bool PathNormalizer::operator()(C::StrRef S) {
-  S = S.dropNull();
-  path.clear();
+void PathNormalizer::appendAbsolutePath(C::StrRef S) {
+  
+}
 
+bool PathNormalizer::doNormalization(C::StrRef S) {
   this->type = GetPathType(S);
   if (type == Unknown) {
     err = Error::eInvalName;
@@ -235,7 +275,7 @@ bool PathNormalizer::operator()(C::StrRef S) {
   this->removePathPrefix(S);
   this->resolveGlobalroot(S);
   // Remove UNC prefix.
-  if (type == DosDrive) {
+  if (MMatch(type).is(GUIDVolume, DosDrive)) {
     err = Error::eUnsupported;
     return false;
   } else if (MMatch(type).is(
@@ -256,12 +296,29 @@ bool PathNormalizer::operator()(C::StrRef S) {
   // CurrDriveRel
   // DirRel
 
+  if (MMatch(type).is(UNCNamespace)) {
+
+  }
+
+  this->push(L'@');
+  this->push(S);
+  (void) current_drive_letter();
+
   return false;
 }
 
+bool PathNormalizer::operator()(C::StrRef S) {
+  path.clear();
+  this->err = Error::eNone;
+  bool R = doNormalization(S.dropNull());
+  this->push(L'\0');
+  return R;
+}
+
 bool PathNormalizer::operator()(ImmPathRef wpath) {
-  __hc_unreachable("operator()(ImmPathRef) is unimplemented.");
-  return false;
+  path.clear();
+  this->err = Error::eNone;
+  __hc_todo("operator()(ImmPathRef)", false);
 }
 
 /*

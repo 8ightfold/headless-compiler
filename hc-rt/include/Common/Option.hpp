@@ -231,6 +231,7 @@ namespace hc::common {
         this->__data = &t;
     }
 
+    constexpr Option(InPlace, T& t) : Option(t) {}
     constexpr ~Option() = default;
 
     /// Copy assign.

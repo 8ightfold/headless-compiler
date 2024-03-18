@@ -96,6 +96,7 @@ private:
 inline const char* getPathType(S::PathType type) {
   using S::PathType;
   switch (type) {
+   case PathType::GUIDVolume:   return "GUIDVolume";
    case PathType::DosDrive:     return "DosDrive";
    case PathType::DosVolume:    return "DosVolume";
    case PathType::DeviceUNC:    return "DeviceUNC";

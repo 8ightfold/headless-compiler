@@ -27,7 +27,7 @@
 
 namespace hc::common {
   template <typename T>
-  union alignas(T) [[clang::trivial_abi]] _RawLazyBase {
+  union [[clang::trivial_abi]] _RawLazyBase {
     using Type = T;
     using SelfType = _RawLazyBase<T>;
     using BufType = ubyte[sizeof(T)];

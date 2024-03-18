@@ -36,6 +36,7 @@ namespace hc::common {
     using Type     = const char;
     using BaseType = PtrRange<Type>;
     using PtrType  = BaseType::PtrType;
+    static constexpr usize npos = Max<usize>;
   public:
     using BaseType::size;
     using BaseType::sizeInBytes;
@@ -232,6 +233,12 @@ namespace hc::common {
       if __expect_false(!lit) return false;
       return S.isEqual(StrRef::NewRaw(lit));
     }
+
+    //==================================================================//
+    // Searching
+    //==================================================================//
+
+    
 
     //==================================================================//
     // Parsing

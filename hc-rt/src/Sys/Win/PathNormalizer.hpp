@@ -85,8 +85,14 @@ namespace hc::sys {
     bool didError() const { return err != Error::eNone; }
 
   protected:
-    void removePathPrefix(common::StrRef& S);
+    bool doNormalization(common::StrRef S);
+    void removePathPrefix(common::StrRef& S, bool = true);
     void resolveGlobalroot(common::StrRef& S);
+    void appendAbsolutePath(common::StrRef S);
+    // Checks if slice characters are valid.
+    void appendPathSlice(common::StrRef S);
+    // Normalizes `/`, otherwise same checks as slices.
+    void appendPath(common::StrRef S);
 
   private:
     __always_inline void push(char C) {
@@ -123,9 +129,6 @@ namespace hc::sys {
       this->err = Error::eNameTooLong;
       return true;
     }
-
-    static void NormalizeSlashes(common::StrRef& S, StrDyn P);
-    static void NormalizeSlashes(common::StrRef S, WStrDyn P);
 
   private:
     alignas(8) UPathType path {};
