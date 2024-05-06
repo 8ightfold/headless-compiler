@@ -28,22 +28,117 @@
 #include <Parcel/StaticVec.hpp>
 
 namespace hc::parcel {
-  template <CC::__char_type Char, usize BufferSize>
+  /// @brief Base for an intern table. Allows for inline storage.
+  /// @tparam Char The character type of the stored strings.
+  /// @tparam BufferSize The size of the inlined buffer.
+  template <CC::__xchar_type Char, usize BufferSize>
   struct [[gsl::Owner]] IStringTable :
    protected StaticVec<Char, BufferSize> {
+    using RangeType = CC::ImmPtrRange<Char>;
+    using StrType  = const Char*;
     using BaseType = StaticVec<Char, BufferSize>;
     using SelfType = IStringTable;
   public:
+    /// Default constructor.
     constexpr IStringTable() : BaseType() {}
-
-  public:
     
+    RangeType append(StrType S, bool permissive = false) {
+      if __expect_false(!S) {
+        __hc_assert(permissive);
+        return { };
+      }
+      const usize len = stringlen(S);
+      return RangeType::New(S, len);
+    }
   };
 
-  template <usize N>
-  using StringTable = IStringTable<char, N>;
+  //====================================================================//
+  // Table Implementation
+  //====================================================================//
 
-  template <usize N>
-  using WStringTable = IStringTable<wchar_t, N>;
+  template <CC::__xchar_type Char, usize N, usize BufferSize>
+  struct TStringTable : protected IStringTable<Char, BufferSize> {
+    using RangeType = CC::ImmPtrRange<Char>;
+    using StrType  = const Char*;
+    using BaseType = IStringTable<Char, BufferSize>;
+    using SelfType = TStringTable;
+    // Storage Types
+    using StoType = StaticVec<RangeType, N>;
+    using IStoType = IStaticVec<RangeType>;
+    // Info Values
+    static constexpr usize npos = Max<usize>;
+  public:
+    /// Default constructor.
+    constexpr TStringTable() : BaseType(), __elems() {}
+  
+    RangeType append(StrType S, bool permissive = false) {
+      const RangeType out = this->append(S, permissive);
+      if (auto O = __elems.emplaceBack(out); __expect_true(O))
+        return *O;
+      return { };
+    }
 
+    inline usize findPartial(RangeType S) const {
+      $tail_return this->__find<false>(S);
+    }
+
+    inline usize findExact(RangeType S) const {
+      $tail_return this->__find<true>(S);
+    }
+
+    usize find(RangeType S, bool partial = false) const {
+      if (partial)
+        return this->findPartial(S);
+      else
+        return this->findExact(S);
+    }
+
+    /// Finds a matching string in the table.
+    /// @returns `npos` if not found.
+    usize find(StrType S, bool partial = false) const {
+      if __expect_false(!S)
+        return npos;
+      const auto len = stringlen(S);
+      RangeType R {S, S + len};
+      return this->find(R, partial);
+    }
+
+    RangeType* begin() { return __elems.begin(); }
+    RangeType* end() { return __elems.begin(); }
+    const RangeType* begin() const { return __elems.begin(); }
+    const RangeType* end() const { return __elems.begin(); }
+
+    IStoType* operator->() { return &__elems; }
+    const IStoType* operator->() const { return &__elems; }
+  
+  protected:
+    template <bool IsExact>
+    usize __find(RangeType S) const {
+      usize pos = Max<usize>;
+      for (RangeType R : this->__elems) {
+        ++pos;
+        if constexpr (IsExact) {
+          if (R.size() != S.size())
+            continue;
+        } else {
+          if (R.size() < S.size())
+            continue;
+        }
+        const int cmp = CC::__memcmp(
+          S.data(), R.data(), S.sizeInBytes());
+        if (cmp == 0)
+          return pos;
+      }
+      return npos;
+    }
+
+  protected:
+    StoType __elems;
+  };
+
+  template <usize N, usize BufferSize>
+  using StringTable = TStringTable<char, N, BufferSize>;
+
+  template <usize N, usize BufferSize>
+  using WStringTable = TStringTable<wchar_t, N, BufferSize>;
 } // namespace hc::parcel

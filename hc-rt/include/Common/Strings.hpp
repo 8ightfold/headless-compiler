@@ -31,11 +31,9 @@
 # define __common_strings_cxpr
 #endif
 
-#define __common_is_same(t, u) (__is_same(t, u) && __is_same(u, t))
 #define __COMMON_ATTRS __always_inline __common_strings_cxpr
 
 static_assert(__is_reserved(char8_t));
-HC_HAS_REQUIRED(builtin, __is_same);
 HC_HAS_BUILTIN(char_memchr);
 HC_HAS_BUILTIN(memchr);
 HC_HAS_BUILTIN(memcmp);
@@ -48,9 +46,16 @@ namespace hc::common {
   template <typename T>
   concept __char_type = 
     meta::is_same<T, char>           ||
+    meta::is_same<T, char8_t>        ||
     meta::is_same<T, signed char>    ||
-    meta::is_same<T, unsigned char>  ||
-    meta::is_same<T, char8_t>;
+    meta::is_same<T, unsigned char>;
+  
+  template <typename T>
+  concept __xchar_type = 
+    __char_type<T>             ||
+    meta::is_same<T, wchar_t>  ||
+    meta::is_same<T, char16_t> ||
+    meta::is_same<T, char32_t>;
 
   //====================================================================//
   // Constexpr Memory Functions
@@ -130,8 +135,8 @@ namespace hc::common {
   }
 
   __COMMON_ATTRS usize
-   __strlen(const char* str) {
-    return __builtin_strlen(str);
+   __strlen(const char* S) {
+    return __builtin_strlen(S);
   }
 
   //====================================================================//
@@ -159,11 +164,46 @@ namespace hc::common {
   }
 
   __COMMON_ATTRS usize
-   __wstrlen(const wchar_t* str) {
-    return __builtin_wcslen(str);
+   __wstrlen(const wchar_t* S) {
+    return __builtin_wcslen(S);
   }
 
 } // namespace hc::common
 
-#undef __common_is_same
+//======================================================================//
+// API
+//======================================================================//
+
+namespace hc {
+  inline usize stringlen(const char* S) {
+    $tail_return common::__strlen(S);
+  }
+
+  inline usize stringlen(const wchar_t* S) {
+    $tail_return common::__wstrlen(S);
+  }
+
+  inline usize stringlen(const char32_t* S) {
+    usize len = 0;
+    while (S[len++]);
+    return len;
+  }
+
+  template <common::__xchar_type T>
+  requires meta::is_same_size<char, T>
+  __always_inline usize stringlen(const T* S) {
+    const char* const cstr = 
+      reinterpret_cast<const char*>(S);
+    return stringlen(cstr);
+  }
+
+  template <common::__xchar_type T>
+  requires meta::is_same_size<wchar_t, T>
+  __always_inline usize stringlen(const T* S) {
+    const wchar_t* const wcstr = 
+      reinterpret_cast<const wchar_t*>(S);
+    return stringlen(wcstr);
+  }
+} // namespace hc
+
 #undef __COMMON_ATTRS

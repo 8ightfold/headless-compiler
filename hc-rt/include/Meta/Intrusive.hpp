@@ -93,3 +93,9 @@ namespace hc::meta {
     }
   };
 } // namespace hc::meta
+
+namespace hc {
+  using meta::__get_data;
+  using meta::__get_size;
+  using meta::__get_capacity;
+} // namespace hc

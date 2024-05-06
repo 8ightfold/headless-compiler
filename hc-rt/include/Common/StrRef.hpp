@@ -256,6 +256,11 @@ namespace hc::common {
       BaseType::__begin += S.size();
       return true;
     }
+    bool consumeFront(auto&& R, auto&&...RR)
+     requires(sizeof...(RR) > 0) {
+      return (consumeFront(__hc_fwd(R)) || 
+        ... || consumeFront(__hc_fwd(RR)));
+    }
 
     bool consumeBack(char C) {
       if (!this->endsWith(C))
@@ -268,6 +273,11 @@ namespace hc::common {
         return false;
       BaseType::__end -= S.size();
       return true;
+    }
+    bool consumeBack(auto&& R, auto&&...RR)
+     requires(sizeof...(RR) > 0) {
+      return (consumeBack(__hc_fwd(R)) || 
+        ... || consumeBack(__hc_fwd(RR)));
     }
 
     [[nodiscard]] StrRef dropNull() const {
