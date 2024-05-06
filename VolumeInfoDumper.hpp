@@ -112,7 +112,7 @@ inline const char* getPathType(S::PathType type) {
 }
 
 inline const char* getPathType(C::StrRef S) {
-  return getPathType(S::PathNormalizer::GetPathType(S));
+  return getPathType(S::PathNormalizer::PredictPathType(S));
 }
 
 inline const char* Prefix() { return "  "; }

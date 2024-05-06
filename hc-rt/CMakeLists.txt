@@ -91,7 +91,7 @@ if(WIN32)
     src/Bootstrap/StubParser.cpp
     src/Bootstrap/Syscalls.cpp
     src/Sys/Core/Nt/CheckPacking.cpp
-    src/Sys/Win/PathNormalizer.cpp
+    src/Sys/Win/PathNormalizer2.cpp
   )
 endif()
 

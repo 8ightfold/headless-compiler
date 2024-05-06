@@ -55,7 +55,7 @@ namespace hc::sys {
     DosDrive,       // `//./[drive]/~`
     DosVolume,      // `//?/[volume]:/~`
     DeviceUNC,      // `//[.|?]/UNC/~`*
-    UNCNamespace,   // `//[name]/~`*
+    UNCNamespace,   // `//[name]/[share]/~`*
     NtNamespace,    // `/??/~` or `/GLOBAL??/~`
     LegacyDevice,   // `[CON|COM[1-9]|...]/~`
     QualDOS,        // `[drive]:/`
@@ -73,7 +73,7 @@ namespace hc::sys {
     /// For example, a UNC path with the Nt namespace prefix will resolve 
     /// to a `NtNamespace`. To get the same results as the normalizer itself,
     /// just do a full path resolve and then call `.getType()`.
-    static PathType GetPathType(common::StrRef);
+    static PathType PredictPathType(common::StrRef);
   public:
     constexpr PathNormalizer() = default;
     bool operator()(common::StrRef path);

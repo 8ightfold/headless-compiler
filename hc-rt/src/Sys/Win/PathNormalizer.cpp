@@ -20,6 +20,7 @@
 #include <Common/MMatch.hpp>
 #include <Common/Option.hpp>
 #include <Bootstrap/Win64KernelDefs.hpp>
+#include <Parcel/StringTable.hpp>
 #include <Sys/Args.hpp>
 #include <Sys/Win/Volume.hpp>
 #include "PathNormalizer.hpp"
@@ -88,17 +89,24 @@ namespace {
   }
 
   /// We don't do any checking for validity here.
-  /// For example, `NUL.txt` would return `true`.
+  /// CHANGED: For example, `NUL.txt` would return `true` (now `false`).
   /// That aspect gets resolved in later normalization stages.
   /// Reserved: CON, PRN, AUX, NUL, COM[0-9], LPT[0-9]
   inline bool is_legacy_device(C::StrRef path) {
+    // TODO: Extend to lowercase?
     if (path.size() < 3)
       return false;
-    if (path.beginsWith("COM", "LPT")) {
-      const char C = path.dropFront(3).frontSafe();
-      return (C >= '0' && C <= '9');
-    } else if (path.beginsWith("CON", "PRN", "AUX", "NUL"))
-      return true;
+    // Enters if back is [0-9].
+    if (__is_numeric(path.backSafe())) {
+      // Make sure it's actually a legacy device :P
+      if (!path.dropBack().endsWith("COM", "LPT"))
+        return false;
+      const char C = path.dropBack(4).backSafe();
+      return MMatch(C).is('\0', '\\', '/');
+    } else if (path.endsWith("CON", "PRN", "AUX", "NUL")) {
+      const char C = path.dropBack(3).backSafe();
+      return MMatch(C).is('\0', '\\', '/');
+    }
     return false;
   }
 
@@ -120,6 +128,9 @@ namespace {
   }
 
   PathType deduce_path_type(C::StrRef path) {
+    // Empty paths are always relative.
+    if __expect_false(path.isEmpty())
+      return PathType::DirRel;
     if (path.beginsWith("//", "\\\\")) {
       path = path.dropFront(2);
       if (path.beginsWith('.', '?'))
@@ -149,7 +160,7 @@ namespace {
 } // namespace `anonymous`
 
 [[gnu::flatten]]
-PathType PathNormalizer::GetPathType(C::StrRef S) {
+PathType PathNormalizer::PredictPathType(C::StrRef S) {
   if __expect_false(S.isEmpty())
     return PathType::Unknown;
   return deduce_path_type(S);
@@ -193,7 +204,7 @@ void PathNormalizer::push(C::ImmPtrRange<wchar_t> P) {
     return;
   // Get the old end(). We will copy from here.
   wchar_t* const old_end = path.end();
-  __hc_assertOrIdent(path.resizeUninit(N));
+  __hc_assertOrIdent(path.resizeUninit(path.size() + N));
   C::inline_memcpy(old_end, P.data(), N * sizeof(wchar_t));
 }
 
@@ -254,7 +265,7 @@ void PathNormalizer::resolveGlobalroot(C::StrRef& S) {
       this->type = UNCNamespace;
       return;
     }
-    this->type = GetPathType(S);
+    this->type = PredictPathType(S);
     this->removePathPrefix(S, false);
   }
 }
@@ -264,7 +275,7 @@ void PathNormalizer::appendAbsolutePath(C::StrRef S) {
 }
 
 bool PathNormalizer::doNormalization(C::StrRef S) {
-  this->type = GetPathType(S);
+  this->type = PredictPathType(S);
   if (type == Unknown) {
     err = Error::eInvalName;
     return false;
@@ -276,6 +287,7 @@ bool PathNormalizer::doNormalization(C::StrRef S) {
   this->resolveGlobalroot(S);
   // Remove UNC prefix.
   if (MMatch(type).is(GUIDVolume, DosDrive)) {
+    // TODO: Check if even possible to fully support (stretch goal).
     err = Error::eUnsupported;
     return false;
   } else if (MMatch(type).is(
@@ -289,16 +301,26 @@ bool PathNormalizer::doNormalization(C::StrRef S) {
   // DosVolume
   // DeviceUNC
   // UNCNamespace
-  // NtNamespace
   // LegacyDevice
+
+  if (MMatch(type).is(
+   DeviceUNC, UNCNamespace, LegacyDevice)) {
+    this->push(L"@@");
+    this->push(S);
+    // TODO: Add support...?
+    err = Error::eUnsupported;
+    return false;
+  }
+
+  // NtNamespace
+  if (type == NtNamespace) {
+    this->push(L'=');
+  }
+
   // QualDOS
   // DriveRel
   // CurrDriveRel
   // DirRel
-
-  if (MMatch(type).is(UNCNamespace)) {
-
-  }
 
   this->push(L'@');
   this->push(S);
@@ -326,7 +348,7 @@ bool PathNormalizer::operator()(C::StrRef S) {
   S = S.dropNull();
   path.clear();
 
-  this->type = GetPathType(S);
+  this->type = PredictPathType(S);
   if (type == Unknown) {
     err = Error::eInvalName;
     return false;

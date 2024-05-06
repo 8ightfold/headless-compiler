@@ -83,63 +83,81 @@ void dumpPathData(C::StrRef path,
     chk = norm.getType();
   std::printf("%s: ", getPathType(norm.getType()));
   printPtrRange(path);
-  if (PathType ty = norm.getType(); chk != ty)
-    std::printf("ERROR: Expected type %s.\n", getPathType(ty));
+  if (PathType ty = norm.getType(); chk != ty) {
+    std::printf("\e[0;31m");
+    std::printf("ERROR: Expected type %s, got %s.\n", 
+      getPathType(chk), getPathType(ty));
+    std::printf("\e[0m");
+  }
   // Check if valid path.
   if (Error last = norm.getLastError(); last != Error::eNone) {
+    std::printf("\e[1;31m");
     const auto E = SysErr::GetOpaqueError(last);
     std::printf(" [%s]: %s\n\n",
       SysErr::GetErrorNameSafe(E),
       SysErr::GetErrorDescriptionSafe(E));
+    std::printf("\e[0m");
     return;
   }
 
   const auto P = norm.getPath();
   if (!P.isEmpty()) {
+    if (chk == PathType::NtNamespace)
+      std::printf("\e[1;93m");
+    else if (chk == PathType::LegacyDevice)
+      std::printf("\e[0;96m");
     printPtrRange(norm.getPath(), "Normalized");
+    std::printf("\e[0m");
   }
   std::puts("");
 }
 
 int main(int N, char* A[], char* Env[]) {
   {
-    P::ALStaticVec<X, 16> Vec;
-    Vec.emplace();
-    Vec.emplace();
-    Vec.pop();
-    Vec.emplace();
-    Vec.emplaceBack(7)->me();
+    // P::ALStaticVec<X, 16> Vec;
+    // Vec.emplace();
+    // Vec.emplace();
+    // Vec.pop();
+    // Vec.emplace();
+    // Vec.emplaceBack(7)->me();
+    // P::StringTable<8, 64> Tbl;
 
-    P::StringTable<64> Tbl;
+    printVolumeInfo("\\??\\C:\\");
   }
 
-  std::printf("Current directory: ");
+  std::printf("\nCurrent directory: ");
   printPtrRange(S::Args::WorkingDir());
 
   {
     using enum sys::PathType;
-    C::StrRef exampleVolume = "//./Volume{b75e2c83-0000-0000-0000-602f00000000}/";
+    C::StrRef exampleVolume = 
+      // "//./Volume{b75e2c83-0000-0000-0000-602f00000000}/";
+      "//./Volume{d145a114-03a1-429e-4a49-3bd01e92bd36}/";
     std::puts("Normal:");
     dumpPathData(exampleVolume,           GUIDVolume);
     dumpPathData("//?/PhysicalDrive0/",   DosDrive);
     dumpPathData("//?/X:/",               DosVolume);
     dumpPathData("//.\\UNC/",             DeviceUNC);
-    dumpPathData("//RAHHHH/",             UNCNamespace);
+    dumpPathData("//RAHHHH/",             Unknown);
+    dumpPathData("\\\\www.id.com\\xyz\\", UNCNamespace);
     dumpPathData("/??/C:",                NtNamespace);
+    dumpPathData("CON.txt",               DirRel);
+    dumpPathData("./CON.COM1",            DirRel);
     dumpPathData("/GLOBAL??""/C:",        NtNamespace);
     dumpPathData("NUL",                   LegacyDevice);
-    dumpPathData("//./CON3",              LegacyDevice);
+    dumpPathData("//./COM3",              LegacyDevice);
+    dumpPathData("/??/NUL",               LegacyDevice);
     dumpPathData("D:\\ProgramData",       QualDOS);
     dumpPathData("Z:code",                DriveRel);
     dumpPathData("\\build",               CurrDriveRel);
     dumpPathData("contents.txt",          DirRel);
 
     std::puts("Weird:");
-    dumpPathData("//server/share",        UNCNamespace);
+    dumpPathData("\\\\server\\share",     UNCNamespace);
     dumpPathData("//./pipe/P/../N",       DosDrive);
     dumpPathData("//./X:/F/../../C:/",    DosVolume);
     dumpPathData("X:\\ABC\\..\\..\\..",   QualDOS);
-    dumpPathData("X/ABC\\../..\\..",      DriveRel);
+    dumpPathData("X/ABC\\../..\\..",      DirRel);
     dumpPathData("\\",                    CurrDriveRel);
     dumpPathData(".",                     DirRel);
     dumpPathData("../ABC",                DirRel);
@@ -154,7 +172,8 @@ int main(int N, char* A[], char* Env[]) {
   }
 
   S::SysErr::ResetLastError();
-  
+  return 0;
+
   W::StaticUnicodeString name(
     // L"\\??\\PhysicalDrive0\\krita-dev\\krita\\README.md"
     L"\\??\\C:\\krita-dev\\krita\\README.md"
