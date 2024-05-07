@@ -135,7 +135,10 @@ int main(int N, char* A[], char* Env[]) {
       "//./Volume{d145a114-03a1-429e-4a49-3bd01e92bd36}/";
     std::puts("Normal:");
     dumpPathData(exampleVolume,           GUIDVolume);
-    dumpPathData("//?/PhysicalDrive0/",   DosDrive);
+    dumpPathData("//./PhysicalDrive0/",   DosDrive);
+    dumpPathData("//./CON/",              LegacyDevice);
+    dumpPathData("//./COM1/",             LegacyDevice);
+    dumpPathData("//./COM1F/",            DosDrive);
     dumpPathData("//?/X:/",               DosVolume);
     dumpPathData("//.\\UNC/",             DeviceUNC);
     dumpPathData("//RAHHHH/",             Unknown);
@@ -167,6 +170,7 @@ int main(int N, char* A[], char* Env[]) {
     dumpPathData("/??/UNC/abc/xyz");
     dumpPathData("//?/GLOBALROOT/??/UNC/abc/xyz");
     dumpPathData("//?/GLOBALROOT/DosDevices/UNC/abc/xyz");
+    dumpPathData("\\\\?\\GLOBALROOT\\Device\\Mup\\abc\\xyz");
 
     std::puts("...\n");
   }

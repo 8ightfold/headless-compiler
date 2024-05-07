@@ -393,8 +393,49 @@ namespace {
     return consume_unc_share(path);
   }
 
+  /// Checks if path is a legacy device.
+  /// Reserved: CON, PRN, AUX, NUL, COM[0-9], LPT[0-9]
+  inline bool is_legacy_device(C::StrRef path) {
+    if (path.size() == 3)
+      return path.beginsWith("CON", "PRN", "AUX", "NUL");
+    else if (path.size() == 4) {
+      $ConsumeMultiChars(path, "COM", "LPT");
+      return __is_numeric(path.front());
+    }
+    return false;
+  }
+
   ////////////////////////////////////////////////////////////////////////
-  /// Tests for GUIDVolume, DOSDrive, DosVolume, and DeviceUNC.
+  /// Checks if path begins with a possible DOSDrive or LegacyDevice.
+  /// Assumes the device path prefix has been removed.
+  PathType deduce_dos_drive_type(C::StrRef path) {
+    if __expect_false(path.isEmpty())
+      return PathType::Unknown;
+    usize path_idx = 0;
+    for (const char C : path) {
+      if (__is_alnum(C)) {
+        ++path_idx;
+        continue;
+      }
+      if (MMatch(C).is('/', '\\'))
+        break;
+      // Invalid character:
+      return PathType::Unknown;
+    }
+    if (path_idx == 0)
+      return PathType::Unknown;
+    // Grab whatever's at the front:
+    C::StrRef S = path.takeFront(path_idx);
+    // Recurse on DosDevices symlink.
+    if (S.isEqual("DosDevices"))
+      return deduce_dos_drive_type(
+        path.dropFront(path_idx + 1));
+    if (is_legacy_device(S))
+      return PathType::LegacyDevice;
+    return PathType::DosDrive;
+  }
+
+  /// Tests for GUIDVolume, DOSDrive, DosVolume, LegacyDevice, and DeviceUNC.
   /// Assumes the device path prefix has been removed.
   PathType deduce_device_path_type(C::StrRef path, char type) {
     if (is_volume(path)) {
@@ -410,7 +451,8 @@ namespace {
     if __expect_false(type != '.')
       return PathType::Unknown;
     return path.beginsWith("UNC") ?
-      PathType::DeviceUNC : PathType::DosDrive;
+      PathType::DeviceUNC :
+      deduce_dos_drive_type(path);
   }
 
   /// A mostly accurate method of determining the type of
@@ -524,8 +566,11 @@ void PathNormalizer::appendAbsolutePath(C::StrRef S) {
 }
 
 bool PathNormalizer::doNormalization(C::StrRef S) {
-  S = S.dropNull();
   this->type = deduce_path_type(S);
+  if (type == Unknown) {
+    err = Error::eInvalName;
+    return false;
+  }
 
   return false;
 }
