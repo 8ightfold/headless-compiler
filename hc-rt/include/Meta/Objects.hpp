@@ -38,7 +38,17 @@ namespace hc::meta {
   template <usize I>
   struct IdxNode {
     static constexpr usize value = I;
+    constexpr operator usize() const { return I; }
   };
+
+  template <typename T, T V>
+  struct ValNode {
+    static constexpr T value = V;
+    constexpr operator T() const { return V; }
+  };
+
+  template <auto V>
+  using AutoNode = ValNode<decltype(V), V>;
 } // namespace hc::meta
 
 //======================================================================//

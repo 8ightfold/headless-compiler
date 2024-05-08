@@ -86,7 +86,8 @@ message(STATUS "Max files: ${RT_MAX_FILES}")
 message(STATUS "Max path: ${RT_MAX_PATH}")
 
 add_subdirectory(hc-rt)
-add_executable(driver Driver.cpp)
+# add_executable(driver Driver.cpp)
+add_executable(driver UnionDriver.cpp)
 target_link_libraries(driver PRIVATE hcrt::dev)
 target_include_directories(driver PRIVATE hc-rt/src hc-rt/xcrt)
 
