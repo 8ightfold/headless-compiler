@@ -32,6 +32,20 @@ using namespace hc;
 namespace C = hc::common;
 namespace M = hc::meta;
 
+struct MoveOnly {
+  MoveOnly() = default;
+  MoveOnly(const MoveOnly&) = delete;
+  MoveOnly(MoveOnly&&) = default;
+  MoveOnly& operator=(const MoveOnly&) = delete;
+  MoveOnly& operator=(MoveOnly&&) = default;
+  constexpr ~MoveOnly() {
+    assert(this->b);
+    this->b = false;
+  }
+public:
+  bool b = true;
+};
+
 $StrongEnum((WindowsSubsystemType, u16),
   (eSubsystemUnknown,    0),
   (eSubsystemNative,     1),
@@ -52,6 +66,15 @@ $Union(Foo,
   (Z, f32, f32)
 );
 
+$Union(Bar,
+  (A),
+  (B, Foo),
+  (C, MoveOnly, MoveOnly)
+);
+
 int main() {
   Foo foo = Foo::Y(7);
+  Bar bar = Bar::A();
+  foo = Foo::Z(3.0f, 9.0f);
+  bar = Bar::B(__hc_move(foo));
 }

@@ -70,6 +70,10 @@ namespace hc::common {
     T __data[N];
   };
 
+  template <typename T, typename...TT>
+  _TupleArray(T&&, TT&&...) -> 
+    _TupleArray<sizeof...(TT) + 1, __decay(T)>;
+
   template <usize I, usize N, typename T>
   _HC_AGGRESSIVE_INLINE constexpr T& __extract_leaf(
    _TupleArray<N, T>& l) __noexcept {

@@ -102,6 +102,7 @@ struct __name { \
 private: \
   __M __tag = __M::__nullState; \
   union __Union { \
+    constexpr __Union() { } \
     constexpr ~__Union() { } \
     char __default_; \
     __Union_udefs(fields) \

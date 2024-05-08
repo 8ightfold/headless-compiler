@@ -27,9 +27,9 @@ namespace std {
   template <typename _Ty, typename..._Args>
   [[gnu::nodebug, gnu::always_inline, gnu::flatten]]
   inline constexpr auto construct_at(_Ty* __p, _Args&&...__args)
-   noexcept(noexcept(::new((void*)0) _Ty(__hc_fwd(__args)...)))
-   -> decltype(::new((void*)0) _Ty(__hc_fwd(__args)...)) {
-    return ::new((void*)__p) _Ty(__hc_fwd(__args)...);
+   noexcept(noexcept(::new((void*)0) _Ty{__hc_fwd(__args)...}))
+   -> decltype(::new((void*)0) _Ty{__hc_fwd(__args)...}) {
+    return ::new((void*)__p) _Ty{__hc_fwd(__args)...};
   }
 
   template <typename _Ty>
