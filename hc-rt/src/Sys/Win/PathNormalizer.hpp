@@ -64,7 +64,10 @@ namespace hc::sys {
     DirRel,         // `~`
   };
 
+  enum class UNCPrefixType : u32;
+
   struct [[gsl::Owner]] PathNormalizer {
+    friend struct PathDeductionCtx;
     using enum PathType;
     using StrDyn  = common::DynAllocation<char>;
     using WStrDyn = common::DynAllocation<wchar_t>;
@@ -87,12 +90,6 @@ namespace hc::sys {
   protected:
     bool doNormalization(common::StrRef S);
     void removePathPrefix(common::StrRef& S, bool = true);
-    void resolveGlobalroot(common::StrRef& S);
-    void appendAbsolutePath(common::StrRef S);
-    // Checks if slice characters are valid.
-    void appendPathSlice(common::StrRef S);
-    // Normalizes `/`, otherwise same checks as slices.
-    void appendPath(common::StrRef S);
 
   private:
     __always_inline void push(char C) {

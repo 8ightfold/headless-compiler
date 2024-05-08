@@ -46,9 +46,7 @@ namespace C = hc::common;
 namespace P = hc::parcel;
 namespace S = hc::sys;
 
-namespace {
-  constexpr usize maxPathSlices = 64;
-
+namespace hc::sys {
   enum class UNCPrefixType : u32 {
     Unknown,
     HostName,
@@ -57,13 +55,19 @@ namespace {
     IPv6,
     FQDN,
   };
-} // namespace `anonymous`
+
+  struct PathDeductionCtx {
+
+  };
+} // namespace hc::sys
 
 //======================================================================//
-// Deduction
+// Identification
 //======================================================================//
 
 namespace {
+  constexpr usize maxPathSlices = 64;
+
   inline bool __is_control(const char C) {
     return (C < ' ' || C == '\x7F');
   }
@@ -497,34 +501,6 @@ PathType PathNormalizer::PredictPathType(C::StrRef S) {
 // Reformatting
 //======================================================================//
 
-namespace {
-  __always_inline char normalize_pchar(const char C) {
-    return __expect_true(C != '/') ? C : '\\';
-  }
-} // namespace `anonymous`
-
-void PathNormalizer::appendPathSlice(C::StrRef S) {
-  S = S.dropNull();
-  if (isNameTooLong(S.size()) || S.isEmpty())
-    return;
-  for (char C : S) {
-    if __expect_false(!__is_valid_pchar(C))
-      this->err = Error::eInvalName;
-    this->push(C);
-  }
-}
-void PathNormalizer::appendPath(C::StrRef S) {
-  S = S.dropNull();
-  if (isNameTooLong(S.size()) || S.isEmpty())
-    return;
-  for (char C : S) {
-    C = normalize_pchar(C);
-    if __expect_false(__is_special_pchar(C))
-      this->err = Error::eInvalName;
-    this->push(C);
-  }
-}
-
 void PathNormalizer::push(C::ImmPtrRange<wchar_t> P) {
   const usize N = P.size();
   if (isNameTooLong(N) || P.isEmpty())
@@ -552,18 +528,6 @@ namespace {
     return static_cast<char>(prefix);
   }
 } // namespace `anonymous`
-
-void PathNormalizer::removePathPrefix(C::StrRef& S, bool do_push) {
-  
-}
-
-void PathNormalizer::resolveGlobalroot(C::StrRef& S) {
-  
-}
-
-void PathNormalizer::appendAbsolutePath(C::StrRef S) {
-  
-}
 
 bool PathNormalizer::doNormalization(C::StrRef S) {
   this->type = deduce_path_type(S);
