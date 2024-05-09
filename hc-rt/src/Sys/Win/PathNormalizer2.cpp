@@ -46,20 +46,18 @@ namespace C = hc::common;
 namespace P = hc::parcel;
 namespace S = hc::sys;
 
-namespace hc::sys {
-  enum class UNCPrefixType : u32 {
-    Unknown,
-    HostName,
-    NetBIOS,
-    IPv4,
-    IPv6,
-    FQDN,
-  };
+enum class S::UNCPrefixType : u32 {
+  Unknown,
+  HostName,
+  NetBIOS,
+  IPv4,
+  IPv6,
+  FQDN,
+};
 
-  struct PathDeductionCtx {
+struct S::PathDeductionCtx {
 
-  };
-} // namespace hc::sys
+};
 
 //======================================================================//
 // Identification

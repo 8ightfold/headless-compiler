@@ -31,6 +31,7 @@
 
 namespace hc::common {
   struct _TaggedUnionNull {};
+  struct _TaggedUnionBase {};
 
   template <typename...TT>
   struct _TaggedUnionField {
@@ -75,16 +76,30 @@ namespace hc::common {
 #define __Union_ctor(n_v) __Union_ctor_ n_v
 #define __Union_ctors(n_vs...) $PP_map(__Union_ctor, n_vs)
 
+#define __Union_as_0(name) \
+  constexpr auto as_##name() \
+   -> __add_lvalue_reference(__m##name) { \
+    __hc_invariant(this->__tag == __M::name); \
+    return this->__data.name; \
+  }
+#define __Union_as_(name, ...) __VA_OPT__(__Union_as_0(name))
+#define __Union_as(n_v) __Union_as_ n_v
+#define __Union_ass(n_vs...) $PP_map(__Union_as, n_vs)
+
 // #define __Union_cass_(name, ...) \
-//   case __M::name: this->__data.name = \
-//     __rhs.__data.name; \
+//   case __M::name: \
+//     ::hc::common::construct_at( \
+//       &this->__data.name, \
+//       __rhs.__data.name); \
 //   break;
 // #define __Union_cass(n_v) __Union_cass_ n_v
 // #define __Union_casss(n_vs...) $PP_map(__Union_cass, n_vs)
 
 #define __Union_mass_(name, ...) \
-  case __M::name: this->__data.name = \
-    __hc_move(__rhs.__data.name); \
+  case __M::name: \
+    ::hc::common::construct_at( \
+      &this->__data.name, \
+      __hc_move(__rhs.__data.name)); \
   break;
 #define __Union_mass(n_v) __Union_mass_ n_v
 #define __Union_masss(n_vs...) $PP_map(__Union_mass, n_vs)
@@ -95,7 +110,7 @@ namespace hc::common {
 #define __Union_dtors(n_vs...) $PP_map(__Union_dtor, n_vs)
 
 #define $Union(__name, fields...) \
-struct __name { \
+struct __name : ::hc::common::_TaggedUnionBase { \
   using __SelfType = __name; \
   enum class __M { __nullState, __Union_enums(fields) }; \
   __Union_tdefs(fields) \
@@ -115,6 +130,10 @@ private: \
       default: break; \
     } \
   } \
+  constexpr void __resetData() __noexcept { \
+    this->__clearData(); \
+    this->__tag = __M::__nullState; \
+  } \
 public: \
   __Union_ctors(fields) \
   constexpr __name() = default; \
@@ -124,6 +143,7 @@ public: \
       __Union_masss(fields) \
       default: break; \
     } \
+    __rhs.__resetData(); \
   } \
   constexpr __name& operator=(__name&& __rhs) __noexcept { \
     this->__clearData(); \
@@ -131,10 +151,11 @@ public: \
       __Union_masss(fields) \
       default: break; \
     } \
+    __rhs.__resetData(); \
     return *this; \
   } \
   constexpr ~__name() { \
-    this->__clearData(); \
-    __tag = __M::__nullState; \
+    this->__resetData(); \
   } \
+  __Union_ass(fields) \
 }

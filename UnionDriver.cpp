@@ -76,5 +76,6 @@ int main() {
   Foo foo = Foo::Y(7);
   Bar bar = Bar::A();
   foo = Foo::Z(3.0f, 9.0f);
-  bar = Bar::B(__hc_move(foo));
+  bar = Bar::B($mv(foo));
+  auto& f = bar.as_B();
 }

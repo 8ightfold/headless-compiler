@@ -108,6 +108,19 @@ namespace hc::meta {
   template <typename T>
   concept is_trivially_relocatable = __is_trivially_relocatable(T);
 
+  template <typename T, typename...Args>
+  concept is_constructible = __is_constructible(T, Args...);
+
+  template <typename T>
+  concept is_copy_constructible = 
+    is_constructible<T, __add_lvalue_reference(const T)>;
+
+  template <typename T>
+  concept is_move_constructible = 
+    is_constructible<T, __add_rvalue_reference(T)>;
+  
+  // Misc.
+
   template <typename T>
   concept is_object = __is_object(T);
 

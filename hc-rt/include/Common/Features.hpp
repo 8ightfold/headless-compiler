@@ -132,7 +132,7 @@
 template <typename T>
 [[gnu::always_inline, gnu::nodebug]]
 inline constexpr __remove_reference_t(T)&&
- __hc_move(__lifetimebound T&& V) __noexcept {
+ __hc_move_(__lifetimebound T&& V) __noexcept {
   return static_cast<__remove_reference_t(T)&&>(V);
 }
 
@@ -151,7 +151,7 @@ inline constexpr T&&
 }
 
 #define __hc_fwd(expr...) static_cast<decltype(expr)&&>(expr)
-#define __hc_move(expr...) ::__hc_move(expr)
+#define __hc_move(expr...) ::__hc_move_(expr)
 
 #if _HC_DEBUG
 # define __hc_unreachable(msg...) ::__hc_dbg_unreachable()
@@ -202,6 +202,9 @@ inline constexpr T&&
 #define $is_consteval() (__builtin_is_constant_evaluated())
 #define $launder(expr...) __builtin_launder(expr)
 #define $offsetof(name, ty...) __builtin_offsetof(ty, name)
+
+#define $fwd(expr...) ::__hc_fwd_<decltype(expr)>(expr)
+#define $mv(expr...) ::__hc_move_(expr)
 
 #define $tail_return [[clang::musttail]] return
 #define $unreachable __builtin_unreachable()
