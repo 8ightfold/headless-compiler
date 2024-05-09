@@ -77,10 +77,20 @@ namespace hc::common {
 #define __Union_ctors(n_vs...) $PP_map(__Union_ctor, n_vs)
 
 #define __Union_as_0(name) \
-  constexpr auto as_##name() \
+  constexpr auto as_##name()& \
    -> __add_lvalue_reference(__m##name) { \
     __hc_invariant(this->__tag == __M::name); \
     return this->__data.name; \
+  } \
+  constexpr auto as_##name() const& \
+   -> __add_lvalue_reference(const __m##name) { \
+    __hc_invariant(this->__tag == __M::name); \
+    return this->__data.name; \
+  } \
+  constexpr auto as_##name()&& \
+   -> __add_rvalue_reference(__m##name) { \
+    __hc_invariant(this->__tag == __M::name); \
+    return __hc_move(this->__data.name); \
   }
 #define __Union_as_(name, ...) __VA_OPT__(__Union_as_0(name))
 #define __Union_as(n_v) __Union_as_ n_v
