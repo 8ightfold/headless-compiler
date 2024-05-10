@@ -30,6 +30,8 @@
 
 #define __$COMMA__ ,
 #define __$EMPTY__
+#define __$LBRACK__ [
+#define __$RBRACK__ ]
 
 #define $PP_expand(args...) args
 #define $PP_eat(...)

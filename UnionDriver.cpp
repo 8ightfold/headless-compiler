@@ -72,10 +72,44 @@ $Union(Bar,
   (C, MoveOnly, MoveOnly)
 );
 
+void foo_disp(Foo& foo) {
+  if (bool __match_b = !(foo).__isEmpty(); __match_b) 
+  for (auto&& __match_ex = (foo); 
+   (void)(__match_ex), __match_b; 
+   __match_b = false) 
+  switch(__match_ex.__getTag()) {
+
+  // $match(foo) {
+    $arm(X) {
+      std::printf("X!\n");
+    }
+    $armv(Y, e) {
+      std::printf("Y: %i!\n", e);
+    }
+    $armv(Z, (f1, f2)) {
+      auto& Zx = __match_ex.as_Z();
+      auto [z1, z2] = Zx;
+      std::printf("Zx: [%f, %f]!\n", Zx[$I(0)], Zx[$I(1)]);
+      std::printf("Zf: [%f, %f]!\n", f1, f2);
+      std::printf("Zz: [%f, %f]!\n", z1, z2);
+    }
+    $default {
+      std::printf("null.\n");
+    }
+  }
+}
+
 int main() {
-  Foo foo = Foo::Y(7);
   Bar bar = Bar::A();
-  foo = Foo::Z(3.0f, 9.0f);
-  bar = Bar::B($mv(foo));
-  auto& f = bar.as_B();
+  {
+    Foo foo = Foo::X();
+    foo_disp(foo);
+    foo = Foo::Y(7);
+    foo_disp(foo);
+    foo = Foo::Z(3.0f, 9.0f);
+    foo_disp(foo);
+    bar = Bar::B($mv(foo));
+    foo_disp(foo);
+  }
+  // foo_disp(bar.as_B());
 }
