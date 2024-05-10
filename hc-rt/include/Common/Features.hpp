@@ -130,21 +130,21 @@
 #endif
 
 template <typename T>
-[[gnu::always_inline, gnu::nodebug]]
+[[nodiscard, gnu::nodebug]]
 inline constexpr __remove_reference_t(T)&&
  __hc_move_(__lifetimebound T&& V) __noexcept {
   return static_cast<__remove_reference_t(T)&&>(V);
 }
 
 template <typename T>
-[[gnu::always_inline, gnu::nodebug]]
+[[nodiscard, gnu::always_inline, gnu::nodebug]]
 inline constexpr T&& 
  __hc_fwd_(__lifetimebound __remove_reference_t(T)& V) {
   return static_cast<T&&>(V);
 }
 
 template <typename T>
-[[gnu::always_inline, gnu::nodebug]]
+[[nodiscard, gnu::always_inline, gnu::nodebug]]
 inline constexpr T&& 
  __hc_fwd_(__lifetimebound __remove_reference_t(T)&& V) {
   return static_cast<T&&>(V);
