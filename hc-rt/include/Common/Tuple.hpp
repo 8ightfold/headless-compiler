@@ -78,25 +78,25 @@ namespace hc::common {
   template <usize I, usize N, typename T>
   _HC_AGGRESSIVE_INLINE constexpr T& __extract_leaf(
    _TupleArray<N, T>& l) __noexcept {
-    return l.__data[N];
+    return l.__data[I];
   }
 
   template <usize I, usize N, typename T>
   _HC_AGGRESSIVE_INLINE constexpr T&& __extract_leaf(
    _TupleArray<N, T>&& l) __noexcept {
-    return static_cast<T&&>(l.__data[N]);
+    return static_cast<T&&>(l.__data[I]);
   }
 
   template <usize I, usize N, typename T>
   _HC_AGGRESSIVE_INLINE constexpr const T& __extract_leaf(
    const _TupleArray<N, T>& l) __noexcept {
-    return l.__data[N];
+    return l.__data[I];
   }
 
   template <usize I, usize N, typename T>
   _HC_AGGRESSIVE_INLINE constexpr const T&& __extract_leaf(
    const _TupleArray<N, T>&& l) __noexcept {
-    return static_cast<const T&&>(l.__data[N]);
+    return static_cast<const T&&>(l.__data[I]);
   }
 
   // TODO: Small List Optimization ?
@@ -212,28 +212,32 @@ namespace std {
 } // namespace std
 
 namespace hc::common {
-  template <usize N, typename...TT>
-  inline constexpr auto get(Tuple<TT...>& V) 
-   -> std::tuple_element_t<N, Tuple<TT...>>& {
-    return V[$I(N)];
+  template <usize I, typename...TT>
+  inline constexpr decltype(auto)
+   get(Tuple<TT...>& V) {
+    return __extract_leaf<I>(V.__data);
   }
 
-  template <usize N, typename...TT>
-  inline constexpr auto get(const Tuple<TT...>& V) 
-   -> const std::tuple_element_t<N, Tuple<TT...>>& {
-    return V[$I(N)];
+  template <usize I, typename...TT>
+  inline constexpr decltype(auto)
+   get(const Tuple<TT...>& V) {
+    return __extract_leaf<I>(V.__data);
   }
 
-  template <usize N, typename...TT>
-  inline constexpr auto get(Tuple<TT...>&& V) 
-   -> std::tuple_element_t<N, Tuple<TT...>> {
-    return __hc_move(V)[$I(N)];
+  template <usize I, typename...TT>
+  inline constexpr decltype(auto)
+   get(Tuple<TT...>&& V) {
+    using Type = typename Tuple<TT...>::BaseType;
+    return __extract_leaf<I>(
+      static_cast<Type&&>(V.__data));
   }
 
-  template <usize N, typename...TT>
-  inline constexpr auto get(const Tuple<TT...>&& V) 
-   -> std::tuple_element_t<N, Tuple<TT...>> {
-    return __hc_move(V)[$I(N)];
+  template <usize I, typename...TT>
+  inline constexpr decltype(auto)
+   get(const Tuple<TT...>&& V) {
+    using Type = typename Tuple<TT...>::BaseType;
+    return __extract_leaf<I>(
+      static_cast<const Type&&>(V.__data));
   }
 } // namespace hc::common
 
