@@ -73,25 +73,15 @@ $Union(Bar,
 );
 
 void foo_disp(Foo& foo) {
-  if (bool __match_b = !(foo).__isEmpty(); __match_b) 
-  for (auto&& __match_ex = (foo); 
-   (void)(__match_ex), __match_b; 
-   __match_b = false) 
-  switch(__match_ex.__getTag()) {
-
-  // $match(foo) {
+  $match(foo) {
     $arm(X) {
-      std::printf("X!\n");
+      std::printf("X\n");
     }
     $armv(Y, e) {
-      std::printf("Y: %i!\n", e);
+      std::printf("Y: %i\n", e);
     }
     $armv(Z, (f1, f2)) {
-      auto& Zx = __match_ex.as_Z();
-      auto [z1, z2] = Zx;
-      std::printf("Zx: [%f, %f]!\n", Zx[$I(0)], Zx[$I(1)]);
-      std::printf("Zf: [%f, %f]!\n", f1, f2);
-      std::printf("Zz: [%f, %f]!\n", z1, z2);
+      std::printf("Z: [%f, %f]\n", f1, f2);
     }
     $default {
       std::printf("null.\n");
@@ -111,5 +101,5 @@ int main() {
     bar = Bar::B($mv(foo));
     foo_disp(foo);
   }
-  // foo_disp(bar.as_B());
+  foo_disp(bar.as_B());
 }
