@@ -122,7 +122,9 @@ namespace hc::common {
 #define $Union(__name, fields...) \
 struct __name : ::hc::common::_TaggedUnionBase { \
   using __SelfType = __name; \
-  enum class __M { __nullState, __Union_enums(fields) }; \
+  enum class __M { \
+    __nullState [[maybe_unused]], \
+    __Union_enums(fields) }; \
   __Union_tdefs(fields) \
 private: \
   __M __tag = __M::__nullState; \
@@ -176,26 +178,19 @@ public: \
   __Union_ass(fields) \
 }
 
-
-// #define $match(val...) \
-// if (bool __match_b = !(val).__isEmpty(); __match_b) \
-//   for (auto&& __match_ex = (val); \
-//    (void)(__match_ex), __match_b; __match_b = false) \
-//     switch(__match_ex.__getTag())
-
 #define $match(val...) \
 if (auto&& __match_ex = (val); !__match_ex.__isEmpty()) \
   for (bool __match_b = true; __match_b; __match_b = false) \
     switch(__match_ex.__getTag())
 
-#define __Union_arm_i(__case) \
+#define __Union_armc_i(__case) \
 for (bool __match_c##__case = true; \
  ({ if (!__match_c##__case) break; __match_c##__case; }); \
  __match_c##__case = false)
 
-#define $arm(__case) break; \
+#define $armc(__case) break; \
 case ::hc::meta::RemoveCVRef<decltype(__match_ex)>::__M::__case: \
-  __Union_arm_i(__case)
+  __Union_armc_i(__case)
 
 #define __Union_armv_n0(__v) __v
 #define __Union_armv_n1(__vs...) [__vs]
@@ -208,12 +203,15 @@ case ::hc::meta::RemoveCVRef<decltype(__match_ex)>::__M::__case: \
 #define __Union_armv_n(__vs...) __Union_armv_ni(__vs)
 
 #define __Union_armv_i(__case, __v) \
-for (auto& __Union_armv_n($PP_rm_parens(__v)) \
+for (auto&& __Union_armv_n($PP_rm_parens(__v)) \
   = __match_ex.as_##__case(); \
  __match_c##__case; __match_c##__case = false)
 
 #define $armv(__case, __v) \
-$arm(__case) __Union_armv_i(__case, __v)
+$armc(__case) __Union_armv_i(__case, __v)
+
+#define $arm(__case, __v...) \
+$armc(__case) __VA_OPT__(__Union_armv_i(__case, __v))
 
 #define $default break; \
-default: __Union_arm_i(__case)
+default: __Union_armc_i(default)

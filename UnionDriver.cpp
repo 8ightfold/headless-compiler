@@ -77,14 +77,11 @@ void foo_disp(Foo& foo) {
     $arm(X) {
       std::printf("X\n");
     }
-    $armv(Y, e) {
+    $arm(Y, e) {
       std::printf("Y: %i\n", e);
     }
-    $armv(Z, (f1, f2)) {
+    $arm(Z, (f1, f2)) {
       std::printf("Z: [%f, %f]\n", f1, f2);
-    }
-    $default {
-      std::printf("null.\n");
     }
   }
 }
@@ -97,7 +94,6 @@ int main() {
     foo = Foo::Y(7);
     foo_disp(foo);
     foo = Foo::Z(3.0f, 9.0f);
-    foo_disp(foo);
     bar = Bar::B($mv(foo));
     foo_disp(foo);
   }
