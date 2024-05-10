@@ -20,6 +20,7 @@
 
 #include "Fundamental.hpp"
 #include <Meta/ExTraits.hpp>
+#include <Std/utility>
 
 #define _HC_AGGRESSIVE_INLINE \
  __attribute__((always_inline, flatten, artificial)) inline
@@ -193,6 +194,46 @@ namespace hc::common {
   constexpr auto tuple_fwd(TT&&...tt)
    -> Tuple<decltype(tt)...> {
     return { __hc_fwd(tt)... };
+  }
+} // namespace hc::common
+
+namespace std {
+  using ::hc::common::Tuple;
+
+  template <typename...TT>
+  struct tuple_size<Tuple<TT...>> {
+    static constexpr size_t value = sizeof...(TT);
+  };
+
+  template <size_t I, typename...TT>
+  struct tuple_element<I, Tuple<TT...>> {
+    using type = __type_pack_element<I, TT...>;
+  };
+} // namespace std
+
+namespace hc::common {
+  template <usize N, typename...TT>
+  inline constexpr auto get(Tuple<TT...>& V) 
+   -> std::tuple_element_t<N, Tuple<TT...>>& {
+    return V[$I(N)];
+  }
+
+  template <usize N, typename...TT>
+  inline constexpr auto get(const Tuple<TT...>& V) 
+   -> const std::tuple_element_t<N, Tuple<TT...>>& {
+    return V[$I(N)];
+  }
+
+  template <usize N, typename...TT>
+  inline constexpr auto get(Tuple<TT...>&& V) 
+   -> std::tuple_element_t<N, Tuple<TT...>> {
+    return __hc_move(V)[$I(N)];
+  }
+
+  template <usize N, typename...TT>
+  inline constexpr auto get(const Tuple<TT...>&& V) 
+   -> std::tuple_element_t<N, Tuple<TT...>> {
+    return __hc_move(V)[$I(N)];
   }
 } // namespace hc::common
 
