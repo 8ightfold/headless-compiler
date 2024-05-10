@@ -129,26 +129,32 @@
 # define __noexcept noexcept
 #endif
 
+#define _HC_SEMANTIC_ATTRS \
+[[nodiscard]]
+// [[nodiscard, gnu::always_inline, gnu::nodebug]]
+
 template <typename T>
-[[nodiscard, gnu::nodebug]]
+_HC_SEMANTIC_ATTRS 
 inline constexpr __remove_reference_t(T)&&
  __hc_move_(__lifetimebound T&& V) __noexcept {
   return static_cast<__remove_reference_t(T)&&>(V);
 }
 
 template <typename T>
-[[nodiscard, gnu::always_inline, gnu::nodebug]]
+_HC_SEMANTIC_ATTRS
 inline constexpr T&& 
  __hc_fwd_(__lifetimebound __remove_reference_t(T)& V) {
   return static_cast<T&&>(V);
 }
 
 template <typename T>
-[[nodiscard, gnu::always_inline, gnu::nodebug]]
+_HC_SEMANTIC_ATTRS
 inline constexpr T&& 
  __hc_fwd_(__lifetimebound __remove_reference_t(T)&& V) {
   return static_cast<T&&>(V);
 }
+
+#undef _HC_SEMANTIC_ATTRS
 
 #define __hc_fwd(expr...) static_cast<decltype(expr)&&>(expr)
 #define __hc_move(expr...) ::__hc_move_(expr)

@@ -177,10 +177,15 @@ public: \
 }
 
 
+// #define $match(val...) \
+// if (bool __match_b = !(val).__isEmpty(); __match_b) \
+//   for (auto&& __match_ex = (val); \
+//    (void)(__match_ex), __match_b; __match_b = false) \
+//     switch(__match_ex.__getTag())
+
 #define $match(val...) \
-if (bool __match_b = !(val).__isEmpty(); __match_b) \
-  for (auto&& __match_ex = (val); \
-   (void)(__match_ex), __match_b; __match_b = false) \
+if (auto&& __match_ex = (val); !__match_ex.__isEmpty()) \
+  for (bool __match_b = true; __match_b; __match_b = false) \
     switch(__match_ex.__getTag())
 
 #define __Union_arm_i(__case) \
@@ -203,7 +208,7 @@ case ::hc::meta::RemoveCVRef<decltype(__match_ex)>::__M::__case: \
 #define __Union_armv_n(__vs...) __Union_armv_ni(__vs)
 
 #define __Union_armv_i(__case, __v) \
-for (auto __Union_armv_n($PP_rm_parens(__v)) \
+for (auto& __Union_armv_n($PP_rm_parens(__v)) \
   = __match_ex.as_##__case(); \
  __match_c##__case; __match_c##__case = false)
 
