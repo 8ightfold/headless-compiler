@@ -69,6 +69,7 @@ namespace hc::sys {
   struct [[gsl::Owner]] PathNormalizer {
     friend struct PathDeductionCtx;
     using enum PathType;
+    using StrRef  = common::StrRef;
     using StrDyn  = common::DynAllocation<char>;
     using WStrDyn = common::DynAllocation<wchar_t>;
 
@@ -76,10 +77,10 @@ namespace hc::sys {
     /// For example, a UNC path with the Nt namespace prefix will resolve 
     /// to a `NtNamespace`. To get the same results as the normalizer itself,
     /// just do a full path resolve and then call `.getType()`.
-    static PathType PredictPathType(common::StrRef);
+    static PathType PredictPathType(StrRef);
   public:
     constexpr PathNormalizer() = default;
-    bool operator()(common::StrRef path);
+    bool operator()(StrRef path);
     bool operator()(ImmPathRef wpath);
     UPathType&& take() { return __hc_move(path); }
     PathRef  getPath() { return path.intoRange(); }
@@ -88,8 +89,8 @@ namespace hc::sys {
     bool didError() const { return err != Error::eNone; }
 
   protected:
-    bool doNormalization(common::StrRef S);
-    void removePathPrefix(common::StrRef& S, bool = true);
+    bool doNormalization(StrRef S);
+    void applyRelativePath(parcel::IStaticVec<StrRef>& V);
 
   private:
     __always_inline void push(char C) {

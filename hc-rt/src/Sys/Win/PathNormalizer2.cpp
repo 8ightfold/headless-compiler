@@ -19,6 +19,7 @@
 #include <Common/InlineMemcpy.hpp>
 #include <Common/MMatch.hpp>
 #include <Common/Option.hpp>
+#include <Common/TaggedUnion.hpp>
 #include <Bootstrap/Win64KernelDefs.hpp>
 #include <Parcel/StringTable.hpp>
 #include <Sys/Args.hpp>
@@ -65,6 +66,7 @@ struct S::PathDeductionCtx {
 
 namespace {
   constexpr usize maxPathSlices = 64;
+  using PathSliceType = P::StaticVec<C::StrRef, maxPathSlices>;
 
   inline bool __is_control(const char C) {
     return (C < ' ' || C == '\x7F');
@@ -527,12 +529,35 @@ namespace {
   }
 } // namespace `anonymous`
 
+void PathNormalizer::applyRelativePath(P::IStaticVec<StrRef>& V) {
+  switch (this->type) {
+   case DriveRel: {
+
+    break;
+  }
+   case CurrDriveRel: {
+
+    break;
+  }
+   case DirRel: {
+
+    break;
+  }
+   default:
+    return;
+  }
+}
+
 bool PathNormalizer::doNormalization(C::StrRef S) {
   this->type = deduce_path_type(S);
   if (type == Unknown) {
     err = Error::eInvalName;
     return false;
   }
+
+  PathSliceType path_slices {};
+  if (MMatch(type).is(DriveRel, CurrDriveRel, DirRel))
+    this->applyRelativePath(path_slices);
 
   return false;
 }

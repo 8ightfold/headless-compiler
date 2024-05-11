@@ -120,7 +120,7 @@ namespace hc::common {
 #define __Union_dtors(n_vs...) $PP_map(__Union_dtor, n_vs)
 
 #define $Union(__name, fields...) \
-struct __name : ::hc::common::_TaggedUnionBase { \
+struct __name : public ::hc::common::_TaggedUnionBase { \
   using __SelfType = __name; \
   enum class __M { \
     __nullState [[maybe_unused]], \
