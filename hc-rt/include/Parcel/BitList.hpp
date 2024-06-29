@@ -15,49 +15,18 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
+//
+//  General purpose container for dealing with packed bits. Used for
+//  things like BitList and Skiplist.
+//
+//===----------------------------------------------------------------===//
 
 #pragma once
 
-#include "Common.hpp"
+#include "_BitRef.hpp"
+#include <Common/Memory.hpp>
 
 namespace hc::parcel {
-  using BitListType = u64;
-
-  template <typename BType = BitListType>
-  struct _BitRef {
-    static constexpr auto __perIx = __bitsizeof(BType);
-  public:
-    constexpr _BitRef(BType& loc, uptr off)
-     : __loc(loc), __off(uptr(1U) << off) { }
-    
-    constexpr _BitRef& operator=(bool B) {
-      this->doMask(B);
-      return *this;
-    }
-
-    explicit constexpr operator bool() const {
-      return bool(__loc & __off);
-    }
-
-    __always_inline constexpr void doMask(bool B) {
-      B ? __doMask<true>() : __doMask<false>();
-    }
-  
-    template <bool B>
-    constexpr void __doMask() {
-      __loc |= __off;
-    }
-
-    template <>
-    constexpr void __doMask<false>() {
-      __loc &= ~__off;
-    }
-
-  public:
-    BType& __loc;
-    const uptr __off;
-  };
-
   template <usize N, typename BType = BitListType>
   struct BitList {
     using SelfType = BitList;
@@ -72,32 +41,47 @@ namespace hc::parcel {
     }
 
     inline constexpr BitList& reset() {
-      for (usize I = 0; I < __count; ++I)
-        __data[I] = BType(0);
+      if $is_consteval() {
+        for (usize I = 0; I < __count; ++I)
+          __data[I] = BType(0);
+      } else {
+        CC::__array_memset(this->__data, 0);
+      }
+
       return *this;
     }
 
+    /// Inverts the state of the bit at `I`,
+    /// and then returns the new value.
     inline constexpr bool flip(usize I) {
       __hc_invariant(I < Size());
       const BType V = Off(I);
       return (__data[Idx(I)] ^= V) & V;
     }
 
+    /// Returns the state of the bit at `I`.
     inline constexpr bool get(usize I) const {
       __hc_invariant(I < Size());
       return __data[Idx(I)] & Off(I);
     }
 
+    /// Sets the bit at `I` to `1`.
     inline constexpr void set(usize I) {
       __hc_invariant(I < Size());
       __data[Idx(I)] |= Off(I);
     }
 
-    constexpr usize accumulateCount() const {
+    /// Returns the number of bits set to `1`.
+    constexpr usize countActive() const {
       usize total = 0;
       for (BitListType I : __data)
         total += popcnt(I);
       return total;
+    }
+
+    /// Returns the number of bits set to `0`.
+    inline constexpr usize countInactive() const {
+      return __count - this->countActive();
     }
 
     constexpr auto __uData()

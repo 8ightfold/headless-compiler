@@ -122,8 +122,14 @@ namespace hc::parcel {
       return __data[0].data() + N;
     }
 
-    constexpr usize accumulateCount() const {
-      return __bits.accumulateCount();
+    /// Returns the amount of initialized elements.
+    constexpr usize countActive() const {
+      return __bits.countActive();
+    }
+
+    /// Returns the amount of uninitialized elements.
+    constexpr usize countInactive() const {
+      return __bits.countInactive();
     }
 
   public:

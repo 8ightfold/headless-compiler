@@ -139,7 +139,7 @@ IOResult<> S::close_file(IIOFile* file) {
 }
 
 usize S::available_files() {
-  return max_files - file_slots.accumulateCount();
+  return max_files - file_slots.countActive();
 }
 
 //======================================================================//

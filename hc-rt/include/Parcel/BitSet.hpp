@@ -32,7 +32,8 @@ namespace hc::parcel {
     using BaseType::bitCount;
   private:
     // Hide irrelevant/conflicting stuff.
-    using BaseType::accumulateCount;
+    using BaseType::countActive;
+    using BaseType::countInactive;
     using BaseType::flip;
     using BaseType::reset;
     using BaseType::operator[];
