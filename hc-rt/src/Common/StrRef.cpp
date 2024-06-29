@@ -20,6 +20,4 @@
 #include <Parcel/BitSet.hpp>
 
 using namespace hc;
-using namespace hc::common;
-namespace C = hc::common;
 namespace P = hc::parcel;

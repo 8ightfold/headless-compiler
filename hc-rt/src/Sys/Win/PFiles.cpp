@@ -21,11 +21,11 @@
 #include <Common/RawLazy.hpp>
 #include <Meta/Once.hpp>
 
+using namespace hc;
 using namespace hc::sys;
-namespace C = hc::common;
 namespace S = hc::sys;
 
-using LazyIIOFile = C::RawLazy<WinIOFile>;
+using LazyIIOFile = RawLazy<WinIOFile>;
 
 namespace {
   constinit IIOFileArray<1024> pOut_buf {};

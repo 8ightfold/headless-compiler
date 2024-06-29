@@ -22,8 +22,8 @@
 #include "Mutant.hpp"
 #include "Wait.hpp"
 
+using namespace hc;
 using namespace hc::sys;
-namespace C = hc::common;
 namespace S = hc::sys;
 
 namespace {

@@ -25,7 +25,6 @@ static_assert(sizeof(void*) == 8,
 using namespace hc;
 using namespace hc::bootstrap;
 namespace B = hc::bootstrap;
-namespace C = hc::common;
 
 namespace {
   /// Load from segment register at `offset`.
@@ -45,7 +44,7 @@ namespace {
 Win64UnicodeString Win64UnicodeString::New(wchar_t* S) {
   __hc_invariant(S != nullptr);
   Win64UnicodeString new_ustr;
-  usize str_len = C::__wstrlen(S);
+  usize str_len = __wstrlen(S);
   new_ustr.buffer = S;
   new_ustr.size = str_len * 2;
   new_ustr.size_max = (str_len + 1) * 2;
@@ -56,14 +55,14 @@ Win64UnicodeString Win64UnicodeString::New(wchar_t* S, usize max) {
   __hc_invariant(S != nullptr);
   Win64UnicodeString new_ustr;
   new_ustr.buffer = S;
-  new_ustr.size = C::__wstrlen(S) * 2;
+  new_ustr.size = __wstrlen(S) * 2;
   new_ustr.size_max = max * 2;
   __hc_invariant(new_ustr.size <= new_ustr.size_max);
   return new_ustr;
 }
 
 [[gnu::flatten]]
-Win64UnicodeString Win64UnicodeString::New(C::PtrRange<wchar_t> R) {
+Win64UnicodeString Win64UnicodeString::New(PtrRange<wchar_t> R) {
   __hc_invariant(!R.isEmpty());
   return Win64UnicodeString::New(R.data(), R.size());
 }
@@ -71,7 +70,7 @@ Win64UnicodeString Win64UnicodeString::New(C::PtrRange<wchar_t> R) {
 bool Win64UnicodeString::isEqual(const Win64UnicodeString& rhs) const {
   if __expect_false(!this->buffer || !rhs.buffer) return false;
   if (this->size != rhs.size) return false;
-  int ret = C::__wstrncmp(this->buffer, rhs.buffer, this->size);
+  int ret = __wstrncmp(this->buffer, rhs.buffer, this->size);
   return (ret == 0);
 }
 
@@ -120,7 +119,7 @@ Win64PEB* Win64TEB::LoadPEBFromGS() {
 }
 
 Win64AddrRange Win64TEB::getStackRange() const {
-  return C::AddrRange::New(tib.stack_end, tib.stack_begin);
+  return AddrRange::New(tib.stack_end, tib.stack_begin);
 }
 
 Win64ProcParams* Win64TEB::GetProcessParams() {

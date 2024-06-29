@@ -22,8 +22,8 @@
 #include <Meta/Refl.hpp>
 #include <Meta/Unwrap.hpp>
 
+using namespace hc;
 using namespace hc::bootstrap;
-namespace C = hc::common;
 namespace B = hc::bootstrap;
 
 using DbgType = ULong(const char* fmt, ...);
@@ -35,10 +35,10 @@ namespace hc::bootstrap {
 } // namespace hc::bootstrap
 
 namespace {
-  static constinit C::EnumArray<StubError, Syscall> __errors_ {};
+  static constinit EnumArray<StubError, Syscall> __errors_ {};
   static constinit bool __did_succeed_ = false;
 
-  [[gnu::hot]] u32 handle_syscall(Syscall C, C::StrRef name) {
+  [[gnu::hot]] u32 handle_syscall(Syscall C, StrRef name) {
     StubResult stub = parse_stub(name);
     if __expect_false(stub.isErr()) {
       __errors_[C] = stub.err();

@@ -53,6 +53,7 @@ set(PLATFORM ${HC_PLATFORM_PREFIX})
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 option(HC_CHECK_INVARIANTS "Enable invariant checking." OFF)
+option(HC_COMMON_INLINE "Enable inline namespacing for hc::common." ON)
 option(HC_MULTITHREADED "Enable threads (fibers always allowed)." ON)
 option(HC_EXCEPTIONS "Enable exceptions." OFF)
 option(HC_RTTI "Enable runtime type information." OFF)

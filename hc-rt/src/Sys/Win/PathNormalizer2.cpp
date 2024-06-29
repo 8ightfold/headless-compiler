@@ -43,7 +43,6 @@
 using namespace hc;
 using namespace hc::sys;
 namespace B = hc::bootstrap;
-namespace C = hc::common;
 namespace P = hc::parcel;
 namespace S = hc::sys;
 
@@ -66,7 +65,7 @@ struct S::PathDeductionCtx {
 
 namespace {
   constexpr usize maxPathSlices = 64;
-  using PathSliceType = P::StaticVec<C::StrRef, maxPathSlices>;
+  using PathSliceType = P::StaticVec<StrRef, maxPathSlices>;
 
   inline bool __is_control(const char C) {
     return (C < ' ' || C == '\x7F');
@@ -128,7 +127,7 @@ namespace {
 
   ////////////////////////////////////////////////////////////////////////
   /// Checks if path begins with `(//|\\)[.?][/\]`.
-  inline bool is_device_path(C::StrRef path) {
+  inline bool is_device_path(StrRef path) {
     $ConsumeDirSep(path);
     $ConsumeDirSep(path);
     $ConsumeMultiChars(path, '.', '?');
@@ -137,7 +136,7 @@ namespace {
 
   ////////////////////////////////////////////////////////////////////////
   /// Checks if path begins with `[a-zA-Z]:`.
-  inline bool is_volume(C::StrRef path) {
+  inline bool is_volume(StrRef path) {
     if (!__is_alpha(path.frontSafe()))
       return false;
     return path.dropFront().beginsWith(':');
@@ -146,7 +145,7 @@ namespace {
   ////////////////////////////////////////////////////////////////////////
   /// Consumes a GUID hex block.
   template <usize N, bool ConsumeSep = true>
-  bool consume_guid_hex(C::StrRef& path) {
+  bool consume_guid_hex(StrRef& path) {
     if __expect_false(path.size() < (N + ConsumeSep))
       return false;
     if constexpr (ConsumeSep) {
@@ -172,7 +171,7 @@ namespace {
 } while (0)
 
   /// Consumes a GUID.
-  inline bool consume_guid_inner(C::StrRef& path) {
+  inline bool consume_guid_inner(StrRef& path) {
     // 32 hex + 4 sep
     if __expect_false(path.size() <= 36)
       return false;
@@ -186,7 +185,7 @@ namespace {
 #undef $ConsumeGUIDHex
 
   /// Checks if is `Volume{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}`.
-  inline bool is_volume_guid(C::StrRef path) {
+  inline bool is_volume_guid(StrRef path) {
     if (!path.consumeFront("Volume{"))
       return false;
     if (!consume_guid_inner(path))
@@ -196,7 +195,7 @@ namespace {
 
   ////////////////////////////////////////////////////////////////////////
   /// Checks if path begins with `[/\]??[/\]`.
-  inline bool is_nt_path(C::StrRef path) {
+  inline bool is_nt_path(StrRef path) {
     $ConsumeDirSep(path);
     path.consumeFront("GLOBAL");
     $ConsumeMultiChars(path, "??");
@@ -204,7 +203,7 @@ namespace {
   }
 
   ////////////////////////////////////////////////////////////////////////
-  inline UNCPrefixType consume_unc_ipv4(C::StrRef& path) {
+  inline UNCPrefixType consume_unc_ipv4(StrRef& path) {
     const auto eat_number = [&path] -> bool {
       usize val = 0;
       if __expect_false(path.consumeUnsigned(val)) {
@@ -227,7 +226,7 @@ namespace {
     return UNCPrefixType::IPv4;
   }
 
-  inline UNCPrefixType consume_unc_ipv6(C::StrRef& path) {
+  inline UNCPrefixType consume_unc_ipv6(StrRef& path) {
     // 8 groups of 4 nibbles (128 bits).
     static constexpr usize maxIPv6 = 8;
     const usize path_size = path.size();
@@ -275,7 +274,7 @@ namespace {
     return UNCPrefixType::IPv6;
   }
 
-  inline UNCPrefixType is_ipv4(C::StrRef path) {
+  inline UNCPrefixType is_ipv4(StrRef path) {
     // Mininum size for v6 (::N).
     __hc_invariant(path.size() >= 3);
     for (const char C : path.takeFront(4)) {
@@ -292,7 +291,7 @@ namespace {
   }
 
   /// Selects whether to consume an IPv4 or IPv6 address, if possible.
-  inline UNCPrefixType consume_unc_ip(C::StrRef& path) {
+  inline UNCPrefixType consume_unc_ip(StrRef& path) {
     // Mininum size for v6 (::N).
     if (path.size() < 3)
       return UNCPrefixType::Unknown;
@@ -310,7 +309,7 @@ namespace {
   }
 
   /// Consumes a server or hostname.
-  inline UNCPrefixType consume_unc_server_host(C::StrRef& path) {
+  inline UNCPrefixType consume_unc_server_host(StrRef& path) {
     auto name_type = UNCPrefixType::HostName;
     usize path_idx = 1, dot_count = 0;
     // Ensure it begins with [a-zA-Z].
@@ -358,7 +357,7 @@ namespace {
   }
 
   /// Handles hostnames, NetBIOS machine names, IPs and FQDNs.
-  inline bool consume_unc_prefix(C::StrRef& path) {
+  inline bool consume_unc_prefix(StrRef& path) {
     using enum UNCPrefixType;
     if (consume_unc_ip(path) != Unknown)
       return true;
@@ -366,7 +365,7 @@ namespace {
   }
 
   /// Consumes a share (name or `[drive]$`).
-  inline bool consume_unc_share(C::StrRef& path) {
+  inline bool consume_unc_share(StrRef& path) {
     usize path_idx = 0;
     for (const char C : path) {
       if (MMatch(C).is('/', '\\'))
@@ -388,7 +387,7 @@ namespace {
   /// They look like `\\[host|IP|FQDM]\[share]\~`.
   /// Must use backslashes, as they are used to distinguish FQDNs.
   /// `$` is also used in the place of `:` for the same reason.
-  inline bool is_unc_path(C::StrRef path) {
+  inline bool is_unc_path(StrRef path) {
     if (!path.consumeFront("\\\\"))
       return false;
     if __expect_false(!consume_unc_prefix(path))
@@ -399,7 +398,7 @@ namespace {
 
   /// Checks if path is a legacy device.
   /// Reserved: CON, PRN, AUX, NUL, COM[0-9], LPT[0-9]
-  inline bool is_legacy_device(C::StrRef path) {
+  inline bool is_legacy_device(StrRef path) {
     if (path.size() == 3)
       return path.beginsWith("CON", "PRN", "AUX", "NUL");
     else if (path.size() == 4) {
@@ -412,7 +411,7 @@ namespace {
   ////////////////////////////////////////////////////////////////////////
   /// Checks if path begins with a possible DOSDrive or LegacyDevice.
   /// Assumes the device path prefix has been removed.
-  PathType deduce_dos_drive_type(C::StrRef path) {
+  PathType deduce_dos_drive_type(StrRef path) {
     if __expect_false(path.isEmpty())
       return PathType::Unknown;
     usize path_idx = 0;
@@ -429,7 +428,7 @@ namespace {
     if (path_idx == 0)
       return PathType::Unknown;
     // Grab whatever's at the front:
-    C::StrRef S = path.takeFront(path_idx);
+    StrRef S = path.takeFront(path_idx);
     // Recurse on DosDevices symlink.
     if (S.isEqual("DosDevices"))
       return deduce_dos_drive_type(
@@ -441,7 +440,7 @@ namespace {
 
   /// Tests for GUIDVolume, DOSDrive, DosVolume, LegacyDevice, and DeviceUNC.
   /// Assumes the device path prefix has been removed.
-  PathType deduce_device_path_type(C::StrRef path, char type) {
+  PathType deduce_device_path_type(StrRef path, char type) {
     if (is_volume(path)) {
       path.dropFrontMut(2);
       // Device paths must be absolute.
@@ -462,7 +461,7 @@ namespace {
   /// A mostly accurate method of determining the type of
   /// a given path. Doesn't check for the existance of the
   /// path, just if it *could* exist.
-  PathType deduce_path_type(C::StrRef path) {
+  PathType deduce_path_type(StrRef path) {
     // Refers to the current folder.
     if __expect_false(path.isEmpty())
       return PathType::DirRel;
@@ -493,7 +492,7 @@ namespace {
   }
 } // namespace `anonymous`
 
-PathType PathNormalizer::PredictPathType(C::StrRef S) {
+PathType PathNormalizer::PredictPathType(StrRef S) {
   $tail_return deduce_path_type(S.dropNull());
 }
 
@@ -501,19 +500,19 @@ PathType PathNormalizer::PredictPathType(C::StrRef S) {
 // Reformatting
 //======================================================================//
 
-void PathNormalizer::push(C::ImmPtrRange<wchar_t> P) {
+void PathNormalizer::push(ImmPtrRange<wchar_t> P) {
   const usize N = P.size();
   if (isNameTooLong(N) || P.isEmpty())
     return;
   // Get the old end(). We will copy from here.
   wchar_t* const old_end = path.end();
   __hc_assertOrIdent(path.resizeUninit(path.size() + N));
-  C::inline_memcpy(old_end, P.data(), N * sizeof(wchar_t));
+  inline_memcpy(old_end, P.data(), N * sizeof(wchar_t));
 }
 
-void PathNormalizer::push(C::ImmPtrRange<char> P) {
+void PathNormalizer::push(ImmPtrRange<char> P) {
   // Same as the wide version, except here we need to widen.
-  auto S = C::StrRef(P).dropNull();
+  auto S = StrRef(P).dropNull();
   auto WP = $to_wstr_sz(S.data(), S.size());
   this->push(WP);
 }
@@ -548,7 +547,7 @@ void PathNormalizer::applyRelativePath(P::IStaticVec<StrRef>& V) {
   }
 }
 
-bool PathNormalizer::doNormalization(C::StrRef S) {
+bool PathNormalizer::doNormalization(StrRef S) {
   this->type = deduce_path_type(S);
   if (type == Unknown) {
     err = Error::eInvalName;
@@ -562,7 +561,7 @@ bool PathNormalizer::doNormalization(C::StrRef S) {
   return false;
 }
 
-bool PathNormalizer::operator()(C::StrRef S) {
+bool PathNormalizer::operator()(StrRef S) {
   path.clear();
   this->err = Error::eNone;
   bool R = doNormalization(S.dropNull());

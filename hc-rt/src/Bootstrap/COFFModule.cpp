@@ -23,8 +23,8 @@
 #include <Meta/Unwrap.hpp>
 #include <Parcel/StaticVec.hpp>
 
+using namespace hc;
 using namespace hc::bootstrap;
-namespace C = hc::common;
 namespace B = hc::bootstrap;
 
 namespace {
@@ -39,7 +39,7 @@ namespace {
         .takeFront(EDT->name_pointer_table_count);
     }
   public:
-    void* operator()(C::StrRef S) const {
+    void* operator()(StrRef S) const {
       if __expect_false(NPT.isEmpty())
         return nullptr;
       if (i64 pos = bsearch(S); pos >= 0) {
@@ -53,12 +53,12 @@ namespace {
       return nullptr;
     }
 
-    i64 bsearch(C::StrRef S) const { 
+    i64 bsearch(StrRef S) const { 
       i64 F = -1, B = i64(NPT.size()) - 1;
       while (F <= B) {
         const i64 middle = (B + F) / 2;
         const auto sym = resolveOffset(middle);
-        const auto R = C::__strcmp(sym.data(), S.data());
+        const auto R = __strcmp(sym.data(), S.data());
         if __expect_false(R == 0)
           return middle;
         if (R > 0)
@@ -69,21 +69,21 @@ namespace {
       return -1;
     }
 
-    C::StrRef resolveOffset(i64 off) const {
+    StrRef resolveOffset(i64 off) const {
       const auto tbl_off = this->NPT[off];
-      return C::StrRef(M->getRVA<char>(tbl_off));
+      return StrRef(M->getRVA<char>(tbl_off));
     }
 
   private:
     ModuleHandle M = nullptr;
     COFF::ExportDirectoryTable* EDT = nullptr;
-    C::PtrRange<COFF::NamePointerType> NPT { };
+    PtrRange<COFF::NamePointerType> NPT { };
   };
 } // namespace `anonymous`
 
 // Resolvers
 
-void* B::COFFModule::resolveExportRaw(C::StrRef S) const {
+void* B::COFFModule::resolveExportRaw(StrRef S) const {
   static constexpr auto I = u32(COFF::eDirectoryExportTable);
   if (S.isEmpty())
     return nullptr;
@@ -95,14 +95,14 @@ void* B::COFFModule::resolveExportRaw(C::StrRef S) const {
   return B(S);
 }
 
-void* B::COFFModule::resolveImportRaw(C::StrRef S) const {
+void* B::COFFModule::resolveImportRaw(StrRef S) const {
   __hc_unreachable("resolveImportRaw is unimplemented.");
   return nullptr;
 }
 
 // Getters
 
-C::AddrRange B::COFFModule::getImageRange() const {
+AddrRange B::COFFModule::getImageRange() const {
   return self()->getImageRange();
 }
 

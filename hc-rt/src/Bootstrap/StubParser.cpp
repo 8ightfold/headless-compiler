@@ -30,8 +30,8 @@
 if (primaryOpcode<Instruction::I> == e) \
   return Instruction::I;
 
+using namespace hc;
 using namespace hc::bootstrap;
-namespace C = hc::common;
 namespace B = hc::bootstrap;
 
 namespace {
@@ -99,7 +99,7 @@ namespace hc::bootstrap {
   return Instruction::Unknown;
 }
 
-StubResult B::parse_stub(C::StrRef S) {
+StubResult B::parse_stub(StrRef S) {
   if (!S.beginsWith("Nt"))
     return $StubErr(NonNTFunction);
   void* stub = NtModule().resolveExportRaw(S);

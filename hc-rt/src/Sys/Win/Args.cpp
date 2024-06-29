@@ -22,7 +22,6 @@
 using namespace hc;
 using namespace hc::sys;
 namespace B = hc::bootstrap;
-namespace C = hc::common;
 namespace S = hc::sys;
 
 extern "C" {
@@ -45,7 +44,7 @@ namespace {
   }
 
   template <typename T>
-  C::PtrRange<T*> __find_end(T** PP) {
+  PtrRange<T*> __find_end(T** PP) {
     T** E = PP;
     while (*++E);
     return {PP, E};

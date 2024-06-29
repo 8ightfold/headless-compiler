@@ -25,19 +25,18 @@
 
 using namespace hc;
 using namespace hc::sys;
-namespace C = hc::common;
 namespace S = hc::sys;
 
 namespace {
   template <typename T, typename U>
-  inline void copy_range(C::PtrRange<T> to, C::PtrRange<U> from) {
+  inline void copy_range(PtrRange<T> to, PtrRange<U> from) {
     static_assert(meta::is_same_size<T, U>);
     __hc_invariant(to.size() >= from.size());
-    C::inline_memcpy(to.data(), from.data(), from.sizeInBytes());
+    inline_memcpy(to.data(), from.data(), from.sizeInBytes());
   }
 } // namespace `anonymous`
 
-IIOMode IIOFile::ParseModeFlags(C::StrRef S) {
+IIOMode IIOFile::ParseModeFlags(StrRef S) {
   S = S.dropNull();
   if __expect_false(!S.beginsWithAny("rwa"))
     return IIOMode::Err;
@@ -76,7 +75,7 @@ IIOMode IIOFile::ParseModeFlags(C::StrRef S) {
   return flags;
 }
 
-FileResult IIOFile::readUnlocked(C::AddrRange data) {
+FileResult IIOFile::readUnlocked(AddrRange data) {
   if __expect_false(!canRead()) {
     err = true;
     return $FileErr(eBadFD);
@@ -89,14 +88,14 @@ FileResult IIOFile::readUnlocked(C::AddrRange data) {
   __hc_invariant(read_limit > pos);
   usize available_data = read_limit - pos;
   if (len <= available_data) {
-    C::inline_memcpy(data.data(),
+    inline_memcpy(data.data(),
       self_buf.dropFront(pos).data(), len);
     pos += len;
     return len;
   }
 
   // Copy all available data to the buffer.
-  C::inline_memcpy(
+  inline_memcpy(
     data.data(),
     self_buf.dropFront(pos).data(),
     available_data
@@ -128,7 +127,7 @@ FileResult IIOFile::readUnlocked(C::AddrRange data) {
   usize fetched = R.value;
   read_limit += fetched;
   usize transfer_size = (fetched >= to_fetch) ? to_fetch : fetched;
-  C::inline_memcpy(data.data(), self_buf.data(), transfer_size);
+  inline_memcpy(data.data(), self_buf.data(), transfer_size);
   pos += transfer_size;
   if (R.isErr() || fetched < to_fetch) {
     if (R.isOk())
@@ -140,7 +139,7 @@ FileResult IIOFile::readUnlocked(C::AddrRange data) {
   return {available_data + transfer_size, R.err};
 }
 
-FileResult IIOFile::writeUnlocked(C::ImmAddrRange data) {
+FileResult IIOFile::writeUnlocked(ImmAddrRange data) {
   if __expect_false(!canWrite()) {
     err = true;
     return $FileErr(eBadFD);
@@ -191,7 +190,7 @@ IOResult<long> IIOFile::tell() {
 
 // impl
 
-FileResult IIOFile::writeUnlockedNone(C::ImmPtrRange<u8> data) {
+FileResult IIOFile::writeUnlockedNone(ImmPtrRange<u8> data) {
   if (pos > 0) {
     const usize write_size = pos;
     auto R = write_fn(this, 
@@ -212,12 +211,12 @@ FileResult IIOFile::writeUnlockedNone(C::ImmPtrRange<u8> data) {
   return R;
 }
 
-FileResult IIOFile::writeUnlockedLine(C::ImmPtrRange<u8> data) {
+FileResult IIOFile::writeUnlockedLine(ImmPtrRange<u8> data) {
   __hc_unreachable("`writeUnlockedLine` unimplemented.");
   return $FileErr(0ULL);
 }
 
-FileResult IIOFile::writeUnlockedFull(C::ImmPtrRange<u8> data) {
+FileResult IIOFile::writeUnlockedFull(ImmPtrRange<u8> data) {
   const usize init_pos = pos;
   const usize buf_space = bufSize() - pos;
   const usize len = data.size();

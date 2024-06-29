@@ -30,7 +30,6 @@
 
 using namespace hc;
 using namespace hc::sys;
-namespace C = hc::common;
 namespace P = hc::parcel;
 namespace S = hc::sys;
 
@@ -44,14 +43,14 @@ namespace {
 //======================================================================//
 
 namespace {
-  WinIOFile* __nt_openfile(FileAdaptor& self, C::PtrRange<wchar_t> wpath, IIOMode flags) {
+  WinIOFile* __nt_openfile(FileAdaptor& self, PtrRange<wchar_t> wpath, IIOMode flags) {
     __hc_invariant(!wpath.isEmpty());
     auto name  = win::UnicodeString::New(wpath);
     (void) name;
     return nullptr;
   }
 
-  WinIOFile* __nt_openfile(FileAdaptor& self, C::StrRef path, IIOMode flags) {
+  WinIOFile* __nt_openfile(FileAdaptor& self, StrRef path, IIOMode flags) {
     __hc_invariant(!path.isEmpty());
     auto wpath = $to_wstr(path.data());
     if (path.beginsWith("\\\\?\\"))
@@ -66,7 +65,7 @@ namespace {
   }
 } // namespace `anonymous`
 
-IIOFile* FileAdaptor::openFileRaw(C::StrRef path, C::StrRef flags) {
+IIOFile* FileAdaptor::openFileRaw(StrRef path, StrRef flags) {
   const auto F = IIOFile::ParseModeFlags(flags);
   if (F == IIOMode::Err) {
     err = Error::eInval;
@@ -122,7 +121,7 @@ void FileAdaptor::clearError() {
 // Free Functions
 //======================================================================//
 
-IOResult<IIOFile*> S::open_file(C::StrRef path, IIOFileBuf& buf, C::StrRef flags) {
+IOResult<IIOFile*> S::open_file(StrRef path, IIOFileBuf& buf, StrRef flags) {
   FileAdaptor F(buf);
   if (IIOFile* file = F.openFileRaw(path, flags))
     return $Ok(file);

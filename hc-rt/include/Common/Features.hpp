@@ -24,8 +24,18 @@
 #define HC_HAS_BUILTIN(name) static_assert(__has_builtin(__builtin_##name))
 
 #define HC_MARK_DELETED(name) \
+  name(name&)       = delete; \
   name(const name&) = delete; \
   name(name&&)      = delete
+
+#ifndef __HC_INTERNAL__
+# ifndef _HC_COMMON_INLINE
+#  define _HC_COMMON_INLINE 0
+# endif
+#else
+# undef _HC_COMMON_INLINE
+# define _HC_COMMON_INLINE 1
+#endif
 
 #if __has_feature(cxx_exceptions)
 # define HC_EXCEPTIONS 1
@@ -290,5 +300,9 @@ extern "C" {
 } // extern "C"
 
 namespace hc {
-
+  namespace common {}
+  namespace com = common;
+#if _HC_COMMON_INLINE
+  using namespace common;
+#endif // _HC_COMMON_INLINE
 } // nanespace hc

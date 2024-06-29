@@ -19,17 +19,17 @@
 #include <BinaryFormat/MagicMatcher.hpp>
 #include <Common/Strings.hpp>
 
+using namespace hc;
 using namespace hc::binfmt;
-namespace C  = hc::common;
 namespace F = hc::binfmt;
 
 template <usize N>
-static inline bool __starts_with(C::AddrRange data, const char(&str)[N]) {
+static inline bool __starts_with(AddrRange data, const char(&str)[N]) {
   __hc_invariant(data.size() >= (N - 1));
-  return C::__memcmp(data.intoRange<char>().data(), str, N - 1) == 0;
+  return __memcmp(data.intoRange<char>().data(), str, N - 1) == 0;
 }
 
-MMagic F::MMagic::Match(C::AddrRange binary) {
+MMagic F::MMagic::Match(AddrRange binary) {
   if (binary.size() < 2) return Detail::Unknown;
   const auto binstr = binary.intoRange<char>();
   switch ((u8)binstr[0]) {

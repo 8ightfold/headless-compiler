@@ -56,6 +56,7 @@ target_internal_flags(hcrt-inc INTERFACE HC_DO_TRACING)
 target_internal_flags(hcrt-inc INTERFACE HC_RTTI)
 target_internal_flags(hcrt-inc INTERFACE HC_MULTITHREADED)
 target_internal_flags(hcrt-inc INTERFACE HC_SOFTWARE_PREFETCH)
+target_internal_flags(hcrt-inc INTERFACE HC_COMMON_INLINE)
 target_internal_flags(hcrt-inc INTERFACE HC_ENABLE_LTO)
 
 ##======================================================================##

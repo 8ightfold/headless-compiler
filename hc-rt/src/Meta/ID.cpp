@@ -21,8 +21,6 @@
 
 using namespace hc;
 using namespace hc::meta;
-namespace C = hc::common;
-namespace M = hc::meta;
 
 namespace {
   struct IUUID : UID {

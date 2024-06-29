@@ -24,7 +24,6 @@
 
 using namespace hc::bootstrap;
 using hc::binfmt::MMagic;
-namespace C = hc::common;
 namespace B = hc::bootstrap;
 
 /*
