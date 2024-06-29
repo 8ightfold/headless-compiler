@@ -33,6 +33,7 @@
 // https://github.com/reactos/reactos/blob/master/sdk/lib/rtl/path.c
 // https://learn.microsoft.com/en-us/dotnet/standard/io/file-path-formats
 // https://googleprojectzero.blogspot.com/2016/02/the-definitive-guide-on-win32-to-nt.html
+// https://dubeyko.com/development/FileSystems/NTFS/ntfsdoc.pdf
 
 namespace hc::sys {
   static constexpr usize path_max = RT_STRICT_MAX_PATH;
