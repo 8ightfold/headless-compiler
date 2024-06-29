@@ -78,6 +78,8 @@
 #define __visibility(ty) __attribute__((__visibility__(#ty)))
 #define __aligned(n) __attribute__((aligned(n)))
 
+#define __hidden __visibility(hidden)
+
 #if __has_attribute(preferred_type)
 # define __prefer_type(name) __attribute__((preferred_type(name)))
 #else
@@ -108,6 +110,14 @@
 # define __lifetimebound
 #endif
 
+#if __has_attribute(exclude_from_explicit_instantiation)
+# define __exclude_from_explicit_instantiation __attribute__((__exclude_from_explicit_instantiation__))
+#else
+# define __exclude_from_explicit_instantiation __attribute__((__always_inline__))
+#endif
+
+#define __abi_hidden __hidden __exclude_from_explicit_instantiation
+
 #define __expect_false(expr...) (__builtin_expect(bool(expr), 0))
 #define __expect_true(expr...)  (__builtin_expect(bool(expr), 1))
 #define __unpredictable(expr...)  (__builtin_unpredictable(bool(expr)))
@@ -130,8 +140,7 @@
 #endif
 
 #define _HC_SEMANTIC_ATTRS \
-[[nodiscard]]
-// [[nodiscard, gnu::always_inline, gnu::nodebug]]
+[[nodiscard, gnu::always_inline, gnu::nodebug]]
 
 template <typename T>
 _HC_SEMANTIC_ATTRS 
