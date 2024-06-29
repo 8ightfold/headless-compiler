@@ -169,14 +169,16 @@ namespace hc::common {
 
 namespace hc::common {
   struct Mem {
+    /// The classic `memcpy` style function, no type checking.
     static void* VCopy(void* __restrict dst, const void* __restrict src, usize len);
+    /// The classic `memset` style function, no type checking.
     static void* VSet(void* __restrict dst, int ch, usize len);
 
     template <typename T>
     requires meta::is_trivially_copyable<T>
     __always_inline static T* 
      Copy(T* __restrict dst, const T* __restrict src, usize len) {
-      static_assert(!__is_void(T), "Directly use VCopy with void*!");
+      static_assert(!__is_void(T), "Void pointers can only be used with VCopy!");
       (void)Mem::VCopy(dst, src, len * __sizeof(T));
       return dst;
     }
@@ -184,7 +186,7 @@ namespace hc::common {
     template <typename T>
     requires(!meta::is_trivially_copyable<T>)
     static T* Copy(T* __restrict dst, const T* __restrict src, usize len) {
-      static_assert(!__is_void(T), "Directly use VCopy with void*!");
+      static_assert(!__is_void(T), "Void pointers can only be used with VCopy!");
       for (usize I = 0; I < len; ++I)
         dst[I] = src[I];
       return dst;
