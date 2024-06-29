@@ -173,3 +173,8 @@ namespace hc::common {
   template <__is_Array T>
   __global usize __array_size_v = _IsArray<T>::size;
 } // namespace hc::common
+
+namespace hc {
+  template <usize N>
+  using ByteArray = common::Array<u8, N>;
+} // namespace hc

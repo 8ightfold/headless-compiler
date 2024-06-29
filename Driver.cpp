@@ -37,6 +37,7 @@
 #include <Sys/Args.hpp>
 #include <Sys/IOFile.hpp>
 #include <Sys/Mutex.hpp>
+#include <Sys/BasicNetwork.hpp>
 
 #include <Meta/ASM.hpp>
 #include "VolumeInfoDumper.hpp"

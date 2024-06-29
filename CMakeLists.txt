@@ -48,7 +48,9 @@ if(NOT DEFINED HC_PLATFORM_PREFIX)
     message(FATAL_ERROR "Unsupported platform!")
   endif()
 endif()
+
 set(PLATFORM ${HC_PLATFORM_PREFIX})
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 option(HC_CHECK_INVARIANTS "Enable invariant checking." OFF)
 option(HC_MULTITHREADED "Enable threads (fibers always allowed)." ON)
