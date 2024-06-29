@@ -1,4 +1,4 @@
-//===- Sys/Core/Nt/CheckPacking.cpp ---------------------------------===//
+//===- Sys/Win/Nt/CheckPacking.cpp ----------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //

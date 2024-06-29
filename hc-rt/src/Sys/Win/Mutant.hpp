@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <Sys/Core/Nt/Mutant.hpp>
+#include "Nt/Mutant.hpp"
 
 namespace hc::sys {
 inline namespace __nt {

@@ -29,7 +29,7 @@
 #include <Parcel/StaticVec.hpp>
 #include <Parcel/StringTable.hpp>
 
-#include <Sys/Core/Nt/Structs.hpp>
+#include <Sys/Win/Nt/Structs.hpp>
 #include <Sys/Win/Volume.hpp>
 #include <Sys/Win/Filesystem.hpp>
 #include <Sys/Win/Mutant.hpp>
@@ -141,7 +141,7 @@ int main(int N, char* A[], char* Env[]) {
     dumpPathData("//./COM1F/",            DosDrive);
     dumpPathData("//?/X:/",               DosVolume);
     dumpPathData("//.\\UNC/",             DeviceUNC);
-    dumpPathData("//RAHHHH/",             Unknown);
+    // dumpPathData("//RAHHHH/",             Unknown);
     dumpPathData("\\\\www.id.com\\xyz\\", UNCNamespace);
     dumpPathData("/??/C:",                NtNamespace);
     dumpPathData("CON.txt",               DirRel);

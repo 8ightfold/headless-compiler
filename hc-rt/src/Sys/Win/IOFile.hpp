@@ -19,7 +19,7 @@
 #pragma once
 
 #include <Sys/IOFile.hpp>
-#include <Sys/Core/Nt/Filesystem.hpp>
+#include <Sys/Win/Nt/Filesystem.hpp>
 
 namespace hc::sys {
   __global wchar_t consoleFileName[] = L"CON";

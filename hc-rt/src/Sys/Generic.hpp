@@ -20,7 +20,7 @@
 
 #include <Common/Predefs.hpp>
 #if HC_PLATFORM_WIN64
-# include "Nt/Generic.hpp"
+# include "Win/Nt/Generic.hpp"
 #else
 // TODO
 #endif

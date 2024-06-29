@@ -27,7 +27,7 @@
 #include <Common/Limits.hpp>
 #include <Common/RawLazy.hpp>
 #include <Meta/Once.hpp>
-#include <Sys/Core/Generic.hpp>
+#include <Sys/Generic.hpp>
 #include <Sys/Mutex.hpp>
 #include <Mingw/TryPrint.hpp>
 #include "Initialization.hpp"

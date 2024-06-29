@@ -90,7 +90,7 @@ if(WIN32)
     src/Bootstrap/COFFModule.cpp
     src/Bootstrap/StubParser.cpp
     src/Bootstrap/Syscalls.cpp
-    src/Sys/Core/Nt/CheckPacking.cpp
+    src/Sys/Win/Nt/CheckPacking.cpp
     src/Sys/Win/PathNormalizer2.cpp
   )
 endif()

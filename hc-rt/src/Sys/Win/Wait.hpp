@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <Sys/Core/Nt/Structs.hpp>
+#include "Nt/Structs.hpp"
 
 namespace hc::sys {
 inline namespace __nt {
