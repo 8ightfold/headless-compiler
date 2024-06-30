@@ -34,10 +34,9 @@ namespace hc::parcel {
     u16 length = 0;
   };
 
-  /// @brief Base for string tables.
-  /// Uses the buffer as a bump allocator, which means generally
-  /// strings cannot be removed once added. On the other hand,
-  /// table elements *can* be sorted and removed.
+  /// Base for string tables. Uses the buffer as a bump allocator, 
+  /// which means generally strings cannot be removed once added.
+  /// On the other hand, table elements *can* be sorted and removed.
   struct [[gsl::Pointer]] IStringTable {
     using SelfType   = IStringTable;
     using BufferType = IStaticVec<char>;
@@ -55,9 +54,9 @@ namespace hc::parcel {
      buf(&buf), tbl(&tbl) {}
   
   public:
-    /// @brief Sorts strings in lexicographic order, in shortlex form.
-    /// This is done using the introsort algorithm.
-    /// Sorting will set the dirty bit, which can be undone using `unsort`.
+    /// Sorts strings in lexicographic order, in shortlex form.
+    /// This is done using the introsort algorithm. Sorting will 
+    /// set the dirty bit, which can be undone using `unsort`.
     /// @param keep_sorted Whether to sort newly inserted elements.
     void sortLexicographically(bool keep_sorted = false);
 

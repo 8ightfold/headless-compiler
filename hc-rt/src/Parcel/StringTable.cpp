@@ -1,4 +1,4 @@
-//===- Parcel/StringTable.hpp ---------------------------------------===//
+//===- Parcel/StringTable.cpp ---------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -47,6 +47,34 @@ namespace {
   protected:
     /// Based on the libcxx `__introsort`.
     void introsort(Iter I, Iter E, usize depth, bool left = true);
+
+    /// @return The number of swaps.
+    unsigned branching_sort3(Iter X, Iter Y, Iter Z) {
+      if (!this->__comp(*Y, *X)) {
+        if (!this->__comp(*Z, *Y))
+          return 0;
+
+        ISTableSorter::__swap(Y, Z);
+        if (this->__comp(*Y, *X)) {
+          ISTableSorter::__swap(X, Y);
+          return 2;
+        }
+        return 1;
+      }
+
+      if (this->__comp(*Z, *Y)) {
+        ISTableSorter::__swap(X, Z);
+        return 1;
+      }
+
+      ISTableSorter::__swap(X, Y);
+      if (this->__comp(*Z, *Y)) {
+        ISTableSorter::__swap(Y, Z);
+        return 2;
+      }
+
+      return 1;
+    }
 
     void sort3(Iter X, Iter Y, Iter Z) {
       __comp_swap(Y, Z);
@@ -178,9 +206,16 @@ namespace {
       // Use Tuckey ninther median if over threshold.
       const usize mid = len / 2;
       if (len > tuckey_lower) {
-
+        this->mutated = true;
+        this->branching_sort3(I, I + mid, E - 1);
+        this->branching_sort3(I + 1, I + (mid - 1), E - 2);
+        this->branching_sort3(I + 2, I + (mid + 1), E - 3);
+        this->branching_sort3(I + (mid - 1), I + mid, I + (mid + 1));
+        ISTableSorter::__swap(I, I + mid);
       } else {
-
+        const unsigned swaps =
+          this->branching_sort3(I + mid, I, E - 1);
+        this->mutated &= !!swaps;
       }
       __hc_todo("introsort::tuckey");
 
