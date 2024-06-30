@@ -69,7 +69,9 @@ add_library(hcrt-dev STATIC
   src/Common/StrRef.cpp
   src/BinaryFormat/MagicMatcher.cpp
   src/Meta/ID.cpp
+  src/Parcel/StringTable.cpp
   src/Sys/IOFile.cpp
+
   # Platform Specific
   ${HC_RSYS}/Args.cpp
   ${HC_RSYS}/Mutex.cpp
