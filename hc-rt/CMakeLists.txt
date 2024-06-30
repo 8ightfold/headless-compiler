@@ -49,15 +49,18 @@ if(HC_EXTRA_DIAGNOSTICS)
 endif()
 
 include(SetFlags)
-target_internal_flags(hcrt-inc INTERFACE HC_DEBUG)
-target_internal_flags(hcrt-inc INTERFACE HC_TRUE_DEBUG)
-target_internal_flags(hcrt-inc INTERFACE HC_CHECK_INVARIANTS)
-target_internal_flags(hcrt-inc INTERFACE HC_DO_TRACING)
-target_internal_flags(hcrt-inc INTERFACE HC_RTTI)
-target_internal_flags(hcrt-inc INTERFACE HC_MULTITHREADED)
-target_internal_flags(hcrt-inc INTERFACE HC_SOFTWARE_PREFETCH)
-target_internal_flags(hcrt-inc INTERFACE HC_COMMON_INLINE)
-target_internal_flags(hcrt-inc INTERFACE HC_ENABLE_LTO)
+target_internal_flags(
+  hcrt-inc INTERFACE
+  HC_DEBUG 
+  HC_TRUE_DEBUG
+  HC_CHECK_INVARIANTS
+  HC_DO_TRACING 
+  HC_RTTI
+  HC_MULTITHREADED
+  HC_SOFTWARE_PREFETCH
+  HC_COMMON_INLINE
+  HC_ENABLE_LTO
+)
 
 ##======================================================================##
 ## Dev - Exposed internals (with default CRT)
@@ -85,6 +88,10 @@ target_link_libraries(hcrt-dev PUBLIC hcrt::inc)
 target_include_directories(hcrt-dev PUBLIC include src)
 target_compile_definitions(hcrt-dev PUBLIC __HC_INTERNAL__=1)
 target_compile_options(hcrt-dev PRIVATE -Wall -Wno-trigraphs)
+target_internal_flags(
+  hcrt-dev PRIVATE 
+  HC_FAST_STRING_TABLE
+)
 
 if(WIN32)
   target_sources(hcrt-dev PUBLIC

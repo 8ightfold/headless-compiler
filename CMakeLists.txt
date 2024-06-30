@@ -61,6 +61,7 @@ option(HC_DO_TRACING "Enable tracing in debug mode." OFF)
 option(HC_SOFTWARE_PREFETCH "Enable software prefetching." ON)
 option(HC_ENABLE_LTO "Enable IPO/LTO." ON)
 option(HC_EXTRA_DIAGNOSTICS "Extra Clang messages." OFF)
+option(HC_FAST_STRING_TABLE "Enables fast string searching algorithm." OFF)
 
 valued_option(RT_MAX_THREADS "Maximum amount of threads that can be created." 8)
 valued_option(RT_MAX_FILES "Maximum amount of files to be opened at once." 16)
