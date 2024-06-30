@@ -61,5 +61,5 @@ namespace hc::parcel {
   };
 
   template <usize N>
-  using ALBitSet = BitSet<CC::Align::UpEq(N)>;
+  using ALBitSet = BitSet<com::Align::UpEq(N)>;
 } // namespace hc::parcel

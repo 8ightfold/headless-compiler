@@ -63,7 +63,7 @@ namespace hc::parcel {
   template <typename T, usize N>
   struct Skiplist {
     using SelfType = Skiplist;
-    using DataType = CC::RawLazy<T>;
+    using DataType = com::RawLazy<T>;
     using Type = T;
     using BitType = uptr;
     using HandleType = SkiplistHandle<T, SelfType>;
@@ -138,5 +138,5 @@ namespace hc::parcel {
   };
 
   template <typename T, usize N>
-  using ALSkiplist = Skiplist<T, CC::Align::UpEq(N)>;
+  using ALSkiplist = Skiplist<T, com::Align::UpEq(N)>;
 } // namespace hc::parcel

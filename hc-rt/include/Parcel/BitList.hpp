@@ -45,7 +45,7 @@ namespace hc::parcel {
         for (usize I = 0; I < __count; ++I)
           __data[I] = BType(0);
       } else {
-        CC::__array_memset(this->__data, 0);
+        com::__array_memset(this->__data, 0);
       }
 
       return *this;
@@ -104,5 +104,5 @@ namespace hc::parcel {
   };
 
   template <usize N>
-  using ALBitList = BitList<CC::Align::UpEq(N)>;
+  using ALBitList = BitList<com::Align::UpEq(N)>;
 } // namespace hc::parcel

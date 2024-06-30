@@ -290,7 +290,7 @@ namespace hc::parcel {
     void growAndAssign(usize N, const T& V) {
       T* I = this->growUninit(N);
       while (I != this->end()) {
-        CC::construct_at(I, V);
+        com::construct_at(I, V);
         ++I;
       }
     }
@@ -300,14 +300,14 @@ namespace hc::parcel {
       if __expect_false(this->isFull())
         return;
       T* P = this->growUninit();
-      (void) CC::construct_at(P, V);
+      (void) com::construct_at(P, V);
     }
 
     constexpr void push(T&& V) {
       if __expect_false(this->isFull())
         return;
       T* P = this->growUninit();
-      (void) CC::construct_at(P, __hc_move(V));
+      (void) com::construct_at(P, __hc_move(V));
     }
 
     constexpr void pop() {
@@ -317,21 +317,21 @@ namespace hc::parcel {
       this->end()->~T();
     }
 
-    constexpr CC::Option<T&> pushBack(const T& V) {
+    constexpr com::Option<T&> pushBack(const T& V) {
       if __expect_false(this->isFull())
         return $None();
       this->push(V);
       return $Some(this->back());
     }
 
-    constexpr CC::Option<T&> pushBack(T&& V) {
+    constexpr com::Option<T&> pushBack(T&& V) {
       if __expect_false(this->isFull())
         return $None();
       this->push(__hc_move(V));
       return $Some(this->back());
     }
 
-    constexpr CC::Option<T> popBack() {
+    constexpr com::Option<T> popBack() {
       if __expect_false(this->isEmpty())
         return $None();
       T bk = __hc_move(this->back());
@@ -362,7 +362,7 @@ namespace hc::parcel {
     void growAndAssign(usize N, const T& V) {
       T* I = this->growUninit(N);
       while (I != this->end()) {
-        CC::construct_at(I, V);
+        com::construct_at(I, V);
         ++I;
       }
     }
@@ -373,9 +373,9 @@ namespace hc::parcel {
         return;
       T* P = this->growUninit();
       if $is_consteval() {
-        CC::construct_at(P, V);
+        com::construct_at(P, V);
       } else {
-        (void) CC::Mem::VCopy(P, &V, sizeof(T));
+        (void) com::Mem::VCopy(P, &V, sizeof(T));
       }
     }
 
@@ -385,14 +385,14 @@ namespace hc::parcel {
       this->__shrinkBy(1);
     }
 
-    constexpr CC::Option<T&> pushBack(PassType V) {
+    constexpr com::Option<T&> pushBack(PassType V) {
       if __expect_false(this->isFull())
         return $None();
       this->push(V);
       return $Some(this->back());
     }
 
-    constexpr CC::Option<T> popBack() {
+    constexpr com::Option<T> popBack() {
       if __expect_false(this->isEmpty())
         return $None();
       T bk = this->back();
@@ -401,6 +401,11 @@ namespace hc::parcel {
     }
   };
 
+  /// @brief The base for "dynamic" arrays.
+  /// Assumes there is a predefined maximum capacity.
+  /// Use this when passing vectors as function arguments
+  /// to avoid unnecessary instantiations.
+  /// @tparam T The array element type.
   template <typename T>
   struct [[gsl::Pointer]] IStaticVec : public IStaticVecBase<T> {
     using BaseType = IStaticVecBase<T>;
@@ -426,10 +431,10 @@ namespace hc::parcel {
       if __expect_false(this->isFull())
         return;
       T* P = this->growUninit();
-      CC::construct_at(P, __hc_fwd(args)...);
+      com::construct_at(P, __hc_fwd(args)...);
     }
 
-    constexpr CC::Option<T&> emplaceBack(auto&&...args) {
+    constexpr com::Option<T&> emplaceBack(auto&&...args) {
       if __expect_false(this->isFull())
         return $None();
       this->emplace(__hc_fwd(args)...);
@@ -437,12 +442,12 @@ namespace hc::parcel {
     }
 
     [[nodiscard]]
-    CC::PtrRange<T> intoRange() __noexcept {
+    com::PtrRange<T> intoRange() __noexcept {
       return { begin(), end() };
     }
 
     [[nodiscard]]
-    CC::ImmPtrRange<T> intoRange() const __noexcept {
+    com::ImmPtrRange<T> intoRange() const __noexcept {
       return { begin(), end() };
     }
 
@@ -456,6 +461,10 @@ namespace hc::parcel {
     [[nodiscard]]
     inline U into() const __noexcept {
       return intoRange().template into<U>();
+    }
+
+    constexpr void clear() __noexcept {
+      return this->__destroy();
     }
   
   protected:
@@ -473,6 +482,9 @@ namespace hc::parcel {
     }
   };
 
+  /// @brief Dynamic array with a static backing.
+  /// @tparam T The array element type.
+  /// @tparam BufferSize The maximum amount of elements.
   template <typename T, usize BufferSize>
   struct [[gsl::Owner]] StaticVec :
    public IStaticVec<T>,
@@ -505,20 +517,20 @@ namespace hc::parcel {
       this->__init(n, D);
     }
 
-    StaticVec(CC::PtrRange<T> R) : StaticVec() {
+    StaticVec(com::PtrRange<T> R) : StaticVec() {
       if __expect_false(R.isEmpty()) return;
       const auto n = __Cap(R.size());
-      CC::Mem::Copy(this->growUninit(n), R.begin(), n);
+      com::Mem::Copy(this->growUninit(n), R.begin(), n);
     }
 
     template <usize Sz>
     StaticVec(const StaticVec<T, Sz>& V) : StaticVec() {
       if constexpr (Sz > Capacity()) {
         const auto n = __Cap(V.size());
-        CC::Mem::Copy(this->growUninit(n), V.begin(), n);
+        com::Mem::Copy(this->growUninit(n), V.begin(), n);
       } else {
         const auto n = V.size();
-        CC::Mem::Copy(this->growUninit(n), V.begin(), n);
+        com::Mem::Copy(this->growUninit(n), V.begin(), n);
       }
     }
 
@@ -526,10 +538,10 @@ namespace hc::parcel {
     StaticVec(StaticVec<T, Sz>&& V) : StaticVec() {
       if constexpr (Sz > Capacity()) {
         const auto n = __Cap(V.size());
-        CC::Mem::Move(this->growUninit(n), V.begin(), n);
+        com::Mem::Move(this->growUninit(n), V.begin(), n);
       } else {
         const auto n = V.size();
-        CC::Mem::Move(this->growUninit(n), V.begin(), n);
+        com::Mem::Move(this->growUninit(n), V.begin(), n);
       }
     }
 
@@ -540,12 +552,8 @@ namespace hc::parcel {
     //==================================================================//
 
     constexpr SelfType& erase() __noexcept {
-      this->__destroy();
+      this->clear();
       return *this;
-    }
-
-    constexpr void clear() __noexcept {
-      return this->__destroy();
     }
 
     //==================================================================//
@@ -577,16 +585,19 @@ namespace hc::parcel {
   // Deduction
   //====================================================================//
 
+  /// @brief `StaticVec` with the element count rounded to the next power of 2.
+  /// @tparam T The array element type.
+  /// @tparam N The minimum amount of elements
   template <typename T, usize N>
-  using ALStaticVec = StaticVec<T, CC::Align::Up(N)>;
+  using ALStaticVec = StaticVec<T, com::Align::Up(N)>;
 
   template <typename T, typename...TT>
   using __staticvec_t = StaticVec<__decay(T), 
-    CC::Align::Up(sizeof...(TT) + 1)>;
+    com::Align::Up(sizeof...(TT) + 1)>;
   
   template <typename T, typename...TT>
   StaticVec(T&&, TT&&...) -> StaticVec<__decay(T), 
-    CC::Align::Up(sizeof...(TT) + 1)>;
+    com::Align::Up(sizeof...(TT) + 1)>;
 
   template <typename T, typename...TT>
   [[nodiscard, gnu::always_inline, gnu::nodebug]]

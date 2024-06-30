@@ -27,7 +27,6 @@
 #include <Common/Align.hpp>
 
 namespace hc::parcel {
-  namespace CC = hc::common;
   template <meta::is_integral Int>
   __always_inline constexpr
    Int popcnt(Int I) noexcept {
