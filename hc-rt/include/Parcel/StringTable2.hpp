@@ -36,6 +36,7 @@ namespace hc::parcel {
 
   /// Base for string tables. Uses the buffer as a bump allocator, 
   /// which means generally strings cannot be removed once added.
+  /// The main exception is `pop_back`, which is allowed if not dirty.
   /// On the other hand, table elements *can* be sorted and removed.
   struct [[gsl::Pointer]] IStringTable {
     using SelfType   = IStringTable;
@@ -54,18 +55,36 @@ namespace hc::parcel {
      buf(&buf), tbl(&tbl) {}
   
   public:
-    /// Sorts strings in lexicographic order, in shortlex form.
-    /// This is done using the introsort algorithm. Sorting will 
-    /// set the dirty bit, which can be undone using `unsort`.
-    /// @param keep_sorted Whether to sort newly inserted elements.
-    void sortLexicographically(bool keep_sorted = false);
 
-    /// Reverts to insertion order, unsets dirty bit.
-    void unsort();
+    //==================================================================//
+    // Settings
+    //==================================================================//
+
+    /// Sets the null terminator flag if buffer is inactive.
+    /// @return The the current value of `flags::null_term`.
+    bool setNullTerminationStrategy(bool V) {
+      if __expect_false(this->isBufferInUse()) {
+        // TODO: Output a warning.
+        return flags.null_term;
+      }
+
+      this->flags.null_term = V;
+      return V;
+    }
 
     //==================================================================//
     // Mutators
     //==================================================================//
+
+    /// Sorts strings in lexicographic order, in shortlex form.
+    /// This is *usually* done using the introsort algorithm. 
+    /// Sorting will set the dirty bit, which can be undone using `unsort`.
+    /// @param keep_sorted Whether to sort newly inserted elements.
+    void sortLexicographically(bool keep_sorted = false);
+
+    /// Reverts to insertion order, unsets dirty bit.
+    /// It also sets `ksorted` to false.
+    void unsort();
 
     SelfType& erase() __noexcept {
       this->clear();
@@ -99,6 +118,9 @@ namespace hc::parcel {
 
     /// @return `true` if strings are out of order.
     bool isDirty() const { return flags.dirty; }
+
+    /// @return `true` if strings aren't out of order.
+    bool isClean() const { return !flags.dirty; }
 
   protected:
     BufferType* buf  = nullptr;
