@@ -16,27 +16,27 @@
 //
 //===----------------------------------------------------------------===//
 
+#pragma once
+#error Incomplete implementation!
+// TODO: Finish this eventually ig...
+
 #include <Parcel/StringTable2.hpp>
 #include <Common/FastMath.hpp>
 
-using namespace hc;
-using namespace hc::parcel;
-
-static_assert(false, "Incomplete implementation!");
-
+namespace hc::parcel {
 namespace {
 struct ISTableSorter {
-  using Arr  = PtrRange<_STIdxType>;
+  using Arr  = com::PtrRange<_STIdxType>;
   using Iter = _STIdxType*;
   enum { __maxDepthFactor = 2 };
 public:
   ISTableSorter(
     IStringTable::BufferType* buf,
     IStringTable::TableType*  tbl) :
-   buf(buf->into<StrRef>()),
+   buf(buf->into<com::StrRef>()),
    max_depth(com::bit_log2(tbl->size()) * __maxDepthFactor) {}
 public:
-  bool introsort(PtrRange<_STIdxType> A) {
+  bool do_sort(com::PtrRange<_STIdxType> A) {
     this->introsort(A.begin(), A.end(), max_depth);
     return this->mutated;
   }
@@ -148,7 +148,7 @@ private:
   }
 
 private:
-  StrRef buf;
+  com::StrRef buf;
   bool mutated = false;
   // Default arg
   usize max_depth = 0;
@@ -212,13 +212,15 @@ void ISTableSorter::introsort(Iter I, Iter E, usize depth, bool left) {
     } else {
       const unsigned swaps =
         this->branching_sort3(I + mid, I, E - 1);
-      this->mutated &= !!swaps;
+      this->mutated |= !!swaps;
     }
-    __hc_todo("introsort::tuckey");
 
     if (!left && __comp(I - 1, I)) {
 
     }
+
+     __hc_todo("introsort");
   }
 }
 } // namespace `anonymous`
+} // namespace hc::parcel
