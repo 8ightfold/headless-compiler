@@ -55,8 +55,8 @@ namespace hc::parcel {
      buf(&buf), tbl(&tbl) {}
   
   public:
-    /// @brief Sorts strings in lexicographic order.
-    /// This will be done using the introsort algorithm.
+    /// @brief Sorts strings in lexicographic order, in shortlex form.
+    /// This is done using the introsort algorithm.
     /// Sorting will set the dirty bit, which can be undone using `unsort`.
     /// @param keep_sorted Whether to sort newly inserted elements.
     void sortLexicographically(bool keep_sorted = false);

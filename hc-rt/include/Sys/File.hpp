@@ -40,7 +40,7 @@ namespace sys {
   using IOResult = common::Result<T, Error>;
 
   struct FileAdaptor {
-    static constexpr usize invalArgMax = 3U;
+    enum { invalArgMax = 3 };
     using InvalArgsType = bool(&)[invalArgMax];
   public:
     // TODO:

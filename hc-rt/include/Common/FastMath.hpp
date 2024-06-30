@@ -28,13 +28,13 @@ HC_HAS_BUILTIN(clzll);
 
 namespace hc::common {
   /// Evaluates to `floor(log2(V))`;
-  constexpr u64 log2(u64 V) {
+  constexpr u64 bit_log2(u64 V) {
     // Only check when constant evaluating.
     __hc_cxassert(V != 0);
     const auto LLU = static_cast<unsigned long long>(V);
-    // Otherwise, return 1.
-    return __expect_false(V == 0) ? 1 :
+    // Otherwise, return 0.
+    return __expect_false(V == 0) ? 0 :
       __bitsizeof(unsigned long long) 
-        - __builtin_clzll(LLU) - 1ULL;
+        - __builtin_clzll(LLU) - 1ull;
   }
 } // namespace hc::common
