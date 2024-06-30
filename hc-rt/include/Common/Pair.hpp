@@ -34,4 +34,7 @@ namespace hc::common {
 
   template <typename T, typename U>
   Pair(T&&, U&&) -> Pair<__decay(T), __decay(U)>;
+
+  template <typename T>
+  using DPair = Pair<T, T>;
 } // namespace hc::common
