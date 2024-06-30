@@ -20,7 +20,7 @@ target_include_directories(hcrt-inc INTERFACE include)
 target_forward_options(hcrt-inc INTERFACE RT_MAX_FILES RT_MAX_PATH RT_STRICT_MAX_PATH)
 target_compile_options(hcrt-inc INTERFACE -march=native -ggdb)
 target_compile_options(hcrt-inc INTERFACE -Wno-trigraphs -fdiagnostics-show-template-tree)
-target_link_options(hcrt-inc INTERFACE -Wl,--stack,0xF42400 -nostdlib++)
+target_link_options(hcrt-inc INTERFACE -Wl,--stack,0x1000000 -nostdlib++)
 set_property(TARGET hcrt-inc PROPERTY INTERPROCEDURAL_OPTIMIZATION ${HC_ENABLE_LTO})
 
 if(NOT HC_RTTI)
