@@ -23,10 +23,11 @@
 #define HC_HAS_REQUIRED(ty, name) static_assert(__has_##ty(name))
 #define HC_HAS_BUILTIN(name) static_assert(__has_builtin(__builtin_##name))
 
-#define HC_MARK_DELETED(name) \
-  name(name&)       = delete; \
-  name(const name&) = delete; \
-  name(name&&)      = delete
+#define HC_MARK_DELETED(name)             \
+  name(const name&)            = delete;  \
+  name& operator=(const name&) = delete;  \
+  name(name&&)                 = delete;  \
+  name& operator=(name&&) = delete
 
 #ifndef __HC_INTERNAL__
 # ifndef _HC_COMMON_INLINE
