@@ -33,12 +33,14 @@ namespace {
     using Iter = _STIdxType*;
     enum { __maxDepthFactor = 2 };
   public:
-    ISTableSorter(BufferType* buf, TableType* tbl) :
-     tbl(tbl->intoRange()), buf(buf->into<StrRef>()),
+    ISTableSorter(
+      IStringTable::BufferType* buf,
+      IStringTable::TableType*  tbl) :
+     buf(buf->into<StrRef>()),
      max_depth(com::bit_log2(tbl->size()) * __maxDepthFactor) {}
   public:
     bool introsort(PtrRange<_STIdxType> A) {
-      this->introsort(A, max_depth);
+      this->introsort(A.begin(), A.end(), max_depth);
       return this->mutated;
     }
   
@@ -97,13 +99,13 @@ namespace {
     }
 
     /// Does ``*lhs < *rhs``.
-    __always_inline static bool __comp(Iter lhs, Iter rhs) {
+    __always_inline bool __comp(Iter lhs, Iter rhs) {
       return ISTableSorter::__comp(*lhs, *rhs);
     }
 
     void __comp_swap(Iter X, Iter Y) {
       const bool R = ISTableSorter::__comp(*X, *Y);
-      const _STIdxType tmp = R ? *X, *Y;
+      const _STIdxType tmp = R ? *X : *Y;
       *Y = R ? *Y : *X;
       *X = tmp;
       this->mutated |= R;
@@ -157,30 +159,34 @@ namespace {
 
       // Use insertion sort when under threshold.
       if (len < inssort_upper) {
+        __hc_todo("introsort::insertion_sort");
         if (left) {
-          this->insertion_sort(I, E);
+          // this->insertion_sort(I, E);
         } else {
-          this->insertion_sort_ung(I, E);
+          // this->insertion_sort_ung(I, E);
         }
         return;
       }
 
       if (depth == 0) {
-        this->heap_sort(I, E);
+        __hc_todo("introsort::heap_sort");
+        // this->heap_sort(I, E);
         return;
       }
       --depth;
-      {
-        const usize mid = len / 2;
-        // Use Tuckey ninther median if over threshold.
-        if (len > tuckey_lower) {
 
-        } else {
+      // Use Tuckey ninther median if over threshold.
+      const usize mid = len / 2;
+      if (len > tuckey_lower) {
 
-        }
+      } else {
+
       }
+      __hc_todo("introsort::tuckey");
 
-      __hc_todo("introsort")
+      if (!left && __comp(I - 1, I)) {
+
+      }
     }
   }
 } // namespace `anonymous`
