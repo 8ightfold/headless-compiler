@@ -95,13 +95,14 @@ target_internal_flags(
 
 if(WIN32)
   target_sources(hcrt-dev PUBLIC
-    src/Bootstrap/Win64KernelDefs.cpp
-    src/Bootstrap/ModuleParser.cpp
     src/Bootstrap/COFFModule.cpp
+    src/Bootstrap/ModuleParser.cpp
     src/Bootstrap/StubParser.cpp
     src/Bootstrap/Syscalls.cpp
-    src/Sys/Win/Nt/CheckPacking.cpp
-    src/Sys/Win/PathNormalizer2.cpp
+    src/Bootstrap/UnicodeString.cpp
+    src/Bootstrap/Win64KernelDefs.cpp
+    ${HC_RSYS}/PathNormalizer2.cpp
+    ${HC_RSYS}/Nt/CheckPacking.cpp
   )
 endif()
 
