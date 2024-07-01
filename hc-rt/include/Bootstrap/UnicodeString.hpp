@@ -33,15 +33,16 @@ namespace common {
 
 namespace bootstrap {
   struct [[gsl::Pointer]] Win64UnicodeString {
-    u16 size = 0, size_max = 0; // In bytes
+    u16 __size = 0, __size_max = 0; // In bytes
     wchar_t* buffer = nullptr;
   public:
     static Win64UnicodeString New(wchar_t* str);
     static Win64UnicodeString New(wchar_t* str, usize max);
     static Win64UnicodeString New(common::PtrRange<wchar_t> R);
-    usize getSize() const { return size / sizeof(wchar_t); }
-    usize getMaxSize() const { return size_max / sizeof(wchar_t); }
+    usize getSize() const { return __size / sizeof(wchar_t); }
+    usize getMaxSize() const { return __size_max / sizeof(wchar_t); }
     bool isEqual(const Win64UnicodeString& rhs) const;
+    com::PtrRange<const wchar_t> intoImmRange() const;
     com::PtrRange<wchar_t> intoRange() const;
     const wchar_t& frontSafe() const;
     const wchar_t& backSafe()  const;

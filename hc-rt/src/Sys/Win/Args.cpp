@@ -61,11 +61,11 @@ Args::ArgType<char*> Args::Envp() {
 
 Args::ArgType<wchar_t> Args::ProgramDir() {
   static thread_local B::Win64UnicodeString S = __get_program_path();
-  return ArgType<wchar_t>::New(S.buffer, S.size);
+  return S.intoImmRange();
 }
 
 Args::ArgType<wchar_t> Args::WorkingDir() {
   // Unlike the program path, this may change, so we cant cache it :(
   const B::Win64UnicodeString S = __get_working_path();
-  return ArgType<wchar_t>::New(S.buffer, S.size);
+  return S.intoImmRange();
 }

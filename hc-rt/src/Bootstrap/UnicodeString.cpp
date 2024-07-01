@@ -30,8 +30,8 @@ Win64UnicodeString Win64UnicodeString::New(wchar_t* S) {
   Win64UnicodeString new_ustr;
   usize str_len = __wstrlen(S);
   new_ustr.buffer = S;
-  new_ustr.size = str_len * 2;
-  new_ustr.size_max = (str_len + 1) * 2;
+  new_ustr.__size = str_len * 2;
+  new_ustr.__size_max = (str_len + 1) * 2;
   return new_ustr;
 }
 
@@ -39,9 +39,9 @@ Win64UnicodeString Win64UnicodeString::New(wchar_t* S, usize max) {
   __hc_invariant(S != nullptr);
   Win64UnicodeString new_ustr;
   new_ustr.buffer = S;
-  new_ustr.size = __wstrlen(S) * 2;
-  new_ustr.size_max = max * 2;
-  __hc_invariant(new_ustr.size <= new_ustr.size_max);
+  new_ustr.__size = __wstrlen(S) * 2;
+  new_ustr.__size_max = max * 2;
+  __hc_invariant(new_ustr.__size <= new_ustr.__size_max);
   return new_ustr;
 }
 
@@ -54,7 +54,7 @@ Win64UnicodeString Win64UnicodeString::New(PtrRange<wchar_t> R) {
 bool Win64UnicodeString::isEqual(const Win64UnicodeString& rhs) const {
   if __expect_false(!this->buffer || !rhs.buffer)
     return false;
-  if (this->size != rhs.size) 
+  if (this->__size != rhs.__size) 
     return false;
   int ret = __wstrncmp(this->buffer, rhs.buffer, this->getSize());
   return (ret == 0);
@@ -68,6 +68,10 @@ com::PtrRange<wchar_t> Win64UnicodeString::intoRange() const {
     return {};
   __hc_invariant(buffer != nullptr);
   return {buffer, buffer + sz};
+}
+
+com::PtrRange<const wchar_t> Win64UnicodeString::intoImmRange() const {
+  return this->intoRange().intoImmRange();
 }
 
 const wchar_t& Win64UnicodeString::frontSafe() const {
