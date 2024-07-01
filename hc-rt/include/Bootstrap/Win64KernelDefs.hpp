@@ -40,18 +40,27 @@
 static_assert(HC_PLATFORM_WIN64, "Windows only.");
 
 namespace hc {
-  namespace sys {
-    struct IIOFile;
-  } // namespace sys
-  using RawIOFile = sys::IIOFile;
-  using IOFile    = RawIOFile*;
-} // namespace hc
+namespace sys {
+  struct IIOFile;
+} // namespace sys
 
-namespace hc::bootstrap {
+using RawIOFile = sys::IIOFile;
+using IOFile    = RawIOFile*;
+
+namespace bootstrap {
   using Win64Addr       = void*;
   using Win64AddrRange  = common::AddrRange;
   using Win64Handle     = hc::__void*;
   using Win64Bool       = bool;
+
+  struct Win64ModuleType {
+    static constexpr usize loadOrder  = 0U;
+    static constexpr usize memOrder   = 1U;
+    static constexpr usize initOrder  = 2U;
+  };
+
+  template <usize TableOffset>
+  struct TWin64ListEntry;
 
   struct Win64ListEntryNode {
     Win64ListEntryNode*   __prev;
@@ -103,12 +112,25 @@ namespace hc::bootstrap {
     __always_inline Win64UnicodeString fullName() const {
       return this->full_dll_name;
     }
-  };
 
-  struct Win64ModuleType {
-    static constexpr usize loadOrder  = 0U;
-    static constexpr usize memOrder   = 1U;
-    static constexpr usize initOrder  = 2U;
+    //==================================================================//
+    // Conversions
+    //==================================================================//
+
+    template <usize TableOffset = Win64ModuleType::memOrder>
+    [[gnu::always_inline, gnu::const]]
+    TWin64ListEntry<TableOffset>* asListEntry() const {
+      using TblType = TWin64ListEntry<TableOffset>;
+      // Stupid fucking windows bullshit
+      auto* const pnode = reinterpret_cast<const TblType*>(this);
+      auto* plist = pnode + TableOffset;
+      return $launder(plist);
+    }
+
+    [[gnu::always_inline, gnu::const]]
+    Win64LDRDataTableEntry* asMutable() const {
+      return const_cast<Win64LDRDataTableEntry*>(this);
+    }
   };
 
   template <usize TableOffset>
@@ -347,4 +369,5 @@ namespace hc::bootstrap {
     uptr getThreadId() const;
     Win64PEB* getPEB() const;
   };
-} // namespace hc::bootstrap
+} // namespace bootstrap
+} // namespace hc
