@@ -89,8 +89,6 @@
 #define __visibility(ty) __attribute__((__visibility__(#ty)))
 #define __aligned(n) __attribute__((aligned(n)))
 
-#define __hidden __visibility(hidden)
-
 #if __has_attribute(preferred_type)
 # define __prefer_type(name) __attribute__((preferred_type(name)))
 #else
@@ -115,7 +113,9 @@
 # define __nodebug
 #endif
 
-#if __has_cpp_attribute(_Clang::__lifetimebound__)
+#if __has_cpp_attribute(clang::lifetimebound)
+# define __lifetimebound [[clang::lifetimebound]]
+#elif __has_cpp_attribute(_Clang::__lifetimebound__)
 # define __lifetimebound [[_Clang::__lifetimebound__]]
 #else
 # define __lifetimebound
@@ -127,11 +127,13 @@
 # define __exclude_from_explicit_instantiation __attribute__((__always_inline__))
 #endif
 
+#define __hidden __visibility(hidden)
 #define __abi_hidden __hidden __exclude_from_explicit_instantiation
 
 #define __expect_false(expr...) (__builtin_expect(bool(expr), 0))
 #define __expect_true(expr...)  (__builtin_expect(bool(expr), 1))
 #define __unpredictable(expr...)  (__builtin_unpredictable(bool(expr)))
+#define __nounroll _Pragma("nounroll")
 #define __global inline constexpr
 
 #if _HC_CXX23
