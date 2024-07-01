@@ -150,25 +150,33 @@ static B::Win64LDRDataTableEntry* self_module() {
   return B::Win64InitOrderList::GetExecutableEntry();
 }
 
-static B::Win64LDRDataTableEntry* load_module(const char* S, bool ignore_ext = false) {
+static B::Win64LDRDataTableEntry* load_module(
+ const char* S, bool ignore_ext = false) {
   auto* Entry = B::Win64MemOrderList::GetListSentinel();
   return Entry->findModule(S, ignore_ext);
 }
 
+void dumpLDRModule(
+ B::Win64LDRDataTableEntry* tbl, 
+ bool show_format = false
+) {
+  dump_data(tbl);
+  if (show_format) {
+    u32 lc = 0;
+    __builtin_dump_struct(tbl, &__dump_args, lc);
+  }
+  std::puts("");
+  std::fflush(stdout);
+}
+
 template <B::__is_win64_list_entry EntryType>
-void dumpLDRModule(EntryType* entry) {
+void dumpLDRModule(EntryType* entry, bool show_format = false) {
   std::printf("\n|=============================================|\n\n");
   if __expect_false(entry->isSentinel()) {
     std::printf("<sentinel>\n");
     return;
   }
-  auto* tbl = entry->asLDRDataTableEntry();
-  dump_data(tbl);
-  // ...
-  u32 lc = 0;
-  __builtin_dump_struct(tbl, &__dump_args, lc);
-  std::puts("");
-  std::fflush(stdout);
+  dumpLDRModule(entry->asLDRDataTableEntry(), show_format);
 }
 
 static void dump_module(B::COFFModule& M) {
@@ -264,10 +272,21 @@ static void dump_exports(B::DualString name, bool dump_body = false) {
   dump_exports(O.some(), dump_body);
 }
 
+static void dump_exports(B::Win64LDRDataTableEntry* mod) {
+  if (!mod) {
+    std::printf("ERROR: Module cannot be NULL.\n");
+    return;
+  }
+  auto O = B::ModuleParser::Parse(mod);
+  if (O.isNone()) {
+    std::printf("Could not parse module.");
+    return;
+  }
+  dump_exports(O.some());
+}
+
 static void list_modules() {
-  B::Win64PEB* ppeb = B::Win64TEB::LoadTEBFromGS()->getPEB();
-  const auto modules = ppeb->getLDRModulesInMemOrder();
-  for (auto* P = modules->prev(); !P->isSentinel(); P = P->prev())
+  for (auto* P : B::Win64MemOrderList::GetIterable())
     dump_data(P->asLDRDataTableEntry());
 }
 
@@ -275,15 +294,14 @@ void symdumper_main() {
   auto self = self_module();
   // auto self = $Load_Module("ntdll.dll", void);
   auto name = self->name();
-  std::printf("Executable name: %.*ls\n\n", int(name.size), name.buffer);
-  auto O = B::ModuleParser::GetParsedModule(name.buffer);
-  if (O.isNone()) {
-    std::printf("Could not locate module.");
-    return;
-  }
-
+  std::printf("Executable name: %.*ls\n\n", int(name.getSize()), name.buffer);
+  dumpLDRModule(self, true);
   list_modules();
-  B::COFFModule& M = O.some();
-  // dump_module(M);
-  dump_exports(M->asListEntry());
+  return;
+
+  auto O = B::ModuleParser::Parse(self);
+  B::COFFModule& M = $unwrap_void(O);
+  list_modules();
+  dump_module(M);
+  dump_exports(M);
 }

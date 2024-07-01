@@ -138,6 +138,38 @@ namespace bootstrap {
     using BaseType = Win64ListEntryNode;
     using SelfType = TWin64ListEntry<TableOffset>;
     using TblType  = Win64LDRDataTableEntry;
+
+    struct Iterator {
+      using difference_type = uptrdiff;
+      using value_type = TWin64ListEntry*;
+    public:
+      bool operator==(const Iterator&) const = default;
+      value_type operator*()  const { return __iter_val; }
+      value_type operator->() const { return __iter_val; }
+
+      Iterator& operator++() {
+        this->__iter_val = __iter_val->prev();
+        return *this;
+      }
+      Iterator operator++(int) {
+        Iterator tmp = *this;
+        ++*this;
+        return tmp;
+      }
+    
+    public:
+      value_type __iter_val = nullptr;
+    };
+
+    struct ListProxy {
+      Iterator begin() const {
+        return {end()->prev()};
+      }
+      Iterator end() const {
+        return {GetListSentinel()->asMutable()};
+      }
+    };
+
   public:
     [[gnu::const]] static const SelfType* GetListSentinel() __noexcept {
       // We assume the base node never changes.
@@ -150,6 +182,10 @@ namespace bootstrap {
       // initOrder doesn't have the executable as the base, so we always use memOrder.
       const auto mem_node = TWin64ListEntry<Win64ModuleType::memOrder>::GetListSentinel();
       return mem_node->prev()->asLDRDataTableEntry();
+    }
+
+    static ListProxy GetIterable() __noexcept {
+      return ListProxy{};
     }
 
     //==================================================================//
