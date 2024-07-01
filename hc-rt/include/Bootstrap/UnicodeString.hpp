@@ -16,7 +16,7 @@
 //
 //===----------------------------------------------------------------===//
 //
-//  Implementation can be found in Win64KernelDefs.cpp
+//  Implementation of Window's UNICODE_STRING, but type-safe.
 //
 //===----------------------------------------------------------------===//
 
@@ -26,7 +26,12 @@
 #include <Common/Memory.hpp>
 #include <Common/PtrRange.hpp>
 
-namespace hc::bootstrap {
+namespace hc {
+namespace common {
+  template <typename> struct PtrRange;
+} // namespace common
+
+namespace bootstrap {
   struct [[gsl::Pointer]] Win64UnicodeString {
     u16 size = 0, size_max = 0; // In bytes
     wchar_t* buffer = nullptr;
@@ -37,23 +42,9 @@ namespace hc::bootstrap {
     usize getSize() const { return size / sizeof(wchar_t); }
     usize getMaxSize() const { return size_max / sizeof(wchar_t); }
     bool isEqual(const Win64UnicodeString& rhs) const;
-
-    //=== "Mutators" ===//
-
-    const wchar_t& frontSafe() const {
-      static constexpr wchar_t C = wchar_t(0);
-      if __expect_false(getSize() == 0)
-        return C;
-      __hc_invariant(buffer != nullptr);
-      return buffer[0];
-    }
-    const wchar_t& backSafe() const {
-      static constexpr wchar_t C = wchar_t(0);
-      if __expect_false(getSize() == 0)
-        return C;
-      __hc_invariant(buffer != nullptr);
-      return buffer[getSize() - 1];
-    }
+    com::PtrRange<wchar_t> intoRange() const;
+    const wchar_t& frontSafe() const;
+    const wchar_t& backSafe()  const;
   };
 
   template <usize N>
@@ -113,4 +104,5 @@ namespace hc::bootstrap {
   template <typename T, typename...TT>
   StaticUnicodeString(T, TT...) 
     -> StaticUnicodeString<sizeof...(TT) + 2>;
-} // namespace hc::bootstrap
+} // namespace bootstrap
+} // namespace hc
