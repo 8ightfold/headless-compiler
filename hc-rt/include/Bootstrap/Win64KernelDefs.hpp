@@ -122,7 +122,7 @@ namespace bootstrap {
     TWin64ListEntry<TableOffset>* asListEntry() const {
       using TblType = TWin64ListEntry<TableOffset>;
       // Stupid fucking windows bullshit
-      auto* const pnode = reinterpret_cast<const TblType*>(this);
+      auto* const pnode = reinterpret_cast<TblType*>(this->asMutable());
       auto* plist = pnode + TableOffset;
       return $launder(plist);
     }
