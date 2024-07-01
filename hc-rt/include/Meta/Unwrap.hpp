@@ -24,11 +24,20 @@
 
 #include <Common/Tuple.hpp>
 
+/// Allows for rust style unwrapping of values.
+/// @param obj The object to be unwrapped.
+/// @param on_err The value to be used if `!obj`.
 #define $unwrap(obj, on_err...) ({ \
-  if __expect_false(!obj) \
-    return ::hc::__unwrap_fail(obj, ##on_err); \
-  ::hc::_FwdWrapper{*obj}; \
+  auto&& obj__ = (obj); \
+  if __expect_false(!obj__) \
+    return ::hc::__unwrap_fail(obj__, ##on_err); \
+  ::hc::_FwdWrapper{*obj__}; \
 }).get()
+
+/// Unwrapping for void functions.
+#define $unwrap_void(obj) \
+ $unwrap(obj, ::hc::__void{})
+
 
 //======================================================================//
 // Forward Decls
@@ -97,6 +106,9 @@ namespace hc {
   inline constexpr auto __unwrap_fail(auto&&, auto&&...args) __noexcept {
     return _Wrapper{__hc_fwd(args)...};
   }
+
+  [[gnu::always_inline, gnu::nodebug]]
+  inline constexpr void __unwrap_fail(auto&&, __void) __noexcept { }
 
   template <typename T, typename E>
   [[gnu::always_inline, gnu::nodebug]]
