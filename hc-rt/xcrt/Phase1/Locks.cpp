@@ -24,6 +24,7 @@ using namespace hc;
 namespace C = hc::common;
 
 namespace {
+  /// TODO: Convert to critical section?
   using LazyMtx = C::RawLazy<sys::Mtx>;
   constinit C::EnumArray<LazyMtx, xcrt::Locks> __lock_tbl_;
   constinit u64 __locks_initialized_ = 0;
