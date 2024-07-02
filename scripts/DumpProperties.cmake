@@ -1,4 +1,4 @@
-include_guard(DIRECTORY)
+include_guard(GLOBAL)
 
 if(NOT DEFINED ENV{CMAKE_PROPERTY_LIST})
   execute_process(COMMAND cmake --help-property-list OUTPUT_VARIABLE CMAKE_PROPERTY_LIST)
