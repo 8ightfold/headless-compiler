@@ -78,6 +78,8 @@ inline constexpr auto& __refl_fieldarray(enum name) { \
  $EnumFieldArray(name, fields) \
  $MarkName(name)
 
+/// Creates an enum with extra information.
+/// TODO: Add example
 #define $Enum(name_type, fields...) \
 enum __Enum_def(name_type) { __Enum_values(fields) }; \
 $EnumFields(__Enum_name(name_type), fields) \
