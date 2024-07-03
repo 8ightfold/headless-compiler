@@ -43,12 +43,13 @@
 
 #define $to_wstr(S) $to_wstr_sz(S, __builtin_strlen(S))
 
-#define $dynalloc(sz, ty...) ({ \
+#define __dynalloc(sz, ty...) ({ \
  using __ty = ::hc::common::DynAllocation<ty>; \
  auto* __local_alloc = __hc_typed_alloca(sz, __ty); \
  __ty::New(__local_alloc, sz); })
 
-#define $zdynalloc(sz, ty...) ($dynalloc(sz, ##ty).zeroMemory())
+#define $dynalloc(sz, ty...) (__dynalloc(sz, ##ty).__ident())
+#define $zdynalloc(sz, ty...) (__dynalloc(sz, ##ty).__zeroMemory())
 
 #define __hc_typed_alloca(sz, ty) \
  (typename ty::pointer)__builtin_alloca_with_align( \
@@ -73,7 +74,8 @@ namespace hc::common {
     static usize AllocationSize(usize size) __noexcept {
       // Alloca sometimes releases memory when passed a 0.
       // We make sure this can't happen (disaster).
-      const usize out_size = size < 1 ? 1 : size;
+      const usize out_size = 
+        __expect_false(size < 1) ? 1 : size;
       return out_size * __sizeof(T);
     }
 
@@ -125,6 +127,15 @@ namespace hc::common {
     [[nodiscard]] T& operator[](usize I) const __noexcept {
       __hc_invariant(__data != nullptr && I < __size);
       return this->__data[I];
+    }
+
+    // Nodiscard lifters
+
+    [[nodiscard, gnu::always_inline]]
+    DynAllocation& __ident() __noexcept { return *this; }
+
+    [[nodiscard]] DynAllocation& __zeroMemory() __noexcept {
+      $tail_return this->zeroMemory();
     }
 
     //==================================================================//
