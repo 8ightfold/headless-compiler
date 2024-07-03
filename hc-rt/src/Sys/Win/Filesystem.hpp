@@ -46,7 +46,7 @@ inline namespace __nt {
   __nt_attrs win::NtStatus read_file(
    win::FileHandle handle,
    win::IoStatusBlock& io, 
-   common::PtrRange<char> buf, 
+   com::PtrRange<char> buf, 
    win::LargeInt* poffset = nullptr,
    win::ULong* key = nullptr
   ) {
