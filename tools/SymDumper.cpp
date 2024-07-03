@@ -59,6 +59,7 @@
 
 #undef GetModuleHandle
 
+using namespace hc;
 namespace C = hc::common;
 namespace F = hc::binfmt;
 namespace B = hc::bootstrap;
@@ -254,8 +255,48 @@ static void dump_exports(B::COFFModule& M, bool dump_body = false) {
         std::printf("%.*s\n", int(S.size()), S.data());
       }
     }
+  } else if (auto* FH = M.getHeader().file; M.hasSymbols()) {
+    std::printf("|===================================|\n\n");
+    auto syms = M->getRangeFromRVA(FH->sym_tbl_addr)
+      .intoRange<COFF::SymbolRecord>()
+      .takeFront(FH->symbol_count);
+    if (auto* WS = dyn_cast<const wchar_t>(name))
+      std::printf("Exported symbols for `%ls`:\n", WS);
+    if (auto* S  = dyn_cast<const char>(name))
+      std::printf("Exported symbols for `%s`:\n", S);
+    std::printf("Symbol count: %i\n", int(FH->symbol_count));
+
+    usize to_skip = 0;
+    for (const auto& rec : syms) {
+      if (to_skip) {
+        --to_skip;
+        continue;
+      }
+
+      if (rec.name.zeroes == 0) {
+        const u32 off = rec.name.table_offset;
+        if (!off && ! rec.aux_count)
+          continue;
+        std::printf("[%u]", rec.name.table_offset);
+      } else {
+        auto& arr = rec.name.short_name;
+        int sz = 0;
+        if (arr[7] != '\0') sz = 8;
+        else sz = __strlen(arr);
+        std::printf("%.*s", sz, arr);
+      }
+
+      if (auto N = usize(rec.aux_count)) {
+        to_skip = N;
+        std::printf(": %i aux records.", int(N));
+      }
+      std::printf("\n");
+      // TODO: Add zero/aux checks
+    }
   } else {
+    std::printf("\e[1;91m");
     std::printf("Couldn't locate exported names.\n");
+    std::printf("\e[0m");
   }
   
   std::puts("");
@@ -290,18 +331,32 @@ static void list_modules() {
     dump_data(P->asLDRDataTableEntry());
 }
 
-void symdumper_main() {
-  auto self = self_module();
-  // auto self = $Load_Module("ntdll.dll", void);
-  auto name = self->name();
-  std::printf("Executable name: %.*ls\n\n", int(name.getSize()), name.buffer);
-  dumpLDRModule(self, true);
-  list_modules();
-  return;
+void check_module(B::Win64LDRDataTableEntry* mod) {
+  std::printf("\e[1;93m");
+  {
+    auto name = mod->name();
+    std::printf("Dumping \"%.*ls\"\n", int(name.getSize()), name.buffer);
+  }
+  std::printf("|======================================================|\n\n");
+  std::printf("\e[0m");
 
-  auto O = B::ModuleParser::Parse(self);
+  auto O = B::ModuleParser::Parse(mod);
   B::COFFModule& M = $unwrap_void(O);
-  list_modules();
   dump_module(M);
   dump_exports(M);
+}
+
+void check_module(com::StrRef S) {
+  auto mod = $Load_Module(S.data(), void);
+  check_module(mod);
+}
+
+void symdumper_main() {
+  auto self = self_module();
+  auto name = self->name();
+  std::printf("Executable name: %.*ls\n\n", int(name.getSize()), name.buffer);
+  // list_modules();
+
+  check_module(self);
+  // check_module("ntdll.dll");
 }
