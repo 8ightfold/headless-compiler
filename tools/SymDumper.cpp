@@ -48,6 +48,9 @@
 #include <Meta/Unwrap.hpp>
 #include <Parcel/StaticVec.hpp>
 
+#include <Sys/Errors.hpp>
+#include <Sys/Win/Filesystem.hpp>
+
 #if _HC_DEBUG
 # undef NDEBUG
 #endif
@@ -64,6 +67,9 @@ namespace C = hc::common;
 namespace F = hc::binfmt;
 namespace B = hc::bootstrap;
 namespace P = hc::parcel;
+
+namespace S = hc::sys;
+namespace W = hc::sys::win;
 
 void __dump_introspect(
  u32& count, const char* fmt, auto&&...args) {
@@ -157,6 +163,66 @@ static B::Win64LDRDataTableEntry* load_module(
   return Entry->findModule(S, ignore_ext);
 }
 
+static W::FileHandle openfile(
+ W::IoStatusBlock& io, W::UnicodeString S) {
+  assert(S.buffer[1] == L':');
+  auto fname = $zdynalloc(S.getSize() + 4 + 1, wchar_t);
+  com::Mem::Copy(fname.data(), L"\\??\\", 4);
+  com::Mem::Copy(fname.data() + 4, S.buffer, S.getSize());
+
+  auto name = W::UnicodeString::New(fname);
+  W::ObjectAttributes obj_attr { .object_name = &name };
+
+  auto mask       = W::GenericReadAccess;
+  auto file_attr  = W::FileAttribMask::Normal;
+  auto share      = W::FileShareMask::Read;
+  auto createDis  = W::CreateDisposition::Open;
+
+  W::FileHandle handle = S::open_file(
+    mask, obj_attr, io, nullptr, 
+    file_attr, share,
+    createDis
+  );
+  if ($NtFail(io.status)) {
+    std::printf("With file `%ls`:\n", name.buffer);
+    // std::printf("Open failed! [0x%.8X]\n", io.status);
+    std::printf("Open failed! [%s] - %s\n", 
+      S::SysErr::GetErrorNameSafe(io.status),
+      S::SysErr::GetErrorDescriptionSafe(io.status));
+    std::exit(io.status);
+  }
+
+  return handle;
+}
+
+template <typename T>
+static bool readfile(
+ W::FileHandle handle, W::IoStatusBlock& io,
+ PtrRange<T> R, i64 off = 0
+) {
+  auto buf = R.template intoRange<char>();
+  W::LargeInt offset { .quad = off };
+  if (auto S = S::read_file(handle, io, buf, &offset); $NtFail(S)) {
+    std::printf("Read failed! [0x%.8X]\n", S);
+    return false;
+  }
+  return true;
+}
+
+static void closefile(W::FileHandle handle) {
+  if (W::NtStatus S = S::close_file(handle); $NtFail(S)) {
+    std::printf("Closing failed! [0x%.8X]\n", S);
+    std::exit(S);
+  }
+}
+
+static u32 get_stringtbl_off(B::COFFModule& M) {
+  using B::COFF::SymbolRecord;
+  auto* FH = M.getHeader().file;
+  const u32 record_size = FH->symbol_count * sizeof(SymbolRecord);
+  return (FH->sym_tbl_addr + record_size);
+}
+
 void dumpLDRModule(
  B::Win64LDRDataTableEntry* tbl, 
  bool show_format = false
@@ -239,6 +305,29 @@ static void dump_exports(B::COFFModule& M, bool dump_body = false) {
   namespace COFF = B::COFF;
   const auto name = M.getName();
   auto& T = M.getTables();
+
+  W::IoStatusBlock io {};
+  W::FileHandle handle = openfile(io, M->fullName());
+  auto readrange = [&handle, &io] (auto R, i64 off = 0) {
+    if __expect_false(!readfile(handle, io, R, off)) {
+      std::printf("Failed to read file [+%lli]\n", off);
+      closefile(handle);
+      std::exit(1);
+    }
+  };
+
+  auto stbl = DynAllocation<char>::New(nullptr, 0);  
+  $scope {
+    const u32 off = get_stringtbl_off(M);
+    u32 tbl_size = 0;
+    auto block = PtrRange<u32>::New(&tbl_size, 1u);
+    readrange(block, off);
+    if (tbl_size <= 4)
+      break;
+    stbl = $dynalloc(tbl_size, char);
+    readrange(stbl.intoRange(), off);
+  }
+
   if (u32 extbl_RVA = T.data_dirs[COFF::eDirectoryExportTable].RVA) {
     std::printf("|===================================|\n\n");
     auto* EDT = M->getRVA<COFF::ExportDirectoryTable>(extbl_RVA);
@@ -256,17 +345,15 @@ static void dump_exports(B::COFFModule& M, bool dump_body = false) {
       }
     }
   } else if (auto* FH = M.getHeader().file; M.hasSymbols()) {
+    auto syms = $dynalloc(FH->symbol_count, COFF::SymbolRecord);
+    readrange(syms.intoRange(), FH->sym_tbl_addr);
+
     std::printf("|===================================|\n\n");
-    auto syms = M->getRangeFromRVA(FH->sym_tbl_addr)
-      .intoRange<COFF::SymbolRecord>()
-      .takeFront(FH->symbol_count);
     if (auto* WS = dyn_cast<const wchar_t>(name))
       std::printf("Exported symbols for `%ls`:\n", WS);
     if (auto* S  = dyn_cast<const char>(name))
       std::printf("Exported symbols for `%s`:\n", S);
     std::printf("Symbol count: %i\n", int(FH->symbol_count));
-
-    // TODO: Load info from file
 
     usize to_skip = 0;
     for (const auto& rec : syms) {
@@ -277,9 +364,7 @@ static void dump_exports(B::COFFModule& M, bool dump_body = false) {
 
       if (rec.name.zeroes == 0) {
         const u32 off = rec.name.table_offset;
-        if (!off && ! rec.aux_count)
-          continue;
-        std::printf("[%u]", rec.name.table_offset);
+        std::printf("%s", &stbl[off]);
       } else {
         auto& arr = rec.name.short_name;
         int sz = 0;
@@ -289,8 +374,12 @@ static void dump_exports(B::COFFModule& M, bool dump_body = false) {
       }
 
       if (auto N = usize(rec.aux_count)) {
+        std::printf(": ");
+        if __expect_false(N > 1)
+          std::printf("\e[1;35m");
         to_skip = N;
-        std::printf(": %i aux records.", int(N));
+        std::printf("%i aux record[s].", int(N));
+        std::printf("\e[0m");
       }
       std::printf("\n");
       // TODO: Add zero/aux checks
@@ -303,6 +392,7 @@ static void dump_exports(B::COFFModule& M, bool dump_body = false) {
   
   std::puts("");
   std::fflush(stdout);
+  closefile(handle);
 }
 
 static void dump_exports(B::DualString name, bool dump_body = false) {
@@ -336,8 +426,13 @@ static void list_modules() {
 void check_module(B::Win64LDRDataTableEntry* mod) {
   std::printf("\e[1;93m");
   {
-    auto name = mod->name();
-    std::printf("Dumping \"%.*ls\"\n", int(name.getSize()), name.buffer);
+    auto name      = mod->name();
+    std::printf("Dumping  `%.*ls`\n", 
+      int(name.getSize()), name.buffer);
+    
+    auto full_name = mod->fullName();
+    std::printf("Filename \"%.*ls\"\n", 
+      int(full_name.getSize()), full_name.buffer);
   }
   std::printf("|======================================================|\n\n");
   std::printf("\e[0m");
