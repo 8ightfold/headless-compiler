@@ -397,6 +397,11 @@ namespace COFF {
   // Misc.
   //====================================================================//
 
+  struct StringTableHeader {
+    u32  size_in_bytes;
+    char strings[];
+  };
+
   // Export Directory
 
   struct ExportDirectoryTable {
@@ -424,6 +429,7 @@ namespace COFF {
   static_assert(sizeof(SymbolName) == 8);
   static_assert(sizeof(SymbolType) == 2);
   static_assert(sizeof(SymbolRecord) == 18);
+  static_assert(sizeof(StringTableHeader) == 4);
   static_assert(sizeof(ExportDirectoryTable) == 40);
 
 } // namespace COFF
