@@ -266,6 +266,8 @@ static void dump_exports(B::COFFModule& M, bool dump_body = false) {
       std::printf("Exported symbols for `%s`:\n", S);
     std::printf("Symbol count: %i\n", int(FH->symbol_count));
 
+    // TODO: Load info from file
+
     usize to_skip = 0;
     for (const auto& rec : syms) {
       if (to_skip) {
