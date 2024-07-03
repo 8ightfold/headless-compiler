@@ -41,6 +41,7 @@ namespace hc::binfmt {
     struct OptPE64Header;
     struct DataDirectoryHeader; 
     struct SectionHeader;
+    struct SymbolRecord;
 
     template <usize> 
     struct OptPEWindowsHeader;
@@ -49,10 +50,14 @@ namespace hc::binfmt {
     struct ExportDirectoryTable;
     struct ImportDirectoryTable;
 
-    using OptPEHeader = $PUnion(OptPE64Header, OptPE32Header);
-    using PEWindowsHeader = $PUnion(OptPEWindowsHeader<8>, OptPEWindowsHeader<4>);
-    using DataDirectoryTable = $PRange(DataDirectoryHeader);
-    using SectionTable = $PRange(SectionHeader);
+    template <usize I> 
+    using WinHeader           = OptPEWindowsHeader<I>;
+
+    using OptPEHeader         = $PUnion(OptPE64Header, OptPE32Header);
+    using PEWindowsHeader     = $PUnion(WinHeader<8>, WinHeader<4>);
+    using DataDirectoryTable  = $PRange(DataDirectoryHeader);
+    using SectionTable        = $PRange(SectionHeader);
+    using SymbolTable         = $PRange(SymbolRecord);
   } // namespace COFF
 } // namespace hc::binfmt
 
@@ -73,6 +78,7 @@ namespace hc::bootstrap {
   struct COFFTables {
     COFF::DataDirectoryTable data_dirs;
     COFF::SectionTable sections;
+    COFF::SymbolTable  symbols;
   };
 
   template <typename TableType>
@@ -119,6 +125,8 @@ namespace hc::bootstrap {
     common::AddrRange getImageRange() const;
     DualString getName() const;
     ModuleHandle operator->() const;
+    // Observers
+    bool hasSymbols() const;
   private:
     COFFHeader   __header;
     COFFTables   __tables;

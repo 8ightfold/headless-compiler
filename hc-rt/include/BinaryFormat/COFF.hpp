@@ -299,17 +299,103 @@ namespace COFF {
   using SectionTable = $PRange(SectionHeader);
 
   //====================================================================//
-  // Misc.
+  // Symbol Table
   //====================================================================//
 
-  struct [[gnu::packed]] Symbol {
-    char name[eCOFFNameSize];
-    u32  value;
-    u16  section_number;
-    u16  type;
-    u8   storage_class;
-    u8   auxiliary_count;
+  /// Least significant byte
+  $Enum((SymbolBaseType, u8),
+    (eSymTypeNull,        0),
+    (eSymTypeVoid,        1),
+    (eSymTypeChar,        2),
+    (eSymTypeShort,       3),
+    (eSymTypeInt,         4),
+    (eSymTypeLong,        5),
+    (eSymTypeFloat,       6),
+    (eSymTypeDouble,      7),
+    (eSymTypeStruct,      8),
+    (eSymTypeUnion,       9),
+    (eSymTypeEnum,        10),
+    (eSymTypeEnumMember,  11),
+    (eSymTypeByte,        12),
+    (eSymTypeWord,        13),
+    (eSymTypeUInt,        14),
+    (eSymTypeDWord,       15)
+  );
+
+  /// Most significant byte
+  $Enum((SymbolComplexType, u8),
+    (eSymDTypeNull,       0),
+    (eSymDTypePointer,    1),
+    (eSymDTypeFunction,   2),
+    (eSymDTypeArray,      3)
+  );
+
+  $Enum((SymbolClass, u8),
+    // Storage Specifiers
+    (eSymClassNull,             0),
+    (eSymClassAuto,             1),
+    (eSymClassExtern,           2),
+    (eSymClassExternDef,        5),
+    (eSymClassWeakExtern,       105),
+    (eSymClassStatic,           3),
+    (eSymClassUndefinedStatic,  14),
+    (eSymClassRegister,         4),
+    (eSymClassRegisterParam,    17),
+    (eSymClassLabel,            6),
+    (eSymClassUndefinedLabel,   7),
+    // Types
+    (eSymClassTypedef,          13),
+    (eSymClassStructMember,     8),
+    (eSymClassStructTag,        10),
+    (eSymClassUnionMember,      11),
+    (eSymClassUnionTag,         12),
+    (eSymClassEnumMember,       16),
+    (eSymClassEnumTag,          15),
+    (eSymClassBitfield,         18),
+    // Records
+    (eSymClassFunction,         101),
+    (eSymClassArgument,         9),
+    (eSymClassEndOfFunction,    0xFF),
+    (eSymClassEndOfStruct,      102),
+    (eSymClassBlock,            100),
+    (eSymClassFile,             103),
+    (eSymClassSection,          104)
+  );
+
+  $MarkPrefix(SymbolBaseType,    "eSymType")
+  $MarkPrefix(SymbolComplexType, "eSymDType")
+  $MarkPrefix(SymbolClass,       "eSymClass")
+
+  union SymbolName {
+    char short_name[eCOFFNameSize];
+    struct [[gnu::packed]] {
+      u32 zeroes;
+      u32 table_offset;
+    };
   };
+
+  union SymbolType {
+    u16 value;
+    struct [[gnu::packed]] {
+      SymbolBaseType    LSB;
+      SymbolComplexType MSB;
+    };
+  };
+
+  struct [[gnu::packed]] SymbolRecord {
+    SymbolName  name;
+    u32         value; // Depends on `section_number` and `storage_class`.
+    i16         section_number; // Beware [-2, 0]
+    SymbolType  type;
+    SymbolClass storage_class;
+    u8          aux_count;
+  };
+
+  using SymbolTable = $PRange(SymbolRecord);
+
+  //====================================================================//
+  // Misc.
+  //====================================================================//
 
   // Export Directory
 
@@ -335,7 +421,9 @@ namespace COFF {
 
   static_assert(sizeof(FileHeader) == 20 + 4); // Size + Magic
   static_assert(sizeof(SectionHeader) == 40);
-  static_assert(sizeof(Symbol) == 18);
+  static_assert(sizeof(SymbolName) == 8);
+  static_assert(sizeof(SymbolType) == 2);
+  static_assert(sizeof(SymbolRecord) == 18);
   static_assert(sizeof(ExportDirectoryTable) == 40);
 
 } // namespace COFF
