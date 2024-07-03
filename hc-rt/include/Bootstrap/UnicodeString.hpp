@@ -36,9 +36,9 @@ namespace bootstrap {
     u16 __size = 0, __size_max = 0; // In bytes
     wchar_t* buffer = nullptr;
   public:
-    static Win64UnicodeString New(wchar_t* str);
-    static Win64UnicodeString New(wchar_t* str, usize max);
-    static Win64UnicodeString New(common::PtrRange<wchar_t> R);
+    [[nodiscard]] static Win64UnicodeString New(wchar_t* str);
+    [[nodiscard]] static Win64UnicodeString New(wchar_t* str, usize max);
+    [[nodiscard]] static Win64UnicodeString New(com::PtrRange<wchar_t> R);
     usize getSize() const { return __size / sizeof(wchar_t); }
     usize getMaxSize() const { return __size_max / sizeof(wchar_t); }
     bool isEqual(const Win64UnicodeString& rhs) const;
