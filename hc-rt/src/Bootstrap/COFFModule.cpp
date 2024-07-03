@@ -83,7 +83,7 @@ namespace {
 
 // Resolvers
 
-void* B::COFFModule::resolveExportRaw(StrRef S) const {
+void* COFFModule::resolveExportRaw(StrRef S) const {
   static constexpr auto I = u32(COFF::eDirectoryExportTable);
   if (S.isEmpty())
     return nullptr;
@@ -95,25 +95,34 @@ void* B::COFFModule::resolveExportRaw(StrRef S) const {
   return B(S);
 }
 
-void* B::COFFModule::resolveImportRaw(StrRef S) const {
+void* COFFModule::resolveImportRaw(StrRef S) const {
   __hc_unreachable("resolveImportRaw is unimplemented.");
   return nullptr;
 }
 
 // Getters
 
-AddrRange B::COFFModule::getImageRange() const {
+AddrRange COFFModule::getImageRange() const {
   return self()->getImageRange();
 }
 
-DualString B::COFFModule::getName() const {
+DualString COFFModule::getName() const {
   if __expect_false(!__image)
     return DualString::New();
   const auto name = self()->base_dll_name.buffer;
   return DualString::New(name);
 }
 
-ModuleHandle B::COFFModule::operator->() const {
+ModuleHandle COFFModule::operator->() const {
   __hc_invariant(__image != nullptr);
   return this->__image;
+}
+
+// Observers
+
+bool COFFModule::hasSymbols() const {
+  auto& FH = $unwrap(__header.file, false);
+  if (FH.sym_tbl_addr == 0)
+    return false;
+  return (FH.symbol_count > 0);
 }
