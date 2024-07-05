@@ -154,6 +154,10 @@ namespace hc::parcel {
       return __cap * __sizeof(T);
     }
 
+    constexpr CapType __remainingCapacity() const __noexcept {
+      return (__cap - __size);
+    }
+
     constexpr T* begin() { return data(); }
     constexpr T* end() { return begin() + size(); }
     constexpr const T* begin() const { return data(); }
@@ -418,6 +422,7 @@ namespace hc::parcel {
   public:
     using BaseType::begin;
     using BaseType::end;
+    using BaseType::growUninit;
 
     constexpr bool resizeUninit(usize n) {
       if __expect_true(n < this->capacity()) {
@@ -430,7 +435,7 @@ namespace hc::parcel {
     constexpr void emplace(auto&&...args) {
       if __expect_false(this->isFull())
         return;
-      T* P = this->growUninit();
+      T* P = BaseType::growUninit();
       com::construct_at(P, __hc_fwd(args)...);
     }
 
