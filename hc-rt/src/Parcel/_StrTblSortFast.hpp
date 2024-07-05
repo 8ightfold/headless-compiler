@@ -26,8 +26,8 @@
 namespace hc::parcel {
 namespace {
 struct ISTableSorter {
-  using Arr  = com::PtrRange<_STIdxType>;
-  using Iter = _STIdxType*;
+  using Arr  = com::PtrRange<StrTblIdx>;
+  using Iter = StrTblIdx*;
   enum { __maxDepthFactor = 2 };
 public:
   ISTableSorter(
@@ -36,7 +36,7 @@ public:
    buf(buf->into<com::StrRef>()),
    max_depth(com::bit_log2(tbl->size()) * __maxDepthFactor) {}
 public:
-  bool do_sort(com::PtrRange<_STIdxType> A) {
+  bool do_sort(com::PtrRange<StrTblIdx> A) {
     this->introsort(A.begin(), A.end(), max_depth);
     return this->mutated;
   }
@@ -97,13 +97,13 @@ protected:
 
 private:
   static void __swap(Iter lhs, Iter rhs) {
-    const _STIdxType tmp = *rhs;
+    const StrTblIdx tmp = *rhs;
     *rhs = *lhs;
     *lhs = tmp;
   }
 
   /// Does ``*lhs < *rhs``.
-  bool __comp(_STIdxType lhs, _STIdxType rhs) {
+  bool __comp(StrTblIdx lhs, StrTblIdx rhs) {
     const usize len = lhs.length;
     if (len < rhs.length)
       return true;
@@ -130,7 +130,7 @@ private:
 
   void __comp_swap(Iter X, Iter Y) {
     const bool R = ISTableSorter::__comp(*X, *Y);
-    const _STIdxType tmp = R ? *X : *Y;
+    const StrTblIdx tmp = R ? *X : *Y;
     *Y = R ? *Y : *X;
     *X = tmp;
     this->mutated |= R;
@@ -138,7 +138,7 @@ private:
 
   void __psort_swap(Iter X, Iter Y, Iter Z) {
     bool R         = ISTableSorter::__comp(*Z, *X);
-    const _STIdxType tmp = R ? *Z : *X;
+    const StrTblIdx tmp = R ? *Z : *X;
     *Z             = R ? *X : *Z;
     this->mutated |= R;
     R              = ISTableSorter::__comp(tmp, *Y);

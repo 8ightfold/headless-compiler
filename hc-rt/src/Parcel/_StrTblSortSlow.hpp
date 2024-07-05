@@ -24,15 +24,15 @@
 namespace hc::parcel {
 namespace {
 struct ISTableSorter {
-  using Arr  = com::PtrRange<_STIdxType>;
-  using Iter = _STIdxType*;
+  using Arr  = com::PtrRange<StrTblIdx>;
+  using Iter = StrTblIdx*;
 public:
   ISTableSorter(
     IStringTable::BufferType* buf,
     IStringTable::TableType*) :
    buf(buf->into<com::StrRef>()) {}
 public:
-  bool do_sort(com::PtrRange<_STIdxType> A) {
+  bool do_sort(com::PtrRange<StrTblIdx> A) {
     this->insertion_sort(A.begin(), A.end());
     return this->mutated;
   }
@@ -42,13 +42,13 @@ protected:
 
 private:
   static void __swap(Iter lhs, Iter rhs) {
-    const _STIdxType tmp = *rhs;
+    const StrTblIdx tmp = *rhs;
     *rhs = *lhs;
     *lhs = tmp;
   }
 
   /// Does ``*lhs < *rhs``.
-  bool __comp(_STIdxType lhs, _STIdxType rhs) {
+  bool __comp(StrTblIdx lhs, StrTblIdx rhs) {
     const usize len = lhs.length;
     if (len < rhs.length)
       return true;
@@ -60,12 +60,7 @@ private:
     const char* plhs = data + lhs.offset;
     const char* prhs = data + rhs.offset;
 
-    for (usize Ix = 0; Ix < len; ++Ix) {
-      if (plhs[Ix] != prhs[Ix])
-        return (plhs[Ix] < prhs[Ix]);
-    }
-
-    return false;
+    return com::__strncmp(plhs, prhs, len) < 0;
   }
 
   /// Does ``*lhs < *rhs``.
