@@ -63,13 +63,10 @@
 #undef GetModuleHandle
 
 using namespace hc;
-namespace C = hc::common;
 namespace F = hc::binfmt;
 namespace B = hc::bootstrap;
 namespace P = hc::parcel;
-
 namespace S = hc::sys;
-namespace W = hc::sys::win;
 
 void __dump_introspect(
  u32& count, const char* fmt, auto&&...args) {
@@ -133,7 +130,7 @@ void dump_data(const auto& v) {
 }
 
 template <typename...TT>
-void dump_data(C::PtrUnion<TT...> data) {
+void dump_data(com::PtrUnion<TT...> data) {
   data.visit([] <typename P> (P* p) {
     if constexpr (__is_class(P)) {
       dump_data(p);
@@ -163,22 +160,22 @@ static B::Win64LDRDataTableEntry* load_module(
   return Entry->findModule(S, ignore_ext);
 }
 
-static W::FileHandle openfile(
- W::IoStatusBlock& io, W::UnicodeString S) {
+static S::win::FileHandle openfile(
+ S::win::IoStatusBlock& io, S::win::UnicodeString S) {
   assert(S.buffer[1] == L':');
   auto fname = $zdynalloc(S.getSize() + 4 + 1, wchar_t);
   com::Mem::Copy(fname.data(), L"\\??\\", 4);
   com::Mem::Copy(fname.data() + 4, S.buffer, S.getSize());
 
-  auto name = W::UnicodeString::New(fname);
-  W::ObjectAttributes obj_attr { .object_name = &name };
+  auto name = S::win::UnicodeString::New(fname);
+  S::win::ObjectAttributes obj_attr { .object_name = &name };
 
-  auto mask       = W::GenericReadAccess;
-  auto file_attr  = W::FileAttribMask::Normal;
-  auto share      = W::FileShareMask::Read;
-  auto createDis  = W::CreateDisposition::Open;
+  auto mask       = S::win::GenericReadAccess;
+  auto file_attr  = S::win::FileAttribMask::Normal;
+  auto share      = S::win::FileShareMask::Read;
+  auto createDis  = S::win::CreateDisposition::Open;
 
-  W::FileHandle handle = S::open_file(
+  S::win::FileHandle handle = S::open_file(
     mask, obj_attr, io, nullptr, 
     file_attr, share,
     createDis
@@ -197,11 +194,11 @@ static W::FileHandle openfile(
 
 template <typename T>
 static bool readfile(
- W::FileHandle handle, W::IoStatusBlock& io,
+ S::win::FileHandle handle, S::win::IoStatusBlock& io,
  PtrRange<T> R, i64 off = 0
 ) {
   auto buf = R.template intoRange<char>();
-  W::LargeInt offset { .quad = off };
+  S::win::LargeInt offset { .quad = off };
   if (auto S = S::read_file(handle, io, buf, &offset); $NtFail(S)) {
     std::printf("Read failed! [0x%.8X]\n", S);
     return false;
@@ -209,8 +206,8 @@ static bool readfile(
   return true;
 }
 
-static void closefile(W::FileHandle handle) {
-  if (W::NtStatus S = S::close_file(handle); $NtFail(S)) {
+static void closefile(S::win::FileHandle handle) {
+  if (S::win::NtStatus S = S::close_file(handle); $NtFail(S)) {
     std::printf("Closing failed! [0x%.8X]\n", S);
     std::exit(S);
   }
@@ -275,7 +272,7 @@ static void dump_module(B::COFFModule& M) {
       .takeFront(EDT->name_pointer_table_count);
     std::printf("Exported names:\n");
     for (auto off : NPT) {
-      auto S = C::StrRef::NewRaw(M->getRVA<char>(off));
+      auto S = com::StrRef::NewRaw(M->getRVA<char>(off));
       std::printf("%.*s\n", int(S.size()), S.data());
     }
     std::puts("");
@@ -306,8 +303,8 @@ static void dump_exports(B::COFFModule& M, bool dump_body = false) {
   const auto name = M.getName();
   auto& T = M.getTables();
 
-  W::IoStatusBlock io {};
-  W::FileHandle handle = openfile(io, M->fullName());
+  S::win::IoStatusBlock io {};
+  S::win::FileHandle handle = openfile(io, M->fullName());
   auto readrange = [&handle, &io] (auto R, i64 off = 0) {
     if __expect_false(!readfile(handle, io, R, off)) {
       std::printf("Failed to read file [+%lli]\n", off);
@@ -339,7 +336,7 @@ static void dump_exports(B::COFFModule& M, bool dump_body = false) {
     if (auto* S  = dyn_cast<const char>(name))
       std::printf("Exported names for `%s`:\n", S);
     for (auto off : NPT) {
-      auto S = C::StrRef::NewRaw(M->getRVA<char>(off));
+      auto S = com::StrRef::NewRaw(M->getRVA<char>(off));
       if (S.beginsWith("Nt")) {
         std::printf("%.*s\n", int(S.size()), S.data());
       }
@@ -356,11 +353,19 @@ static void dump_exports(B::COFFModule& M, bool dump_body = false) {
     std::printf("Symbol count: %i\n", int(FH->symbol_count));
 
     usize to_skip = 0;
+    i16 section_num = 0;
+    COFF::SymbolRecord curr_rec {};
     for (const auto& rec : syms) {
       if (to_skip) {
         --to_skip;
         continue;
       }
+
+      if ((to_skip = rec.aux_count))
+        curr_rec = rec;
+
+      if (!rec.type.value)
+        continue;
 
       if (rec.name.zeroes == 0) {
         const u32 off = rec.name.table_offset;
@@ -373,16 +378,26 @@ static void dump_exports(B::COFFModule& M, bool dump_body = false) {
         std::printf("%.*s", sz, arr);
       }
 
-      if (auto N = usize(rec.aux_count)) {
+      if (auto N = to_skip) {
         std::printf(": ");
         if __expect_false(N > 1)
           std::printf("\e[1;35m");
-        to_skip = N;
         std::printf("%i aux record[s].", int(N));
         std::printf("\e[0m");
       }
       std::printf("\n");
-      // TODO: Add zero/aux checks
+      
+      std::printf(" Section: %i\n", rec.section_number);
+      auto sto = $reflexpr(COFF::SymbolClass)
+        .Fields().Name(rec.storage_class);
+      std::printf(" Class: %s\n", sto);
+
+      auto base = $reflexpr(COFF::SymbolBaseType)
+        .Fields().Name(rec.type.LSB);
+      auto cplx = $reflexpr(COFF::SymbolComplexType)
+        .Fields().Name(rec.type.MSB);
+      std::printf(" Type: [%s, %s]\n", cplx, base);
+      std::printf(" Type: [%hu, %hu]\n", rec.type.MSB, rec.type.LSB);
     }
   } else {
     std::printf("\e[1;91m");
