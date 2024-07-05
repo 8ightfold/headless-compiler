@@ -29,7 +29,7 @@
 
 namespace hc::parcel {
   /// Stores strings as `[Offset, Length]`.
-  struct [[gnu::packed]] _STIdxType {
+  struct [[gnu::packed]] StrTblIdx {
     u16 offset = 0;
     u16 length = 0;
   };
@@ -41,13 +41,25 @@ namespace hc::parcel {
   struct [[gsl::Pointer]] IStringTable {
     using SelfType   = IStringTable;
     using BufferType = IStaticVec<char>;
-    using TableType  = IStaticVec<_STIdxType>;
+    using TableType  = IStaticVec<StrTblIdx>;
 
     struct DataFlags {
-      bool null_term  : 1; /// Strings should be null-terminated.
-      bool dirty      : 1; /// Strings are out of order.
-      bool ksorted    : 1; /// Strings are to be kept sorted.
+      bool null_term  : 1; // Strings should be null-terminated.
+      bool dirty      : 1; // Strings are out of order.
+      bool ksorted    : 1; // Strings are to be kept sorted.
+      bool is_sorted  : 1; // `true` when still known to be sorted.
+      bool has_empty  : 1; // If the table "contains" the empty string.
     };
+
+    enum class Status {
+      atCapacity    = -1, // The capacity of an array would be exceeded.
+      success       = 0,  // Insertion success.
+      alreadyExists = 1,  // Only used when (ksorted == true) or if empty.
+    };
+
+    /// @brief The case for invalid insertion.
+    static constexpr auto invalidString 
+      = com::StrRef::New(nullptr, usize(0));
 
   public:
     constexpr IStringTable(
@@ -55,6 +67,13 @@ namespace hc::parcel {
      buf(&buf), tbl(&tbl) {}
   
   public:
+    /// @brief Attempts to add a new string to the table. Normally this
+    /// will always append the string, even if it already exists.
+    /// But when `flags::ksorted` is true, it will do a binary search to
+    /// see if the element already exists. If not, it will be appended.
+    /// @return A pair with a span over the inserted string or the
+    /// existing string, and a `Status`.
+    com::Pair<com::StrRef, Status> insert(com::StrRef S);
 
     //==================================================================//
     // Settings
@@ -122,6 +141,55 @@ namespace hc::parcel {
     /// @return `true` if strings aren't out of order.
     bool isClean() const { return !flags.dirty; }
 
+    /// @tparam Permissive Considers a table with under two elements sorted.
+    /// @return `true` if strings are in order and sorted.
+    template <bool Permissive = false>
+    bool isSorted() const {
+      if constexpr (Permissive)
+        return flags.is_sorted && (tbl->size() < 2);
+      else
+        return flags.is_sorted;
+    }
+
+  protected:
+    /// Returns a `StrRef` from an index.
+    com::StrRef resolveDirect(StrTblIdx I) const;
+    /// Returns a `StrRef` from an index table index.
+    com::StrRef resolveAt(usize Ix) const;
+
+    /// Returns the associated string in the table for `S`, if found.
+    /// If permissive `isSorted` is `false`, or the string is not found,
+    /// `invalidString` will be returned.
+    com::StrRef locateString(com::StrRef S) const;
+
+    /// Returns an empty string for the current null termination strategy.
+    inline com::StrRef getEmptyString() const {
+      static constexpr auto on  = com::StrRef::New("", 1);
+      static constexpr auto off = com::StrRef::New("", usize(0));
+      return (flags.null_term) ? on : off;
+    }
+
+    /// Checks if the table has storage for the requested string.
+    /// Assumes `.dropNull()` has been called.
+    /// @return If the input string can be inserted.
+    bool doesHaveStorageFor(com::StrRef S) const;
+  
+  private:
+    /// Adds a string to the back of the table.
+    /// Assumes `.dropNull()` has been called.
+    com::StrRef appendDirect(com::StrRef S);
+
+    /// Adds a string to the back of the table.
+    /// Assumes `.dropNull()` has been called.
+    StrTblIdx appendDirectIter(com::StrRef S);
+
+    /// Inserts a string into a sorted array without adding index.
+    /// Assumes `.dropNull()` has been called.
+    com::Pair<com::StrRef, Status> binaryInsert(com::StrRef S);
+
+    /// Internal binary search algo. Same rules as `locateString`.
+    com::StrRef binarySearch(com::StrRef S) const;
+
   protected:
     BufferType* buf  = nullptr;
     TableType*  tbl  = nullptr;
@@ -152,7 +220,7 @@ namespace hc::parcel {
 
   private:
     StaticVec<char, BufferSize>      __buf;
-    StaticVec<_STIdxType, TableSize> __tbl;
+    StaticVec<StrTblIdx, TableSize> __tbl;
   };
 
 } // namespace hc::parcel
