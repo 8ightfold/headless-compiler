@@ -130,9 +130,24 @@
 #define __hidden __visibility(hidden)
 #define __abi_hidden __hidden __exclude_from_explicit_instantiation
 
-#define __expect_false(expr...) (__builtin_expect(bool(expr), 0))
-#define __expect_true(expr...)  (__builtin_expect(bool(expr), 1))
-#define __unpredictable(expr...)  (__builtin_unpredictable(bool(expr)))
+#if __has_builtin(__builtin_expect_with_probability)
+# define __expect_false(expr...) (__builtin_expect_with_probability(bool(expr), 0, 1.0))
+# define __expect_true(expr...)  (__builtin_expect_with_probability(bool(expr), 1, 1.0))
+# define __likely_false(expr...) (__builtin_expect_with_probability(bool(expr), 0, 0.7))
+# define __likely_true(expr...)  (__builtin_expect_with_probability(bool(expr), 1, 0.7))
+#else
+# define __expect_false(expr...) (__builtin_expect(bool(expr), 0))
+# define __expect_true(expr...)  (__builtin_expect(bool(expr), 1))
+# define __likely_false(expr...) (bool(expr))
+# define __likely_true(expr...)  (bool(expr))
+#endif
+
+#if __has_builtin(__builtin_unpredictable)
+# define __unpredictable(expr...)  (__builtin_unpredictable(bool(expr)))
+#else
+# define __unpredictable(expr...)  (bool(expr))
+#endif
+
 #define __nounroll _Pragma("nounroll")
 #define __global inline constexpr
 
