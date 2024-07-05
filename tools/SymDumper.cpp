@@ -366,6 +366,7 @@ static void dump_exports(B::COFFModule& M, bool dump_body = false) {
 
       if (!rec.type.value)
         continue;
+      // TODO: Research (::type.LSB == 32)
 
       if (rec.name.zeroes == 0) {
         const u32 off = rec.name.table_offset;
