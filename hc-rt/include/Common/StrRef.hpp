@@ -176,6 +176,8 @@ namespace hc::common {
     bool isEqual(StrRef S) const {
       if (size() != S.size())
         return false;
+      if (data() == S.data())
+        return true;
       return __memcmp(data(), S.data(), size()) == 0;
     }
 
@@ -287,6 +289,10 @@ namespace hc::common {
         return *this;
       const auto len = __strlen(data());
       return takeFront(len);
+    }
+
+    StrRef& dropNullMut() {
+      return (*this = dropNull());
     }
 
     // TODO: Replace with something more advanced...
