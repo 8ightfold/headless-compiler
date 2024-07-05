@@ -114,11 +114,7 @@ void dumpPathData(C::StrRef path,
   std::puts("");
 }
 
-void symdumper_main();
-
 int main(int N, char* A[], char* Env[]) {
-  symdumper_main();
-  return 0;
   {
     // P::ALStaticVec<X, 16> Vec;
     // Vec.emplace();
