@@ -131,7 +131,7 @@ add_library(hcrt-xcrt STATIC
   ${HC_XSYS}/Phase1/Initialization.cpp
   ${HC_XSYS}/Phase1/Locks.cpp
   ${HC_XSYS}/Phase1/StdIO.cpp
-  ${HC_XSYS}/Phase1/Emutls.cpp
+  # ${HC_XSYS}/Phase1/Emutls.cpp
   ${HC_XSYS}/Shutdown/Atexit.cpp
 )
 add_library(hcrt::xcrt ALIAS hcrt-xcrt)
