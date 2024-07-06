@@ -24,6 +24,7 @@
 #include <Parcel/StringTable.hpp>
 #include <Common/FastMath.hpp>
 #include <Common/InlineMemcpy.hpp>
+#include <Common/Limits.hpp>
 #include <Common/Strings.hpp>
 #include <Meta/Unwrap.hpp>
 
@@ -49,7 +50,7 @@ IStringTable::Iterator& IStringTable::Iterator::operator++() {
 IStringTable::Iterator::value_type
  IStringTable::Iterator::resolve() const {
   if __likely_false(!__iter_val)
-    return __base->getEmptyString();
+    return IStringTable::GetEmptyString();
   return __base->resolveDirect(*__iter_val);
 }
 
@@ -57,13 +58,22 @@ IStringTable::Iterator::value_type
 // IStringTable
 //======================================================================//
 
+static constexpr u16 emptyOffset = Max<u16>;
+
+StrTblIdx IStringTable::GetEmptyIdx() {
+  return {emptyOffset, 0U};
+}
+
+bool IStringTable::IsEmptyIdx(const StrTblIdx I) {
+  const auto [off, len] = I;
+  return (off == emptyOffset) && (len == 0);
+}
+
 com::Pair<com::StrRef, Status> IStringTable::insert(com::StrRef S) {
   S.dropNullMut();
-  // Empty strings always return.
-  if (S.isEmpty()) {
-    this->flags.has_empty = true;
-    return {this->getEmptyString(), Status::alreadyExists};
-  }
+  // Empty strings usually return.
+  if (S.isEmpty())
+    return this->emptyInsert();
 
   // Handle cases where there is no capacity.
   if __likely_false(!this->doesHaveStorageFor(S)) {
@@ -90,22 +100,77 @@ com::Pair<com::StrRef, Status> IStringTable::insert(com::StrRef S) {
 }
 
 bool IStringTable::pop() {
-  if (!this->isPoppable())
+  if (this->isDestructivePop()) {
+    const auto [off, len] = tbl->back();
+    if __likely_false(IsEmptyIdx({off, len})) {
+      /// Sorted, so all the elements are empty.
+      tbl->popBack();
+      return true;
+    }
+    const auto slen = usize(off + len) + flags.null_term;
+    /// Checks if last element was the last appended.
+    if (slen == tbl->size()) {
+      tbl->popBack();
+      return true;
+    }
+    if (!flags.destructive)
+      return false;
+    tbl->popBack();
+    flags.dirty = true;
+    return true;
+  } else if __expect_false(!this->isPoppable()) {
     return false;
+  }
+  // Normal conditions
   auto last = $unwrap(tbl->popBack());
+  if (this->IsEmptyIdx(last))
+    return true;
   const usize len = last.length + flags.null_term;
   return buf->resizeUninit(buf->size() - len);
 }
 
-void IStringTable::setKSortPolicy(bool V) {
+//======================================================================//
+// Settings
+//======================================================================//
+
+bool IStringTable::setNullTerminationPolicy(bool V) {
+  if __expect_false(this->isBufferInUse()) {
+    // TODO: Output a warning.
+    return flags.null_term;
+  }
+  this->flags.null_term = V;
+  return V;
+}
+
+bool IStringTable::setImplicitEmptyValuePolicy(bool V) {
+  // TODO: Finish implementing. Not in the mood to
+  // refactor all this again...
+  return flags.imp_empty;
+  if __expect_false(this->isBufferInUse()) {
+    // TODO: Output a warning.
+    return flags.imp_empty;
+  }
+  this->flags.imp_empty = V;
+  return V;
+}
+
+bool IStringTable::setDestructivePopPolicy(bool V) {
+  if __expect_false(this->isDirty())
+    return flags.destructive;
+  this->flags.destructive = V;
+  return V;
+}
+
+bool IStringTable::setKSortPolicy(bool V) {
   const bool curr_policy = flags.ksorted;
   if (curr_policy == V)
-    return;
+    return curr_policy;
   if (curr_policy == false) {
     if (!this->isSorted<true>())
       this->shortlexSort(V);
   }
   this->flags.ksorted = V;
+  return V;
 }
 
 //======================================================================//
@@ -118,7 +183,8 @@ void IStringTable::shortlexSort(bool keep_sorted) {
   // enable the dirty bit no matter what... not sure though.
   this->flags.ksorted = keep_sorted;
   ISTableSorter S(this->buf, this->tbl);
-  this->flags.dirty = S.do_sort(tbl->intoRange());
+  // this->flags.dirty = S.do_sort(tbl->intoRange());
+  S.do_sort(tbl->intoRange());
   this->flags.is_sorted = true;
 }
 
@@ -131,7 +197,7 @@ void IStringTable::unsort() {
 
 #if _HC_FAST_STRING_TABLE
   __hc_todo("unsort");
-#else
+#endif
   const usize len = this->size();
   StrTblIdx* A = tbl->data();
   for (usize Ix = 0; Ix < len; ++Ix) {
@@ -142,25 +208,26 @@ void IStringTable::unsort() {
     }
     A[J] = tmp;
   }
-#endif
-  /// Mark as clean.
-  this->flags.dirty = false;
+  // Mark as clean.
+  // this->flags.dirty = false;
 }
 
 //======================================================================//
 // Internals
 //======================================================================//
 
-com::StrRef IStringTable::resolveDirect(StrTblIdx I) const {
-  __hc_invariant(I.offset + I.length <= buf->size());
-  auto* const P = buf->data() + usize(I.offset);
-  return com::StrRef::New(P, I.length);
-}
-
 com::StrRef IStringTable::resolveAt(usize Ix) const {
   __hc_invariant(Ix < tbl->size());
   const StrTblIdx I = (*tbl)[Ix];
   return this->resolveDirect(I);
+}
+
+com::StrRef IStringTable::resolveDirect(StrTblIdx I) const {
+  if (this->isInlineEmpty(I))
+    return IStringTable::GetEmptyString();
+  __hc_invariant(I.offset + I.length <= buf->size());
+  auto* const P = buf->data() + usize(I.offset);
+  return com::StrRef::New(P, I.length);
 }
 
 com::StrRef IStringTable::locateString(com::StrRef S) const {
@@ -169,7 +236,7 @@ com::StrRef IStringTable::locateString(com::StrRef S) const {
   // Handle empty strings.
   if (S.isEmpty()) {
     if (flags.has_empty)
-      return this->getEmptyString();
+      return IStringTable::GetEmptyString();
     return invalidString;
   }
   return this->binarySearch(S);
@@ -310,6 +377,22 @@ com::Pair<com::StrRef, Status> IStringTable::binaryInsert(com::StrRef S) {
   const auto new_str = com::StrRef::New(
     buf->data() + iter.offset, usize(len));
   return {new_str, Status::success};
+}
+
+com::Pair<com::StrRef, Status> IStringTable::emptyInsert() {
+  const auto emptyS = IStringTable::GetEmptyString();
+  if (flags.imp_empty) {
+    this->flags.has_empty = true;
+    return {emptyS, Status::alreadyExists};
+  }
+  // Explicit empty:
+  // This is flawed because sorting and unsorting destroys
+  // the order of empty elements. For now, leave this unfinished.
+  __hc_todo("emptyInsert");
+  const StrTblIdx Ix 
+    = IStringTable::GetEmptyIdx();
+  tbl->pushBack(Ix);
+  return {emptyS, Status::success};
 }
 
 com::StrRef IStringTable::binarySearch(com::StrRef S) const {
