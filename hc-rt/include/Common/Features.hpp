@@ -249,9 +249,11 @@ inline constexpr T&&
 #define $fwd(expr...) ::__hc_fwd_<decltype(expr)>(expr)
 #define $mv(expr...) ::__hc_move_(expr)
 
+/// Tail calls another function. Must have a matching signature.
 #define $tail_return [[clang::musttail]] return
 #define $unreachable __builtin_unreachable()
 #define $unreachable_msg(message) __builtin_unreachable()
+/// Allows `break` to be used in arbitrary scopes.
 #define $scope switch (0) case 0:
 
 namespace hc {
