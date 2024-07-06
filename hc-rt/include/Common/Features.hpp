@@ -223,11 +223,11 @@ inline constexpr T&&
   }();
 /// Use this when you need something to be evaluated in release.
 # define __hc_assertOrIdent(expr...) __hc_assert(expr)
-#else // _HC_DEBUG
+#else // !_HC_DEBUG
 /// Noop in release.
-# define __hc_assert(...) __hc_cxassert(expr)
+# define __hc_assert(expr...) __hc_cxassert(expr)
 /// Evaluated but unchecked.
-# define __hc_assertOrIdent(expr...) (void) expr
+# define __hc_assertOrIdent(expr...) (void)(expr)
 #endif // _HC_DEBUG
 
 #if _HC_CHECK_INVARIANTS
