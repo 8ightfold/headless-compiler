@@ -27,8 +27,7 @@
 #include <Bootstrap/Syscalls.hpp>
 #include <Parcel/Skiplist.hpp>
 #include <Parcel/StaticVec.hpp>
-// #include <Parcel/StringTable.hpp>
-#include <Parcel/StringTable2.hpp>
+#include <Parcel/StringTable.hpp>
 
 #include <Sys/Win/Nt/Structs.hpp>
 #include <Sys/Win/Volume.hpp>

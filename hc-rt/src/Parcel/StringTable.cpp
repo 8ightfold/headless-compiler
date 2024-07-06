@@ -21,7 +21,7 @@
 //
 //===----------------------------------------------------------------===//
 
-#include <Parcel/StringTable2.hpp>
+#include <Parcel/StringTable.hpp>
 #include <Common/FastMath.hpp>
 #include <Common/InlineMemcpy.hpp>
 #include <Common/Strings.hpp>
@@ -35,6 +35,26 @@
 using namespace hc;
 using namespace hc::parcel;
 using Status = IStringTable::Status;
+
+IStringTable::Iterator& IStringTable::Iterator::operator++() {
+  if __likely_false(!__iter_val) {
+    *this = __base->ibegin();
+    return *this;
+  }
+  ++this->__iter_val;
+  return *this;
+}
+
+IStringTable::Iterator::value_type
+ IStringTable::Iterator::resolve() const {
+  if __likely_false(!__iter_val)
+    return __base->getEmptyString();
+  return __base->resolveDirect(*__iter_val);
+}
+
+//======================================================================//
+// IStringTable
+//======================================================================//
 
 com::Pair<com::StrRef, Status> IStringTable::insert(com::StrRef S) {
   S.dropNullMut();
@@ -73,15 +93,10 @@ void IStringTable::setKSortPolicy(bool V) {
   if (curr_policy == V)
     return;
   if (curr_policy == false) {
-    if (!flags.is_sorted)
+    if (!this->isSorted<true>())
       this->shortlexSort(V);
-    this->flags.ksorted = true;
-  } else {
-    this->unsort();
-    // This will already be false at the moment, but explicitly
-    // set it for forwards compatibility.
-    this->flags.ksorted = false;
   }
+  this->flags.ksorted = V;
 }
 
 //======================================================================//

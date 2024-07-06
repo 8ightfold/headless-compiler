@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <Parcel/StringTable2.hpp>
+#include <Parcel/StringTable.hpp>
 #include <Common/FastMath.hpp>
 
 namespace hc::parcel {

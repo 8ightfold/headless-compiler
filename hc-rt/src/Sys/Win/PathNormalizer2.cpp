@@ -21,8 +21,7 @@
 #include <Common/Option.hpp>
 #include <Common/TaggedUnion.hpp>
 #include <Bootstrap/Win64KernelDefs.hpp>
-// #include <Parcel/StringTable.hpp>
-#include <Parcel/StringTable2.hpp>
+#include <Parcel/StringTable.hpp>
 #include <Sys/Args.hpp>
 #include <Sys/Win/Volume.hpp>
 #include "PathNormalizer.hpp"
