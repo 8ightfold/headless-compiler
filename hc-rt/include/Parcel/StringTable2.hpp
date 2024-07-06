@@ -43,6 +43,36 @@ namespace hc::parcel {
     using BufferType = IStaticVec<char>;
     using TableType  = IStaticVec<StrTblIdx>;
 
+    struct Iterator {
+      using difference_type = uptrdiff;
+      using value_type = com::StrRef;
+    public:
+      bool operator==(const Iterator&) const = default;
+      value_type operator*()  const { return this->resolve(); }
+      // TODO: Add ValuePtrProxy<...>
+      // value_type operator->() const { return __iter_val; }
+
+      Iterator& operator++() {
+        ++this->__iter_val;
+        return *this;
+      }
+      Iterator operator++(int) {
+        Iterator tmp = *this;
+        ++*this;
+        return tmp;
+      }
+    
+    private:
+      value_type resolve() const {
+        __hc_assert(__iter_val);
+        return __base->resolveDirect(*__iter_val);
+      }
+    
+    public:
+      const IStringTable* __base  = nullptr;
+      const StrTblIdx* __iter_val = nullptr;
+    };
+
     struct DataFlags {
       bool null_term  : 1; // Strings should be null-terminated.
       bool dirty      : 1; // Strings are out of order.
@@ -81,25 +111,27 @@ namespace hc::parcel {
 
     /// Sets the null terminator flag if buffer is inactive.
     /// @return The the current value of `flags::null_term`.
-    bool setNullTerminationStrategy(bool V) {
+    bool setNullTerminationPolicy(bool V) {
       if __expect_false(this->isBufferInUse()) {
         // TODO: Output a warning.
         return flags.null_term;
       }
-
       this->flags.null_term = V;
       return V;
     }
+
+    /// Sets the keep sorted flag.
+    void setKSortPolicy(bool V);
 
     //==================================================================//
     // Mutators
     //==================================================================//
 
     /// Sorts strings in lexicographic order, in shortlex form.
-    /// This is *usually* done using the introsort algorithm. 
+    /// This is *usually* done using the introsort algorithm (TODO). 
     /// Sorting will set the dirty bit, which can be undone using `unsort`.
     /// @param keep_sorted Whether to sort newly inserted elements.
-    void sortLexicographically(bool keep_sorted = false);
+    void shortlexSort(bool keep_sorted = false);
 
     /// Reverts to insertion order, unsets dirty bit.
     /// It also sets `ksorted` to false.
@@ -118,6 +150,9 @@ namespace hc::parcel {
     //==================================================================//
     // Observers
     //==================================================================//
+
+    Iterator begin() const { return {this, tbl->begin()}; }
+    Iterator end()   const { return {this, tbl->end()}; }
 
     usize size() const { return tbl->size(); }
     usize sizeInBytes() const { return buf->size(); }
@@ -146,7 +181,7 @@ namespace hc::parcel {
     template <bool Permissive = false>
     bool isSorted() const {
       if constexpr (Permissive)
-        return flags.is_sorted && (tbl->size() < 2);
+        return flags.is_sorted || (tbl->size() < 2);
       else
         return flags.is_sorted;
     }
