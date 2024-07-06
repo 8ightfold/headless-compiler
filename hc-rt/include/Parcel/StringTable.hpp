@@ -71,6 +71,7 @@ namespace hc::parcel {
       bool dirty      : 1; // Strings are out of order.
       bool ksorted    : 1; // Strings are to be kept sorted.
       bool is_sorted  : 1; // `true` when still known to be sorted.
+      bool imp_empty  : 1; // If empty values should be implicit.
       bool has_empty  : 1; // If the table "contains" the empty string.
     };
 
@@ -87,7 +88,10 @@ namespace hc::parcel {
   public:
     constexpr IStringTable(
       BufferType& buf, TableType& tbl) :
-     buf(&buf), tbl(&tbl) {}
+     buf(&buf), tbl(&tbl) {
+      // TODO: Remove when complete.
+      this->flags.imp_empty = true;
+    }
   
   public:
     /// @brief Attempts to add a new string to the table. Normally this
@@ -115,6 +119,8 @@ namespace hc::parcel {
 
     /// Sets the keep sorted flag. Will not unsort when false.
     void setKSortPolicy(bool V);
+
+    // TODO: Add setImplicitEmptyValuePolicy, sometimes we might want em.
 
     //==================================================================//
     // Mutators
@@ -148,9 +154,9 @@ namespace hc::parcel {
       if (!flags.has_empty)
         $tail_return this->ibegin();
       else
+        // Return a fake value when empty value must appear.
         return {this, nullptr};
     }
-
     Iterator ibegin() const { return {this, tbl->begin()}; }
     Iterator end()    const { return {this, tbl->end()}; }
 
