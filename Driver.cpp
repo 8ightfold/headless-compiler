@@ -114,9 +114,25 @@ void dumpPathData(C::StrRef path,
   std::puts("");
 }
 
-int main(int N, char* A[], char* Env[]) {
+void stringTableTests() {
+  using enum P::IStringTable::Status;
+  auto print_break = [] { 
+    std::printf("\n|============================|\n");
+  };
   {
-    using enum P::IStringTable::Status;
+    print_break();
+    P::StringTable<64, 8> Tbl;
+    Tbl.insert("eeeeeee");
+    Tbl.insert("eee");
+    Tbl.insert("e");
+    Tbl.insert("ee");
+    Tbl.insert("ee");
+    Tbl.insert("eeeee");
+    for (auto S : Tbl)
+      std::printf("\"%.*s\"\n",
+        int(S.size()), S.data());
+  } {
+    print_break();
     P::StringTable<64, 8> Tbl;
     Tbl.setNullTerminationPolicy(true);
     Tbl.insert("ab");
@@ -127,14 +143,34 @@ int main(int N, char* A[], char* Env[]) {
     __hc_assertOrIdent(
       Tbl.insert("abcde").u == success);
     __hc_assertOrIdent(
-      // TODO: Fix segfault
       Tbl.insert("aa").u == success);
     __hc_assertOrIdent(
       Tbl.insert("abc").u == alreadyExists);
     for (auto S : Tbl)
-      std::printf("%s\n", S.data());
-    return 0;
+      std::printf("\"%s\"\n", S.data());
+  } {
+    print_break();
+    P::StringTable<64, 16> Tbl;
+    Tbl.setNullTerminationPolicy(true);
+    Tbl.insert("");
+    Tbl.insert("eeeeeee");
+    Tbl.insert("eee");
+    Tbl.insert("e");
+    Tbl.insert("ee");
+    Tbl.insert("ee");
+    Tbl.insert("eeeee");
+    Tbl.setKSortPolicy(true);
+    Tbl.setKSortPolicy(false);
+    __hc_assertOrIdent(
+      Tbl.insert("").u == alreadyExists);
+    for (auto S : Tbl)
+      std::printf("\"%s\"\n", S.data());
   }
+}
+
+int main(int N, char* A[], char* Env[]) {
+  stringTableTests();
+  return 0;
 
   printVolumeInfo("\\??\\C:\\");
   std::printf("\nCurrent directory: ");
