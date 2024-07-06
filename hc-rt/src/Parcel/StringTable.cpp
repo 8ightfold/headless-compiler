@@ -191,8 +191,10 @@ void IStringTable::shortlexSort(bool keep_sorted) {
 void IStringTable::unsort() {
   this->flags.ksorted = false;
   /// Do nothing if never sorted.
-  if (!this->isSorted<true>())
+  if (!this->isSorted<true>()) {
+    this->flags.is_sorted = false;
     return;
+  }
 
 #if _HC_FAST_STRING_TABLE
   __hc_todo("unsort");
