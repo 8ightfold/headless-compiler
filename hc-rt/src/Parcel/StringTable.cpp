@@ -25,6 +25,7 @@
 #include <Common/FastMath.hpp>
 #include <Common/InlineMemcpy.hpp>
 #include <Common/Strings.hpp>
+#include <Meta/Unwrap.hpp>
 
 #if _HC_FAST_STRING_TABLE
 # include "_StrTblSortFast.hpp"
@@ -86,6 +87,14 @@ com::Pair<com::StrRef, Status> IStringTable::insert(com::StrRef S) {
 
   // Do some fancy-shmancy stuff to insert sorted.
   return this->binaryInsert(S);
+}
+
+bool IStringTable::pop() {
+  if (!this->isPoppable())
+    return false;
+  auto last = $unwrap(tbl->popBack());
+  const usize len = last.length + flags.null_term;
+  return buf->resizeUninit(buf->size() - len);
 }
 
 void IStringTable::setKSortPolicy(bool V) {
