@@ -94,6 +94,6 @@ namespace hc::bootstrap {
   } __sys_loader_ {};
  #endif // __XCRT__?
 
-  void force_syscall_reload();
-  bool are_syscalls_loaded();
+  extern void force_syscall_reload();
+  extern bool are_syscalls_loaded();
 } // namespace hc::bootstrap
