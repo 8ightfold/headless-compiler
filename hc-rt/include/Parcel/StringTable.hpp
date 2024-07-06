@@ -29,7 +29,7 @@
 
 namespace hc::parcel {
   /// Stores strings as `[Offset, Length]`.
-  struct [[gnu::packed]] StrTblIdx {
+  struct [[gnu::packed, clang::trivial_abi]] StrTblIdx {
     u16 offset = 0;
     u16 length = 0;
   };

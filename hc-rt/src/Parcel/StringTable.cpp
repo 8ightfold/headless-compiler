@@ -149,7 +149,7 @@ com::StrRef IStringTable::resolveDirect(StrTblIdx I) const {
 }
 
 com::StrRef IStringTable::resolveAt(usize Ix) const {
-  __hc_invariant(Ix < tbl->size())
+  __hc_invariant(Ix < tbl->size());
   const StrTblIdx I = (*tbl)[Ix];
   return this->resolveDirect(I);
 }
