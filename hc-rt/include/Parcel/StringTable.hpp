@@ -89,6 +89,7 @@ namespace hc::parcel {
     constexpr IStringTable(
       BufferType& buf, TableType& tbl) :
      buf(&buf), tbl(&tbl) {
+      this->flags.is_sorted = true;
       // TODO: Remove when complete.
       this->flags.imp_empty = true;
     }
@@ -144,6 +145,10 @@ namespace hc::parcel {
     void clear() __noexcept {
       buf->clear();
       tbl->clear();
+      // Unset flags
+      flags.dirty = false;
+      flags.is_sorted = true;
+      flags.has_empty = false;
     }
 
     //==================================================================//
