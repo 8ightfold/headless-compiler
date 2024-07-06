@@ -68,18 +68,34 @@ com::Pair<com::StrRef, Status> IStringTable::insert(com::StrRef S) {
   return this->binaryInsert(S);
 }
 
+void IStringTable::setKSortPolicy(bool V) {
+  const bool curr_policy = flags.ksorted;
+  if (curr_policy == V)
+    return;
+  if (curr_policy == false) {
+    if (!flags.is_sorted)
+      this->shortlexSort(V);
+    this->flags.ksorted = true;
+  } else {
+    this->unsort();
+    // This will already be false at the moment, but explicitly
+    // set it for forwards compatibility.
+    this->flags.ksorted = false;
+  }
+}
+
 //======================================================================//
 // Mutators
 //======================================================================//
 
-void IStringTable::sortLexicographically(bool keep_sorted) {
+void IStringTable::shortlexSort(bool keep_sorted) {
   // TODO: At some point add runtime dispatch for checking the dirty bit.
   // We should probably check if ksorted is true, as that should probably
   // enable the dirty bit no matter what... not sure though.
   this->flags.ksorted = keep_sorted;
-  this->flags.is_sorted = true;
   ISTableSorter S(this->buf, this->tbl);
   this->flags.dirty = S.do_sort(tbl->intoRange());
+  this->flags.is_sorted = true;
 }
 
 void IStringTable::unsort() {
@@ -167,7 +183,8 @@ StrTblIdx IStringTable::appendDirectIter(com::StrRef S) {
 
 com::Pair<com::StrRef, Status> IStringTable::binaryInsert(com::StrRef S) {
   // Empty strings are not allowed, table MUST be sorted.
-  __hc_invariant(!S.isEmpty() && this->isSorted<true>());
+  __hc_invariant(!S.isEmpty());
+  __hc_invariant(this->isSorted<true>());
   if __expect_false(tbl->isEmpty())
     return {this->appendDirect(S), Status::success};
   
@@ -177,23 +194,27 @@ com::Pair<com::StrRef, Status> IStringTable::binaryInsert(com::StrRef S) {
     if (last.size() > S.size())
       break;
     if (S.size() > last.size()) {
-      // S is larger than last here, so we do a simple append.
       return {this->appendDirect(S), Status::success};
     }
     const int R = com::__strncmp(
       S.data(), last.data(), last.size());
     if (R == 0)
       return {last, Status::alreadyExists};
+    if (R > 0)
+      return {this->appendDirect(S), Status::success};
   }
 
   const usize len = S.size();
   auto* const ptbl = tbl->data();
-  usize lhs = 0;
-  usize rhs = tbl->size();
+  // Considered using __builtin_sub_overflow here, but it's easier to just
+  // use 64-bit signed ints. The values can never get anywhere near the limit
+  // anyways. Might as well use the default behaviour.
+  i64 lhs = 0;
+  i64 rhs = tbl->size();
 
   while (lhs < rhs) {
-    const usize mid = (lhs + rhs) >> 1;
-    if (const auto ilen = ptbl[mid].length; ilen != len) {
+    const i64 mid = (lhs + rhs) >> 1;
+    if (const usize ilen = ptbl[mid].length; ilen != len) {
       if (len < ilen)
         rhs = mid - 1;
       else if (len > ilen)
@@ -216,7 +237,8 @@ com::Pair<com::StrRef, Status> IStringTable::binaryInsert(com::StrRef S) {
       lhs = mid + 1;
   }
 
-  const usize insert_pos = lhs;
+  __hc_assert(lhs >= 0);
+  const usize insert_pos = usize(lhs);
   // We already checked the back so it should be fine,
   // but add a sanity check just in case.
   __hc_invariant(insert_pos < tbl->size());
@@ -281,12 +303,12 @@ com::StrRef IStringTable::binarySearch(com::StrRef S) const {
   
   const usize len = S.size();
   auto* const ptbl = tbl->data();
-  usize lhs = 0;
-  usize rhs = tbl->size() - 1;
+  i64 lhs = 0;
+  i64 rhs = tbl->size() - 1;
 
   while (lhs <= rhs) {
-    const usize mid = (lhs + rhs) >> 1;
-    if (const auto ilen = ptbl[mid].length; ilen != len) {
+    const i64 mid = (lhs + rhs) >> 1;
+    if (const usize ilen = ptbl[mid].length; ilen != len) {
       if (len < ilen)
         rhs = mid - 1;
       else if (len > ilen)
