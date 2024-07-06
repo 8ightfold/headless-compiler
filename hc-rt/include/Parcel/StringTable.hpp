@@ -95,13 +95,18 @@ namespace hc::parcel {
     }
   
   public:
-    /// @brief Attempts to add a new string to the table. Normally this
+    /// Attempts to add a new string to the table. Normally this
     /// will always append the string, even if it already exists.
     /// But when `flags::ksorted` is true, it will do a binary search to
     /// see if the element already exists. If not, it will be appended.
     /// @return A pair with a span over the inserted string or the
     /// existing string, and a `Status`.
     com::Pair<com::StrRef, Status> insert(com::StrRef S);
+
+    /// Attempts to pop the last string from the table. This can only
+    /// be done if the table is both unsorted and clean.
+    /// @return `true` if succeeds.
+    bool pop();
 
     //==================================================================//
     // Settings
@@ -122,6 +127,7 @@ namespace hc::parcel {
     void setKSortPolicy(bool V);
 
     // TODO: Add setImplicitEmptyValuePolicy, sometimes we might want em.
+    //  Also add setDestructivePopPolicy for popping sorted elements.
 
     //==================================================================//
     // Mutators
@@ -195,6 +201,12 @@ namespace hc::parcel {
         return flags.is_sorted || (tbl->size() < 2);
       else
         return flags.is_sorted;
+    }
+
+    bool isPoppable() const {
+      return this->isBufferInUse()
+        && !this->isSorted()
+        && !this->isDirty();
     }
 
   protected:
