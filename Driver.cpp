@@ -116,17 +116,27 @@ void dumpPathData(C::StrRef path,
 
 int main(int N, char* A[], char* Env[]) {
   {
-    // P::ALStaticVec<X, 16> Vec;
-    // Vec.emplace();
-    // Vec.emplace();
-    // Vec.pop();
-    // Vec.emplace();
-    // Vec.emplaceBack(7)->me();
-    // P::StringTable<8, 64> Tbl;
-
-    printVolumeInfo("\\??\\C:\\");
+    using enum P::IStringTable::Status;
+    P::StringTable<64, 8> Tbl;
+    Tbl.setNullTerminationPolicy(true);
+    Tbl.insert("ab");
+    Tbl.insert("abcd");
+    Tbl.insert("abc");
+    Tbl.insert("abcdef");
+    Tbl.setKSortPolicy(true);
+    __hc_assertOrIdent(
+      Tbl.insert("abcde").u == success);
+    __hc_assertOrIdent(
+      // TODO: Fix segfault
+      Tbl.insert("aa").u == success);
+    __hc_assertOrIdent(
+      Tbl.insert("abc").u == alreadyExists);
+    for (auto S : Tbl)
+      std::printf("%s\n", S.data());
+    return 0;
   }
 
+  printVolumeInfo("\\??\\C:\\");
   std::printf("\nCurrent directory: ");
   printPtrRange(S::Args::WorkingDir());
 
