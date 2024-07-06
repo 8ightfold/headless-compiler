@@ -403,6 +403,14 @@ namespace hc::parcel {
       this->pop();
       return $Some(bk);
     }
+
+    /// Explicitly set the size.
+    constexpr bool __setSize(usize N) {
+      if (N > this->capacity())
+        return false;
+      this->__setSize(N);
+      return true;
+    }
   };
 
   /// @brief The base for "dynamic" arrays.
