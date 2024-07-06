@@ -54,6 +54,8 @@ private:
       return true;
     if (rhs.length > len)
       return false;
+    if (len == 0)
+      return false;
     
     // Now for the real lex comp...
     const char* const data = buf.data();

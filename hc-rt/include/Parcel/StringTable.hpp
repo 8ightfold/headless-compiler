@@ -39,10 +39,6 @@ namespace hc::parcel {
   /// The main exception is `pop_back`, which is allowed if not dirty.
   /// On the other hand, table elements *can* be sorted and removed.
   struct [[gsl::Pointer]] IStringTable {
-    using SelfType   = IStringTable;
-    using BufferType = IStaticVec<char>;
-    using TableType  = IStaticVec<StrTblIdx>;
-
     struct Iterator {
       using difference_type = uptrdiff;
       using value_type = com::StrRef;
@@ -66,13 +62,20 @@ namespace hc::parcel {
       const StrTblIdx* __iter_val = nullptr;
     };
 
+  public:
+    using SelfType   = IStringTable;
+    using BufferType = IStaticVec<char>;
+    using TableType  = IStaticVec<StrTblIdx>;
+
     struct DataFlags {
-      bool null_term  : 1; // Strings should be null-terminated.
-      bool dirty      : 1; // Strings are out of order.
-      bool ksorted    : 1; // Strings are to be kept sorted.
-      bool is_sorted  : 1; // `true` when still known to be sorted.
-      bool imp_empty  : 1; // If empty values should be implicit.
-      bool has_empty  : 1; // If the table "contains" the empty string.
+      bool null_term    : 1; // Strings should be null-terminated.
+      bool destructive  : 1; // If strings can be popped out of order.
+      // TODO: Update so it's only dirty when popped.
+      bool dirty        : 1; // Strings are out of order.
+      bool ksorted      : 1; // Strings are to be kept sorted.
+      bool is_sorted    : 1; // `true` when still known to be sorted.
+      bool imp_empty    : 1; // If empty values should be implicit.
+      bool has_empty    : 1; // If the table "contains" the empty string.
     };
 
     enum class Status {
@@ -95,6 +98,9 @@ namespace hc::parcel {
     }
   
   public:
+    static StrTblIdx GetEmptyIdx();
+    static bool IsEmptyIdx(StrTblIdx I);
+
     /// Attempts to add a new string to the table. Normally this
     /// will always append the string, even if it already exists.
     /// But when `flags::ksorted` is true, it will do a binary search to
@@ -104,7 +110,8 @@ namespace hc::parcel {
     com::Pair<com::StrRef, Status> insert(com::StrRef S);
 
     /// Attempts to pop the last string from the table. This can only
-    /// be done if the table is both unsorted and clean.
+    /// be done if the table is both unsorted and clean
+    /// (unless destructive popping is enabled).
     /// @return `true` if succeeds.
     bool pop();
 
@@ -113,21 +120,27 @@ namespace hc::parcel {
     //==================================================================//
 
     /// Sets the null terminator flag if buffer is inactive.
-    /// @return The the current value of `flags::null_term`.
-    bool setNullTerminationPolicy(bool V) {
-      if __expect_false(this->isBufferInUse()) {
-        // TODO: Output a warning.
-        return flags.null_term;
-      }
-      this->flags.null_term = V;
-      return V;
-    }
+    /// @return The current value of `flags::null_term`.
+    bool setNullTerminationPolicy(bool V);
+
+    /// TODO: Finish implementing.
+    /// Sets the implicit empty value flag if buffer is inactive.
+    /// When active, empty values will not actually be stored in
+    /// the table; instead, it will be returned as the "first" element.
+    /// @return The current value of `flags::imp_empty`.
+    bool setImplicitEmptyValuePolicy(bool V);
+
+    //  Also add setDestructivePopPolicy for popping sorted elements.
+
+    /// Sets the destructive pop flag if currently clean.
+    /// Allows popping from tables not using insertion order.
+    /// Still protects from empty value popping.
+    /// @return The value of `flags::ksorted`.
+    bool setDestructivePopPolicy(bool V);
 
     /// Sets the keep sorted flag. Will not unsort when false.
-    void setKSortPolicy(bool V);
-
-    // TODO: Add setImplicitEmptyValuePolicy, sometimes we might want em.
-    //  Also add setDestructivePopPolicy for popping sorted elements.
+    /// @return The value of `flags::ksorted`.
+    bool setKSortPolicy(bool V);
 
     //==================================================================//
     // Mutators
@@ -162,12 +175,13 @@ namespace hc::parcel {
     //==================================================================//
 
     Iterator begin() const {
-      if (!flags.has_empty)
+      if (!this->doesNeedImplicitEmpty())
         $tail_return this->ibegin();
       else
         // Return a fake value when empty value must appear.
         return {this, nullptr};
     }
+
     Iterator ibegin() const { return {this, tbl->begin()}; }
     Iterator end()    const { return {this, tbl->end()}; }
 
@@ -205,27 +219,41 @@ namespace hc::parcel {
 
     bool isPoppable() const {
       return this->isBufferInUse()
-        && !this->isSorted()
-        && !this->isDirty();
+        && !this->isSorted();
+    }
+
+    bool isDestructivePop() const {
+      return (!tbl->isEmpty())
+        && this->isSorted()
+        && flags.destructive;
+    }
+
+    bool isInlineEmpty(StrTblIdx I) const {
+      return (!flags.imp_empty)
+        && IStringTable::IsEmptyIdx(I);
+    }
+
+    bool doesNeedImplicitEmpty() const {
+      return flags.imp_empty && flags.has_empty;
     }
 
   protected:
-    /// Returns a `StrRef` from an index.
-    com::StrRef resolveDirect(StrTblIdx I) const;
+    /// Returns an empty string for the current null termination strategy.
+    static com::StrRef GetEmptyString() {
+      static constexpr auto V 
+        = com::StrRef::New("", usize(0));
+      return V;
+    }
+
     /// Returns a `StrRef` from an index table index.
     com::StrRef resolveAt(usize Ix) const;
+    /// Returns a `StrRef` from an index.
+    com::StrRef resolveDirect(StrTblIdx I) const;
 
     /// Returns the associated string in the table for `S`, if found.
     /// If permissive `isSorted` is `false`, or the string is not found,
     /// `invalidString` will be returned.
     com::StrRef locateString(com::StrRef S) const;
-
-    /// Returns an empty string for the current null termination strategy.
-    inline com::StrRef getEmptyString() const {
-      static constexpr auto on  = com::StrRef::New("", 1);
-      static constexpr auto off = com::StrRef::New("", usize(0));
-      return (flags.null_term) ? on : off;
-    }
 
     /// Checks if the table has storage for the requested string.
     /// Assumes `.dropNull()` has been called.
@@ -244,6 +272,9 @@ namespace hc::parcel {
     /// Inserts a string into a sorted array without adding index.
     /// Assumes `.dropNull()` has been called.
     com::Pair<com::StrRef, Status> binaryInsert(com::StrRef S);
+
+    /// Inserts an empty string into the array, or does nothing.
+    com::Pair<com::StrRef, Status> emptyInsert();
 
     /// Internal binary search algo. Same rules as `locateString`.
     com::StrRef binarySearch(com::StrRef S) const;
