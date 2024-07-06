@@ -63,10 +63,11 @@ target_internal_flags(
 )
 
 ##======================================================================##
-## Dev - Exposed internals (with default CRT)
+## Src - Private Sources
 ##======================================================================##
 
-add_library(hcrt-dev STATIC
+add_library(hcrt-src INTERFACE)
+target_sources(hcrt-src INTERFACE
   src/Common/CheckFundamental.cpp
   src/Common/Memory.cpp
   src/Common/StrRef.cpp
@@ -74,7 +75,6 @@ add_library(hcrt-dev STATIC
   src/Meta/ID.cpp
   src/Parcel/StringTable.cpp
   src/Sys/IOFile.cpp
-
   # Platform Specific
   ${HC_RSYS}/Args.cpp
   ${HC_RSYS}/Mutex.cpp
@@ -83,18 +83,17 @@ add_library(hcrt-dev STATIC
   ${HC_RSYS}/PlatformStatus.cpp
   ${HC_RSYS}/PFiles.cpp
 )
-add_library(hcrt::dev ALIAS hcrt-dev)
-target_link_libraries(hcrt-dev PUBLIC hcrt::inc)
-target_include_directories(hcrt-dev PUBLIC include src)
-target_compile_definitions(hcrt-dev PUBLIC __HC_INTERNAL__=1)
-target_compile_options(hcrt-dev PRIVATE -Wall -Wno-trigraphs)
+add_library(hcrt::src ALIAS hcrt-src)
+target_link_libraries(hcrt-src INTERFACE hcrt::inc)
+target_include_directories(hcrt-src INTERFACE include src)
+target_compile_definitions(hcrt-src INTERFACE __HC_INTERNAL__=1)
 target_internal_flags(
-  hcrt-dev PRIVATE 
+  hcrt-src INTERFACE 
   HC_FAST_STRING_TABLE
 )
 
 if(WIN32)
-  target_sources(hcrt-dev PUBLIC
+  target_sources(hcrt-src INTERFACE
     src/Bootstrap/COFFModule.cpp
     src/Bootstrap/ModuleParser.cpp
     src/Bootstrap/StubParser.cpp
@@ -107,7 +106,20 @@ if(WIN32)
 endif()
 
 ##======================================================================##
-## xcrt - CRT Implementation
+## Dev - Exposed internals (with default CRT)
+##======================================================================##
+
+add_library(hcrt-dev STATIC xcrt/Stub.cpp)
+add_library(hcrt::dev ALIAS hcrt-dev)
+target_compile_options(hcrt-dev PRIVATE -Wall -Wno-trigraphs)
+target_include_directories(hcrt-dev PUBLIC include src)
+target_link_libraries(hcrt-dev 
+  PUBLIC  hcrt-inc
+  PRIVATE hcrt-src
+)
+
+##======================================================================##
+## xinc - CRT Interface
 ##======================================================================##
 
 add_library(hcrt-xinc INTERFACE)
@@ -117,6 +129,10 @@ target_forward_options(hcrt-xinc INTERFACE RT_MAX_ATEXIT)
 target_compile_definitions(hcrt-xinc INTERFACE __XCRT__=1)
 target_compile_options(hcrt-xinc INTERFACE -nostdinc++ -nostdinc -static)
 target_link_options(hcrt-xinc INTERFACE -nostdlib -nostartfiles)
+
+##======================================================================##
+## xcrt - CRT Implementation
+##======================================================================##
 
 add_library(hcrt-xcrt STATIC
   xcrt/String/Memcmp.cpp
@@ -135,8 +151,14 @@ add_library(hcrt-xcrt STATIC
   ${HC_XSYS}/Shutdown/Atexit.cpp
 )
 add_library(hcrt::xcrt ALIAS hcrt-xcrt)
-target_link_libraries(hcrt-xcrt PUBLIC hcrt::xinc hcrt::dev)
-target_include_directories(hcrt-xcrt PUBLIC xcrt ${HC_XSYS})
+target_link_libraries(hcrt-xcrt 
+  PUBLIC hcrt::inc hcrt::xinc 
+  PRIVATE hcrt::src
+)
+target_include_directories(hcrt-xcrt 
+  PUBLIC xcrt # ${HC_XSYS}
+  PRIVATE src
+)
 
 if(WIN32)
   target_sources(hcrt-xcrt PUBLIC
@@ -159,7 +181,6 @@ endif()
 add_library(hc-rt STATIC xcrt/Stub.cpp)
 add_library(hc::rt ALIAS hc-rt)
 target_link_libraries(hc-rt 
-  PUBLIC # hcrt::inc 
-    hcrt::xinc 
+  PUBLIC hcrt::inc hcrt::xinc 
   PRIVATE hcrt::xcrt
 )

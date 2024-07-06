@@ -29,9 +29,9 @@ namespace B = hc::bootstrap;
 using DbgType = ULong(const char* fmt, ...);
 
 namespace hc::bootstrap {
-  constinit common::EnumArray<u32, Syscall> __syscalls_ {};
-  /// Defined in `StubParser.cpp`.
-  COFFModule& __NtModule();
+constinit common::EnumArray<u32, Syscall> __syscalls_ {};
+/// Defined in `StubParser.cpp`.
+COFFModule& __NtModule();
 } // namespace hc::bootstrap
 
 namespace {
@@ -81,17 +81,18 @@ namespace {
   }
 } // namespace `anonymous`
 
-void B::force_syscall_reload() {
+namespace hc::bootstrap {
+void force_syscall_reload() {
   __did_succeed_ = false;
   (void) load_syscalls();
 }
 
-bool B::are_syscalls_loaded() {
+bool are_syscalls_loaded() {
   return load_syscalls();
 }
 
 #ifndef __XCRT__
-B::_SyscallLoader::_SyscallLoader() {
+_SyscallLoader::_SyscallLoader() {
   const bool R = are_syscalls_loaded();
   if __expect_false(!R) {
     __try_dbgprint();
@@ -101,3 +102,4 @@ B::_SyscallLoader::_SyscallLoader() {
   }
 }
 #endif // __XCRT__?
+} // namespace hc::bootstrap
