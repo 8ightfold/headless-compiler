@@ -388,7 +388,7 @@ com::Pair<com::StrRef, Status> IStringTable::emptyInsert() {
   // Explicit empty:
   // This is flawed because sorting and unsorting destroys
   // the order of empty elements. For now, leave this unfinished.
-  __hc_todo("emptyInsert");
+  __hc_todo("emptyInsert", {});
   const StrTblIdx Ix 
     = IStringTable::GetEmptyIdx();
   tbl->pushBack(Ix);
