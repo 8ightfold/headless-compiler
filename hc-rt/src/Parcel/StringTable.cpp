@@ -190,9 +190,8 @@ void IStringTable::shortlexSort(bool keep_sorted) {
 
 void IStringTable::unsort() {
   this->flags.ksorted = false;
-  this->flags.is_sorted = false;
-  /// Do nothing if never dirtied.
-  if (this->isClean())
+  /// Do nothing if never sorted.
+  if (!this->isSorted<true>())
     return;
 
 #if _HC_FAST_STRING_TABLE
@@ -210,6 +209,7 @@ void IStringTable::unsort() {
   }
   // Mark as clean.
   // this->flags.dirty = false;
+  this->flags.is_sorted = false;
 }
 
 //======================================================================//
