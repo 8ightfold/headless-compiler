@@ -116,7 +116,6 @@ void dumpPathData(C::StrRef path,
 void stringTableTests() {
   using enum P::IStringTable::Status;
   auto print_break = [] {
-    // For changes
     std::printf("\n|============================|\n");
   };
   {

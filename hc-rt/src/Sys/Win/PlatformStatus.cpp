@@ -3691,5 +3691,3 @@ OpaqueError SysErr::GetOpaqueError(OpqErrorID ID) {
     return nullptr;
   }
 }
-
-
