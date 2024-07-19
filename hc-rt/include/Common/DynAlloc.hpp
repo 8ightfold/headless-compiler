@@ -24,8 +24,7 @@
 
 #pragma once
 
-#include "Features.hpp"
-#include "Fundamental.hpp"
+#include "_DynAlloc.hpp"
 #include "Lifetime.hpp"
 #include "Memory.hpp"
 #include "PtrRange.hpp"
@@ -55,16 +54,13 @@
  (typename ty::pointer)__builtin_alloca_with_align( \
   ty::AllocationSize(sz), ty::totalAlign)
 
-HC_HAS_BUILTIN(alloca);
-HC_HAS_BUILTIN(alloca_with_align);
-
 namespace hc::common {
   template <typename T>
   concept __is_trivial_alloc = 
     __is_trivially_constructible(T) &&
     __is_trivially_destructible(T);
 
-  template <typename T, usize Align = alignof(T)>
+  template <typename T, usize Align>
   struct [[gsl::Pointer]] DynAllocation {
     using value_type = T;
     using pointer = T*;
