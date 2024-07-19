@@ -155,8 +155,10 @@ bool IStringTable::setImplicitEmptyValuePolicy(bool V) {
 }
 
 bool IStringTable::setDestructivePopPolicy(bool V) {
-  if __expect_false(this->isDirty())
+  if __expect_false(this->isDirty()) {
+    // TODO: Output a warning.
     return flags.destructive;
+  }
   this->flags.destructive = V;
   return V;
 }
