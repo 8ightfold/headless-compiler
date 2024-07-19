@@ -27,7 +27,7 @@
 namespace hc::sys {
   struct Args {
     template <typename T>
-    using ArgType = common::ImmPtrRange<T>;
+    using ArgType = com::ImmPtrRange<T>;
   public:
     static ArgType<char*>   Argv();
     static ArgType<char*>   Envp();
