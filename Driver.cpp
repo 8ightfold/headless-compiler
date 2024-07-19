@@ -17,6 +17,7 @@
 //===----------------------------------------------------------------===//
 
 #include <Common/Checked.hpp>
+#include <Common/Function.hpp>
 #include <Common/Limits.hpp>
 #include <Common/RawLazy.hpp>
 #include <Meta/ID.hpp>
@@ -36,7 +37,7 @@
 #include <Sys/Win/PathNormalizer.hpp>
 #include <Sys/Args.hpp>
 #include <Sys/IOFile.hpp>
-#include <Sys/Mutex.hpp>
+#include <Sys/OSMutex.hpp>
 #include <Sys/BasicNetwork.hpp>
 
 #include <Meta/ASM.hpp>
@@ -167,9 +168,23 @@ void stringTableTests() {
   }
 }
 
+void functionTests() {
+  auto test = [] (Function<StrRef(const char*)> F) {
+    StrRef S = F("Hello!");
+    printPtrRange(S);
+  };
+
+  auto exact = [] (const char* S) -> StrRef { return StrRef::NewRaw(S); };
+  auto deduced = [&] (const char* S) -> const char* { return S; };
+
+  test(+exact);
+  test(deduced);
+}
+
 int main(int N, char* A[], char* Env[]) {
-  stringTableTests();
-  return 0;
+  // functionTests();
+  // stringTableTests();
+  // return 0;
 
   printVolumeInfo("\\??\\C:\\");
   std::printf("\nCurrent directory: ");
