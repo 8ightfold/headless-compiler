@@ -28,7 +28,7 @@
 #include <Common/EnumBitwise.hpp>
 #include <Meta/Traits.hpp>
 #include <Sys/Errors.hpp>
-#include <Sys/Mutex.hpp>
+#include <Sys/OSMutex.hpp>
 #include <Sys/IOFileBuf.hpp>
 #include <Sys/File.hpp>
 
@@ -246,7 +246,7 @@ namespace hc::sys {
     FWriteType* write_fn;
     FSeekType*  seek_fn;
     FCloseType* close_fn;
-    Mtx mtx;
+    OSMtx mtx;
 
     u8 ungetc_buf = 0;
     IIOFileBuf* buf;

@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include <Sys/Mutex.hpp>
+#include <Sys/OSMutex.hpp>
 #include <Sys/Locks.hpp>
 
 #define $XCRTLock(value) \
@@ -38,5 +38,5 @@ namespace xcrt {
   };
 } // namespace xcrt
 
-extern "C" hc::sys::Mtx*
+extern "C" hc::sys::OSMtx*
   __xcrt_get_lock(xcrt::Locks V);

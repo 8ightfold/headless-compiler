@@ -1,4 +1,4 @@
-//===- Sys/Mutex.hpp ------------------------------------------------===//
+//===- Sys/OSMutex.hpp ----------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -72,18 +72,18 @@ namespace hc::sys {
     uptr  __int;
   };
 
-  struct Mtx {
+  struct OSMtx {
     static constexpr auto npos = RawMtxHandle::npos;
   public:
-    constexpr Mtx() = default;
-    Mtx(common::DualString S) noexcept : Mtx() {
+    constexpr OSMtx() = default;
+    OSMtx(common::DualString S) noexcept : OSMtx() {
       this->initialize(S);
     }
 
-    Mtx(const Mtx&) = delete;
-    Mtx& operator=(const Mtx&) = delete;
+    OSMtx(const OSMtx&) = delete;
+    OSMtx& operator=(const OSMtx&) = delete;
 
-    ~Mtx() {
+    ~OSMtx() {
       if __expect_true(*this) {
         this->lock();
         RawMtxHandle::Delete(__data);

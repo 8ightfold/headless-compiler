@@ -28,7 +28,7 @@
 #include <Common/RawLazy.hpp>
 #include <Meta/Once.hpp>
 #include <Sys/Generic.hpp>
-#include <Sys/Mutex.hpp>
+#include <Sys/OSMutex.hpp>
 #include <Mingw/TryPrint.hpp>
 #include "Initialization.hpp"
 
@@ -49,7 +49,7 @@ extern "C" {
 namespace {
   constexpr TLSType tls_out_of_indexes = Max<TLSType>;
   // TODO: Make RawLazy<sys::Mtx[]>
-  constinit C::RawLazy<sys::Mtx> mtx {};
+  constinit C::RawLazy<sys::OSMtx> mtx {};
   constinit TLSType tls_idx = tls_out_of_indexes;
 } // namespace `anonymous`
 

@@ -25,7 +25,7 @@ namespace C = hc::common;
 
 namespace {
   /// TODO: Convert to critical section?
-  using LazyMtx = C::RawLazy<sys::Mtx>;
+  using LazyMtx = C::RawLazy<sys::OSMtx>;
   constinit C::EnumArray<LazyMtx, xcrt::Locks> __lock_tbl_;
   constinit u64 __locks_initialized_ = 0;
 } // namespace `anonymous`
@@ -48,7 +48,7 @@ extern "C" {
     }
   }
 
-  sys::Mtx* __xcrt_get_lock(xcrt::Locks V) {
+  sys::OSMtx* __xcrt_get_lock(xcrt::Locks V) {
     using xcrt::Locks;
     __hc_invariant(u64(V) < u64(Locks::MaxValue));
     return __lock_tbl_[V].data();

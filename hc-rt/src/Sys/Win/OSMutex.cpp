@@ -1,4 +1,4 @@
-//===- Sys/Win/Mutex.cpp --------------------------------------------===//
+//===- Sys/Win/OSMutex.cpp ------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -18,7 +18,7 @@
 
 #include <Common/DynAlloc.hpp>
 #include <Sys/OpaqueError.hpp>
-#include <Sys/Mutex.hpp>
+#include <Sys/OSMutex.hpp>
 #include "Mutant.hpp"
 #include "Wait.hpp"
 

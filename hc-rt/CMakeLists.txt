@@ -77,9 +77,9 @@ target_sources(hcrt-src INTERFACE
   src/Sys/IOFile.cpp
   # Platform Specific
   ${HC_RSYS}/Args.cpp
-  ${HC_RSYS}/Mutex.cpp
   ${HC_RSYS}/IOFile.cpp
   ${HC_RSYS}/OpaqueError.cpp
+  ${HC_RSYS}/OSMutex.cpp
   ${HC_RSYS}/PlatformStatus.cpp
   ${HC_RSYS}/PFiles.cpp
 )
@@ -101,6 +101,7 @@ if(WIN32)
     src/Bootstrap/UnicodeString.cpp
     src/Bootstrap/Win64KernelDefs.cpp
     ${HC_RSYS}/PathNormalizer2.cpp
+    ${HC_RSYS}/PathPredictor.cpp
     ${HC_RSYS}/Nt/CheckPacking.cpp
   )
 endif()
