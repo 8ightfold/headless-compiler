@@ -19,7 +19,7 @@
 #pragma once
 
 #include <Common/Fundamental.hpp>
-#include "Traits.hpp"
+#include "_FnTraits.hpp"
 #include "Objects.hpp"
 
 HC_HAS_REQUIRED(builtin, __type_pack_element);
@@ -78,21 +78,6 @@ namespace hc::meta {
 //======================================================================//
 
 namespace hc::meta {
-  template <typename T> 
-  __add_rvalue_reference(T) Decl() noexcept {
-    $compile_failure(T, 
-      "Decl<...> must be called in an unevaluated context.")
-  }
-
-  template <typename F, typename...TT>
-  using __return_t = decltype(Decl<F>()(Decl<TT>()...));
-
-  template <typename From, typename To>
-  concept __convertible = __is_convertible(From, To);
-
-  template <typename To, typename...From>
-  concept __all_convertible = (true && ... && __convertible<From, To>);
-
   // Common Return?
 
   template <typename T, typename...TT>

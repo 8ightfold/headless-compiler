@@ -34,6 +34,9 @@ namespace hc::meta {
   template <typename T, typename U>
   concept is_same = __is_same(T, U) && __is_same(U, T);
 
+  template <typename T, typename U>
+  concept not_same = !is_same<T, U>;
+
   template <typename T>
   concept is_integral = __is_integral(T);
 
