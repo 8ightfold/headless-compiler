@@ -19,10 +19,15 @@
 //  This file defines an object which can be used to normalize paths.
 //  VERY useful for interacting with the filesystem.
 //
+//  PathNormalizer::
+//    PredictPathType: PathPredictor.cpp
+//    *: PathNormalizer.cpp
+//
 //===----------------------------------------------------------------===//
 
 #pragma once
 
+#include <Common/_DynAlloc.hpp>
 #include <Common/StrRef.hpp>
 #include <Common/PtrRange.hpp>
 #include <Meta/Objects.hpp>
@@ -35,12 +40,17 @@
 // https://googleprojectzero.blogspot.com/2016/02/the-definitive-guide-on-win32-to-nt.html
 // https://dubeyko.com/development/FileSystems/NTFS/ntfsdoc.pdf
 
-namespace hc::sys {
+namespace hc {
+namespace parcel {
+  struct [[gsl::Pointer]] IStringTable;
+} // namespace parcel
+
+namespace sys {
   static constexpr usize path_max = RT_STRICT_MAX_PATH;
-  using UPathType = parcel::StaticVec<wchar_t, path_max>;
-  using PathDyn = common::DynAllocation<wchar_t>;
-  using PathRef = common::PtrRange<wchar_t>;
-  using ImmPathRef = common::ImmPtrRange<wchar_t>;
+  using UPathType  = parcel::StaticVec<wchar_t, path_max>;
+  using PathDyn    = com::DynAllocation<wchar_t>;
+  using PathRef    = com::PtrRange<wchar_t>;
+  using ImmPathRef = com::ImmPtrRange<wchar_t>;
 
   /// Swapped "\" with "/" because comment syntax is
   /// fucking stupid and it can't decide what to escape.
@@ -65,60 +75,59 @@ namespace hc::sys {
     DirRel,         // `~`
   };
 
-  enum class UNCPrefixType : u32;
+  enum class UNCPrefixType : u32 {
+    Unknown,
+    HostName,
+    NetBIOS,
+    IPv4,
+    IPv6,
+    FQDN,
+  };
 
   struct [[gsl::Owner]] PathNormalizer {
-    friend struct PathDeductionCtx;
     using enum PathType;
-    using StrRef  = common::StrRef;
-    using StrDyn  = common::DynAllocation<char>;
-    using WStrDyn = common::DynAllocation<wchar_t>;
+    struct PathDeductionCtx;
 
     /// May not be 100% accurate, as this is just a first pass.
     /// For example, a UNC path with the Nt namespace prefix will resolve 
     /// to a `NtNamespace`. To get the same results as the normalizer itself,
     /// just do a full path resolve and then call `.getType()`.
-    static PathType PredictPathType(StrRef);
+    static PathType PredictPathType(com::StrRef);
   public:
     constexpr PathNormalizer() = default;
-    bool operator()(StrRef path);
+    bool operator()(com::StrRef path);
     bool operator()(ImmPathRef wpath);
+
     UPathType&& take() { return __hc_move(path); }
     PathRef  getPath() { return path.intoRange(); }
-    PathType getType() const { return type; }
+    PathType getType()   const { return type; }
     Error getLastError() const { return err; }
+
+    operator bool() const { return this->didError(); }
     bool didError() const { return err != Error::eNone; }
 
   protected:
-    bool doNormalization(StrRef S);
-    void applyRelativePath(parcel::IStaticVec<StrRef>& V);
+    bool doNormalization(com::StrRef S);
+    void applyRelativePath(parcel::IStringTable& V);
 
   private:
-    __always_inline void push(char C) {
+    inline void push(char C) {
       path.emplace(static_cast<wchar_t>(C));
     }
-    __always_inline void push(wchar_t C) {
+    inline void push(wchar_t C) {
       path.emplace(C);
     }
 
-    void push(common::ImmPtrRange<wchar_t> P);
-    void push(common::ImmPtrRange<char> P);
+    void push(ImmPathRef P);
+    void push(com::ImmPtrRange<char> P);
 
     template <typename CType, usize N>
-    [[gnu::flatten]]
     constexpr void push(const CType(&A)[N]) {
       if __expect_false(isNameTooLong(N))
         return;
-      /// Force compiler to unroll loop
-      if constexpr (N < 16) {
-        [&, this] <usize...II> (meta::IdxSeq<II...>) {
-          ((this->push(A[II])), ...);
-        } (meta::make_idxseq<N>());
-      } else {
-        for (usize I = 0U; I < N; ++I)
-          this->push(A[I]);
-      }
-      if __expect_true(path.back() == L'\0')
+      for (usize I = 0U; I < N; ++I)
+        this->push(A[I]);
+      if __likely_true(path.back() == L'\0')
         path.pop();
     }
 
@@ -134,4 +143,5 @@ namespace hc::sys {
     PathType type = PathType::Unknown;
     Error err = Error::eNone;
   };
-} // namespace hc::sys
+} // namespace sys
+} // namespace hc
