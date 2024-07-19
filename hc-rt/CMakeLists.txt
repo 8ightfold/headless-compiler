@@ -100,7 +100,7 @@ if(WIN32)
     src/Bootstrap/Syscalls.cpp
     src/Bootstrap/UnicodeString.cpp
     src/Bootstrap/Win64KernelDefs.cpp
-    ${HC_RSYS}/PathNormalizer2.cpp
+    ${HC_RSYS}/PathNormalizer.cpp
     ${HC_RSYS}/PathPredictor.cpp
     ${HC_RSYS}/Nt/CheckPacking.cpp
   )
