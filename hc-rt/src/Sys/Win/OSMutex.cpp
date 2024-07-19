@@ -28,7 +28,7 @@ namespace S = hc::sys;
 
 namespace {
   inline win::LargeInt* __mtx_time_fmt(win::LargeInt& I, usize ms) {
-    if __expect_false(ms == hc::Max<usize>)
+    if __likely_false(ms == hc::Max<usize>)
       return nullptr;
     const i64 nt_ms = i64(ms) * -10000LL;
     return &(I = nt_ms);
@@ -98,7 +98,7 @@ void S::RawMtxHandle::LockMs(RawMtxHandle H, usize ms, bool alertable) {
   /// This means we do not need to time the wait period.
   if __expect_false(ms == hc::Max<usize>)
     return RawMtxHandle::Lock(H);
-  if __expect_false(alertable)
+  if __likely_false(alertable)
     $tail_return __mtx_lock_ms<true>(H, ms, alertable);
   // else:
   $tail_return __mtx_lock_ms<>(H, ms, alertable);

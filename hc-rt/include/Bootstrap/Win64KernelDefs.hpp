@@ -42,6 +42,7 @@ static_assert(HC_PLATFORM_WIN64, "Windows only.");
 namespace hc {
 namespace sys {
   struct IIOFile;
+  struct RawOSSemaphore;
 } // namespace sys
 
 using RawIOFile = sys::IIOFile;
@@ -51,6 +52,7 @@ namespace bootstrap {
   using Win64Addr       = void*;
   using Win64AddrRange  = common::AddrRange;
   using Win64Handle     = hc::__void*;
+  using Win64Lock       = sys::RawOSSemaphore;
   using Win64Bool       = bool;
 
   struct Win64ModuleType {
@@ -351,7 +353,11 @@ namespace bootstrap {
     Win64ProcParams*  process_params;
     Win64Addr         subsystem_data;
     Win64Handle       process_heap;
-    Win64Addr         fast_PEB_lock;
+    Win64Lock*        fast_PEB_lock;
+    Win64Addr         fast_PEB_lock_fn;   // PPEBLOCKROUTINE
+    Win64Addr         fast_PEB_unlock_fn; // PPEBLOCKROUTINE
+    u32               env_update_count;
+    Win64Addr         ke_callback_tbl;
     // ...
     HC_MARK_DELETED(Win64PEB);
   public:
