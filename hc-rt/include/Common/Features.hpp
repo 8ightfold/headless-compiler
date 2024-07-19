@@ -320,6 +320,8 @@ extern "C" {
 } // extern "C"
 
 namespace hc {
+  namespace parcel {}
+  namespace pcl = parcel;
   namespace common {}
   namespace com = common;
 #if _HC_COMMON_INLINE
