@@ -20,12 +20,15 @@
 #include <Common/Function.hpp>
 #include <Common/Limits.hpp>
 #include <Common/RawLazy.hpp>
+
 #include <Meta/ID.hpp>
 #include <Meta/Refl.hpp>
 #include <Meta/Traits.hpp>
 #include <Meta/Unwrap.hpp>
+
 #include <Bootstrap/Win64KernelDefs.hpp>
 #include <Bootstrap/Syscalls.hpp>
+
 #include <Parcel/Skiplist.hpp>
 #include <Parcel/StaticVec.hpp>
 #include <Parcel/StringTable.hpp>
@@ -39,6 +42,7 @@
 #include <Sys/IOFile.hpp>
 #include <Sys/OSMutex.hpp>
 #include <Sys/BasicNetwork.hpp>
+#include <Sys/Atomic.hpp>
 
 #include <Meta/ASM.hpp>
 #include "VolumeInfoDumper.hpp"
@@ -185,6 +189,11 @@ int main(int N, char* A[], char* Env[]) {
   // functionTests();
   // stringTableTests();
   // return 0;
+
+  {
+    sys::Atomic<int> ai {};
+    sys::Atomic<float> af {};
+  }
 
   printVolumeInfo("\\??\\C:\\");
   std::printf("\nCurrent directory: ");
