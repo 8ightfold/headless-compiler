@@ -20,6 +20,13 @@
 
 #include <Common/Fundamental.hpp>
 
+namespace hc::meta {
+  // template <typename> __global bool __is_floating_point       = false;
+  // template <> __global bool __is_floating_point<float>        = true;
+  // template <> __global bool __is_floating_point<double>       = true;
+  // template <> __global bool __is_floating_point<long double>  = true;
+} // namespace hc::meta
+
 //======================================================================//
 // Concepts
 //======================================================================//
@@ -50,7 +57,10 @@ namespace hc::meta {
   concept is_float = __is_floating_point(T);
 
   template <typename T>
-  concept is_array = __is_array(T);
+  concept is_arithmetic = is_integral<T> || is_float<T>;
+
+  template <typename T>
+  concept is_array = __is_array(T);  
 
   template <typename T>
   concept is_enum = __is_enum(T);
