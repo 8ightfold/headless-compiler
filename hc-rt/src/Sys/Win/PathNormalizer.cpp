@@ -18,7 +18,6 @@
 
 #include <Common/DynAlloc.hpp>
 #include <Common/InlineMemcpy.hpp>
-#include <Common/MMatch.hpp>
 #include <Common/Option.hpp>
 #include <Common/TaggedUnion.hpp>
 #include <Bootstrap/Win64KernelDefs.hpp>
@@ -26,6 +25,7 @@
 #include <Sys/Args.hpp>
 #include <Sys/Win/Volume.hpp>
 #include "PathNormalizer.hpp"
+#include "_PathUtils.hpp"
 
 
 #ifndef __XCRT__
@@ -53,39 +53,6 @@ struct PathNormalizer::PathDeductionCtx {
 //======================================================================//
 
 // ...
-
-//======================================================================//
-// Reformatting
-//======================================================================//
-
-void PathNormalizer::push(ImmPtrRange<wchar_t> P) {
-  if (P.isEmpty())
-    return;
-  const usize N = P.size();
-  if (isNameTooLong(N)) {
-    // TODO: Output a warning.
-    return;
-  }
-  // Get the old end(). We will copy from here.
-  wchar_t* const old_end = path.growUninit(N);
-  inline_memcpy(old_end, P.data(), N * sizeof(wchar_t));
-}
-
-void PathNormalizer::push(ImmPtrRange<char> P) {
-  if (P.isEmpty())
-    return;
-  auto S = StrRef(P).dropNull();
-  const usize N = S.size();
-  if (isNameTooLong(N)) {
-    // TODO: Output a warning.
-    return;
-  }
-
-  // Similar to the wide version, except here we need to widen.
-  wchar_t* const old_end = path.growUninit(N);
-  for (usize Ix = 0; Ix < N; ++Ix)
-    old_end[Ix] = static_cast<wchar_t>(S[Ix]);
-}
 
 //======================================================================//
 // Core
@@ -129,3 +96,36 @@ bool PathNormalizer::operator()(ImmPathRef wpath) {
   __hc_todo("operator()(ImmPathRef)", false);
 }
 */
+
+//======================================================================//
+// Reformatting
+//======================================================================//
+
+void PathNormalizer::push(ImmPtrRange<wchar_t> P) {
+  if (P.isEmpty())
+    return;
+  const usize N = P.size();
+  if (isNameTooLong(N)) {
+    // TODO: Output a warning.
+    return;
+  }
+  // Get the old end(). We will copy from here.
+  wchar_t* const old_end = path.growUninit(N);
+  inline_memcpy(old_end, P.data(), N * sizeof(wchar_t));
+}
+
+void PathNormalizer::push(ImmPtrRange<char> P) {
+  if (P.isEmpty())
+    return;
+  auto S = StrRef(P).dropNull();
+  const usize N = S.size();
+  if (isNameTooLong(N)) {
+    // TODO: Output a warning.
+    return;
+  }
+
+  // Similar to the wide version, except here we need to widen.
+  wchar_t* const old_end = path.growUninit(N);
+  for (usize Ix = 0; Ix < N; ++Ix)
+    old_end[Ix] = static_cast<wchar_t>(S[Ix]);
+}

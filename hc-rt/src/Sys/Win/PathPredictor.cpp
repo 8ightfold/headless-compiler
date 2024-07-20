@@ -16,8 +16,8 @@
 //
 //===----------------------------------------------------------------===//
 
-#include <Common/MMatch.hpp>
 #include "PathNormalizer.hpp"
+#include "_PathUtils.hpp"
 
 // For more info:
 // https://learn.microsoft.com/en-us/dotnet/standard/io/file-path-formats
@@ -28,56 +28,6 @@
 using namespace hc;
 using namespace hc::sys;
 
-namespace {
-  inline bool __is_control(const char C) {
-    return (C < ' ' || C == '\x7F');
-  }
-
-  __always_inline bool __is_upper(const char C) {
-    return (C >= 'A' && C <= 'Z');
-  }
-
-  __always_inline bool __is_lower(const char C) {
-    return (C >= 'a' && C <= 'z');
-  }
-
-  __always_inline bool __is_alpha(const char C) {
-    return __is_upper(C) || __is_lower(C);
-  }
-
-  __always_inline bool __is_numeric(const char C) {
-    return (C >= '0' && C <= '9');
-  }
-
-  inline bool __is_alnum(const char C) {
-    return __is_alpha(C) || __is_numeric(C);
-  }
-
-  inline bool __is_hex_upper(const char C) {
-    return __is_numeric(C) || (C >= 'A' && C <= 'F');
-  }
-
-  inline bool __is_hex_lower(const char C) {
-    return __is_numeric(C) || (C >= 'a' && C <= 'f');
-  }
-
-  __always_inline bool __is_hex(const char C) {
-    return __is_numeric(C)   || 
-      (C >= 'A' && C <= 'F') ||
-      (C >= 'a' && C <= 'f');
-  }
-
-  inline bool __is_special_pchar(const char C) {
-    return __is_control(C) || MMatch(C).is(
-     '"', '*', '/', ':', '<', '>', '?', '|');
-  }
-
-  inline bool __is_valid_pchar(const char C) {
-    if __expect_true(__is_alnum(C))
-      return true;
-    return (C != '\\' && !__is_special_pchar(C));
-  }
-
 #define $ConsumeMultiChars(path, chars...) do { \
  if __expect_false(!path.consumeFront(chars)) \
   return false; \
@@ -87,6 +37,7 @@ namespace {
   return false; \
 } while (0)
 
+namespace {
   ////////////////////////////////////////////////////////////////////////
   /// Checks if path begins with `(//|\\)[.?][/\]`.
   inline bool is_device_path(StrRef path) {

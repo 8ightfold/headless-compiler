@@ -46,8 +46,8 @@ namespace parcel {
 } // namespace parcel
 
 namespace sys {
-  static constexpr usize path_max = RT_STRICT_MAX_PATH;
-  using UPathType  = parcel::StaticVec<wchar_t, path_max>;
+  inline constexpr usize path_max = RT_STRICT_MAX_PATH;
+  using UPathType  = parcel::StaticVec<wchar_t, path_max + 4>;
   using PathDyn    = com::DynAllocation<wchar_t>;
   using PathRef    = com::PtrRange<wchar_t>;
   using ImmPathRef = com::ImmPtrRange<wchar_t>;
