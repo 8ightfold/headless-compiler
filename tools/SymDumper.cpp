@@ -470,6 +470,6 @@ void symdumper_main() {
   std::printf("Executable name: %.*ls\n\n", int(name.getSize()), name.buffer);
   // list_modules();
 
-  check_module(self);
-  // check_module("ntdll.dll");
+  // check_module(self);
+  check_module("ntdll.dll");
 }
