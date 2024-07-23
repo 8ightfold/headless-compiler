@@ -185,10 +185,17 @@ void functionTests() {
   test(deduced);
 }
 
+#include "UserShared.hpp"
+
+
 int main(int N, char* A[], char* Env[]) {
+  assert(reinterpret_cast<uptr>(&KUSER_SHARED_DATA) == 0x7FFE0000);
+  std::printf("CyclesPerYield: %hu\n", KUSER_SHARED_DATA.CyclesPerYield);
+  std::printf("UnparkedProcessorCount: %hu\n", KUSER_SHARED_DATA.UnparkedProcessorCount);
+
   // functionTests();
   // stringTableTests();
-  // return 0;
+  return 0;
 
   {
     sys::Atomic<int> ai {};
