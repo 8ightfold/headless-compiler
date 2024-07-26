@@ -257,6 +257,11 @@ int main(int N, char* A[], char* Env[]) {
   // dump_struct<MEMORY_BASIC_INFORMATION>();
   // functionTests();
   // stringTableTests();
+
+  for (sys::Atomic<bool> B = true; B.load();) {
+    
+  }
+
   return 0;
 
   {

@@ -29,7 +29,7 @@
 /// @param on_err The value to be used if `!obj`.
 #define $unwrap(obj, on_err...) ({ \
   auto&& objU__ = (obj); \
-  if __expect_false(!obj__) \
+  if __expect_false(!objU__) \
     return ::hc::__unwrap_fail(objU__, ##on_err); \
   ::hc::_FwdWrapper{*objU__}; \
 }).get()
