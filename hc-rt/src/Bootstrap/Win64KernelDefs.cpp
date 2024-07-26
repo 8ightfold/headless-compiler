@@ -92,11 +92,11 @@ Win64ProcParams* Win64TEB::GetProcessParams() {
 }
 
 uptr Win64TEB::getProcessId() const {
-  return reinterpret_cast<uptr>(this->process_id);
+  return reinterpret_cast<uptr>(this->client_id.unique_process);
 }
 
 uptr Win64TEB::getThreadId() const {
-  return reinterpret_cast<uptr>(this->thread_id);
+  return reinterpret_cast<uptr>(this->client_id.unique_thread);
 }
 
 Win64PEB* Win64TEB::getPEB() const {

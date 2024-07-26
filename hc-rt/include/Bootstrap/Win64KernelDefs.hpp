@@ -369,36 +369,140 @@ namespace bootstrap {
   //====================================================================//
   // TEB Data
   //====================================================================//
+  
+  struct ClientID {
+    Win64Handle unique_process;
+    Win64Handle unique_thread;
+  };
+
+  struct ListEntry {
+    ListEntry* prev;
+    ListEntry* next;
+  };
+
+  struct alignas(u32) ProcessorNumber {
+    u16   group;
+    ubyte number;
+    ubyte __reserved;
+  };
+
+  ////////////////////////////////////////////////////////////////////////
 
   struct Win64TIB {
-    Win64Addr SEH_frame;
-    Win64Addr stack_begin;
-    Win64Addr stack_end;
-    Win64Addr subsystem_TIB;
-    Win64Addr fiber_info;
-    Win64Addr arbitrary_data;
-    Win64Addr TEB_addr;
+    Win64Addr         SEH_frame;
+    Win64Addr         stack_begin;
+    Win64Addr         stack_end;
+    Win64Addr         subsystem_TIB;
+    Win64Addr         fiber_info;
+    Win64Addr         arbitrary_data;
+    Win64Addr         TEB_addr;
     HC_MARK_DELETED(Win64TIB);
   };
 
   struct Win64TEB {
-    Win64TIB    tib;
-    Win64Addr   env_addr;
-    Win64Handle process_id;
-    Win64Handle thread_id;
-    Win64Addr   rpc_handle;
-    Win64Addr   TLS_array_addr;
-    Win64Addr   PEB_addr;
-    u32         last_error;
-    u32         critical_section_count;
-    Win64Addr   CSR_thread_addr;
-    Win64Addr   win32_thread_info;
-    u32         __user32_reserved[31];
-    Win64Addr   __fast_syscall_addr;
-    u32         __current_locale;
-    u32         fp_status_reg;
-    u32         __os_reserved[54];
-    u32         exception_code;
+    Win64TIB          tib;
+    Win64Addr         env_addr;
+    ClientID          client_id;
+    Win64Addr         rpc_handle;
+    Win64Addr         TLS_array_addr;
+    Win64Addr         PEB_addr;
+    u32               last_error;
+    u32               critical_section_count;
+    Win64Addr         CSR_thread_addr;
+    Win64Addr         win32_thread_info;
+    u32               __user32_reserved[26];
+    u32               __user_reserved[5];
+    Win64Addr         __WOW32_reserved;
+    u32               __current_locale;
+    u32               fp_status_reg;
+    Win64Addr         __dbg_reserved[16];
+    Win64Addr         __system1_reserved[30];
+    char              placeholder_compat_mode;
+    ubyte             placeholder_hydration;
+    char              __placeholder_reserved[10];
+    u32               proxied_process_id;
+    void*             activation_stack_tmp[5];
+    ubyte             working_behalf_ticket[8];
+    i32               exception_code;
+    Win64Addr         activation_stack_ptr;
+    u64               instrumentation_cb_sp;
+    u64               instrumentation_cb_prev_pc;
+    u64               instrumentation_cb_prev_sp;
+    u32               tx_fs_ctx;
+    ubyte             instrumentation_cb_disabled;
+    ubyte             unaligned_loadstore_exceptions;
+    void*             GDI_teb_batch_tmp[157];
+    ClientID          real_client_id;
+    Win64Addr         GDI_cached_process_handle;
+    u32               GDI_client_PID;
+    u32               GDI_client_TID;
+    Win64Addr         GDI_TLS_info;
+    u64               win32_client_info[62];
+    void*             __gl_dispatch_table[233];
+    uptr              __gl_reserved[30];
+    void*             __gl_data[5];
+    u32               last_status;
+    Win64UnicodeString static_unicode_string;
+    wchar_t            static_unicode_buf[261];
+    void*             dealloc_stack;
+    void*             tls_slots[64];
+    ListEntry         tls_links;
+    void*             VDM;
+    void*             __nt_RPC_reserved;
+    void*             __dbg_SS_reserved[2];
+    u32               hard_error_mode;
+    void*             instrumentation[11];
+    u32               activity_id[4];
+    void*             subprocess_tag;
+    void*             perflib_data;
+    void*             ETWtrace_data;
+    void*             winsock_data;
+    u32               GDI_batch_count;
+    ProcessorNumber   curr_ideal_processor;
+    u32               guaranteed_stack_bytes;
+    void*             __perf_reserved;
+    void*             __ole_reserved;
+    u32               waiting_on_loader_lock;
+    void*             saved_prio_state;
+    u64               __codecov_reserved;
+    void*             threadpool_data;
+    void**            TLS_expansion_slots;
+    Win64Addr         __chpev2_cpu_area_info;
+    void*             __unused;
+    u32               MUI_generation;
+    u32               is_impersonating;
+    void*             NLS_cache;
+    void*             shim_data;
+    u32               heap_data;
+    void*             curr_transaction_handle;
+    Win64Addr         active_frame;
+    void*             FLS_data;
+    void*             __language_data[3];
+    u32               MUI_impersonation;
+    volatile u16      cross_TEB_flags;
+    union {
+      u16             same_TEB_flags;
+      struct {
+        u16           safe_thunk_call         : 1;
+        u16           in_debug_print          : 1;
+        u16           has_fiber_data          : 1;
+        u16           skip_thread_attach      : 1;
+        u16           in_ship_assert_mode     : 1;
+        u16           ran_process_init        : 1;
+        u16           cloned_thread           : 1;
+        u16           suppress_debug_msg      : 1;
+        u16           disable_user_stackwalk  : 1;
+        u16           rtl_exception_attached  : 1;
+        u16           initial_thread          : 1;
+        u16           session_aware           : 1;
+        u16           load_owner              : 1;
+        u16           loader_worker           : 1;
+        u16           skip_loader_init        : 1;
+        u16           skip_file_brokering     : 1;
+      };
+    };
+    void*             TXN_scope_enter_cb;
+    void*             TXN_scope_exit_cb;
     // ...
     HC_MARK_DELETED(Win64TEB);
   public:
