@@ -74,6 +74,18 @@ namespace hc::meta {
   // Qualifiers
 
   template <typename T>
+  concept is_lvalue_ref = __is_lvalue_reference(T);
+
+  template <typename T>
+  concept is_rvalue_ref = __is_rvalue_reference(T);
+
+  template <typename T>
+  concept not_lvalue_ref = !__is_lvalue_reference(T);
+
+  template <typename T>
+  concept not_rvalue_ref = !__is_rvalue_reference(T);
+
+  template <typename T>
   concept is_ref = __is_reference(T);
 
   template <typename T>
@@ -172,6 +184,9 @@ namespace hc::meta {
 
   template <typename T>
   using RemoveCVRef = __remove_cvref(T);
+
+  template <typename T>
+  using RemovePtr = __remove_pointer(T);
 
   template <bool B, typename T, typename F>
   using __conditional_t = __type_pack_element<B, F, T>;  
