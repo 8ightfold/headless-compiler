@@ -142,6 +142,16 @@ namespace hc::common {
       return __data;
     }
 
+    __ndbg_inline
+    constexpr T* data() noexcept {
+      return &__data;
+    }
+
+    __ndbg_inline 
+    constexpr const T* data() const noexcept {
+      return &__data;
+    }
+
     [[nodiscard]] __ndbg_inline
     constexpr T take() noexcept {
       return __data;
