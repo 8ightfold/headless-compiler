@@ -49,6 +49,9 @@ namespace hc::sys::win {
     __ndbg_inline operator i64() const {
       return this->quad;
     }
+    __ndbg_inline operator i64() const volatile {
+      return this->quad;
+    }
     __ndbg_inline LargeInt& operator=(i64 I) {
       this->quad = I;
       return *this;
@@ -63,6 +66,9 @@ namespace hc::sys::win {
 
   union ULargeInt {
     __ndbg_inline operator u64() const {
+      return this->quad;
+    }
+    __ndbg_inline operator u64() const volatile {
       return this->quad;
     }
     __ndbg_inline ULargeInt& operator=(u64 I) {
