@@ -187,12 +187,74 @@ void functionTests() {
 
 #include "UserShared.hpp"
 
+struct PackStore {
+  static PackStore New(
+   const char* depth, const char* type,
+   const char* name, auto& ref
+  ) {
+    return {depth, type, name, &ref};
+  }
+
+public:
+  const char* depth;
+  const char* type;
+  const char* name;
+  void* offset;
+};
+
+template <typename T, typename...Args>
+requires (sizeof...(Args) == 4)
+void _dump_struct(T* data, bool, const char format[], Args&&...args) {
+  auto [depth, type, name, arg] = tuple_fwd(args...);
+  if (meta::not_ptr<decltype(arg)>) {
+    const usize offset = ptr_cast<ubyte>(&arg) - ptr_cast<ubyte>(data);
+    std::printf("%s%s: %s = [0x%llx];\n", depth, name, type, offset);
+  } else {
+    const usize offset = ptr_cast<ubyte>(arg) - ptr_cast<ubyte>(data);
+    std::printf("%s%s: %s = [0x%llx];\n", depth, name, type, offset);
+  }
+}
+
+template <typename T, typename...Args>
+requires (sizeof...(Args) > 1 && sizeof...(Args) != 4)
+void _dump_struct(T* data, bool, const char format[], Args...args) {
+  std::printf("*");
+  std::printf(format, args...);
+}
+
+template <typename T>
+void _dump_struct(T* data, bool& did_print, const char format[], const char* name) {
+  if (!did_print) [[unlikely]] {
+    std::printf("%s <0x%llx>", name, sizeof(T));
+    did_print = true;
+  }
+}
+
+void _dump_struct(void*, bool, const char format[]) {
+  std::printf(format);
+}
+
+template <typename T>
+void dump_struct() {
+  RawLazy<T> sto;
+  T* data = sto.data();
+  bool print_extra = false;
+  __builtin_dump_struct(data, _dump_struct, data, print_extra);
+}
+
+template <typename T>
+void dump_struct(T* data) {
+  bool print_extra = false;
+  __builtin_dump_struct(data, _dump_struct, data, print_extra);
+}
 
 int main(int N, char* A[], char* Env[]) {
   assert(reinterpret_cast<uptr>(&KUSER_SHARED_DATA) == 0x7FFE0000);
   std::printf("CyclesPerYield: %hu\n", KUSER_SHARED_DATA.CyclesPerYield);
   std::printf("UnparkedProcessorCount: %hu\n", KUSER_SHARED_DATA.UnparkedProcessorCount);
 
+  dump_struct(&KUSER_SHARED_DATA);
+  // dump_struct<MEMORY_BASIC_INFORMATION>();
   // functionTests();
   // stringTableTests();
   return 0;
