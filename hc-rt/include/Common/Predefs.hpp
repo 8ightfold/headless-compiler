@@ -74,8 +74,8 @@
 #define __hc_stringify(...) #__VA_ARGS__
 #define $stringify(...) __hc_stringify(__VA_ARGS__)
 
-#define $unique(ty...) ::__hc_tyident_<ty> $2cat(__unique_, __COUNTER__)
-#define $var(name) $3cat(__v_, name, __COUNTER__)
+#define $unique(ty...) ::__hc_tyident_<ty> $3cat(_, __COUNTER__, U__)
+#define $var(name) $3cat(name, __COUNTER__, U__)
 
 template <typename T>
 using __hc_tyident_ = T;

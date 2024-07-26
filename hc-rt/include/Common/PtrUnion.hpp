@@ -25,7 +25,7 @@
 #include <Meta/ExTraits.hpp>
 
 #define $PUnion(tys...) ::hc::common::PtrUnion<tys>
-#define $extract_member(name, ty...) visitR<ty>([](auto* p) { return p->name; })
+#define $extract_member(name, ty...) visitR<ty>([](auto* pU__) { return pU__->name; })
 
 namespace hc::common {
   template <typename T, usize I>

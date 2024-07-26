@@ -28,10 +28,10 @@
 /// @param obj The object to be unwrapped.
 /// @param on_err The value to be used if `!obj`.
 #define $unwrap(obj, on_err...) ({ \
-  auto&& obj__ = (obj); \
+  auto&& objU__ = (obj); \
   if __expect_false(!obj__) \
-    return ::hc::__unwrap_fail(obj__, ##on_err); \
-  ::hc::_FwdWrapper{*obj__}; \
+    return ::hc::__unwrap_fail(objU__, ##on_err); \
+  ::hc::_FwdWrapper{*objU__}; \
 }).get()
 
 /// Unwrapping for void functions.

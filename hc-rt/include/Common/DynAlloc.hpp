@@ -45,9 +45,9 @@
 #endif
 
 #define __dynalloc(sz, ty...) ({ \
- using __ty = ::hc::common::DynAllocation<ty>; \
- auto* __local_alloc = __hc_typed_alloca(sz, __ty); \
- __ty::New(__local_alloc, sz); })
+ using tyU__ = ::hc::common::DynAllocation<ty>; \
+ auto* __local_alloc = __hc_typed_alloca(sz, tyU__); \
+ tyU__::New(__local_alloc, sz); })
 
 #define $dynalloc(sz, ty...) (__dynalloc(sz, ##ty).__ident())
 #define $zdynalloc(sz, ty...) (__dynalloc(sz, ##ty).__zeroMemory())
@@ -55,11 +55,12 @@
 // TODO: $to_wstr -> $widen
 // Add $narrow, add SIMD?
 #define $to_wstr_sz(S, size) ({ \
-  const usize __len = size; \
-  auto __wstr = $zdynalloc(__len + 1, wchar_t); \
-  for (usize I = 0; I < __len; ++I) \
-    __wstr[I] = static_cast<wchar_t>(S[I]); \
-  __wstr; \
+  const usize lenU__ = size; \
+  auto wstrU__ = $dynalloc(lenU__ + 1, wchar_t); \
+  for (usize IU__ = 0; IU__ < lenU__; ++IU__) \
+    wstrU__[IU__] = static_cast<wchar_t>(S[IU__]); \
+  wstrU__[lenU__] = L'\0'; \
+  wstrU__; \
 })
 
 #define $to_wstr(S) $to_wstr_sz(S, __builtin_strlen(S))

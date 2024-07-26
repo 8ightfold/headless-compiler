@@ -29,6 +29,8 @@
 #include "Tuple.hpp"
 #include <Meta/Preproc.hpp>
 
+// TODO: Update to use `U__` postfix.
+
 namespace hc::common {
   struct _TaggedUnionNull {};
   struct _TaggedUnionBase {};

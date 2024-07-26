@@ -35,12 +35,12 @@ __cldiag(ignored "-Wvariadic-macros")
 /// Single attributes are: `Boolean`, `Equality`, `Indexed`, `Invokable`, and `Pointer`.
 /// Template attributes are: `InGroup<...>`.
 #define $Handle(name, type, attrs...) using name = \
- ::hc::Handle<$PP_rm_parens(type), struct _Hnd_##name##_ \
+ ::hc::Handle<$PP_rm_parens(type), struct _hnd_##name##U__ \
   __VA_OPT__(,) $PP_mapCL(_HC_HANDLE_ATTRIB, attrs) >
 
 /// Defines a new handle group `name`.
 #define $HandleGroup(name) using name = \
- ::hc::_HandleGroup<struct _HGrp_##name##_>
+ ::hc::_HandleGroup<struct _hGrp_##name##U__>
 
 __cldiag(pop)
 
