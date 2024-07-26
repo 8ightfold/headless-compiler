@@ -29,9 +29,31 @@
 #include "Memory.hpp"
 #include "PtrRange.hpp"
 
+#if 0
+/// Disabled as "[t]he __builtin_alloca_with_align function must be
+/// called at block scope." For now it won't be used.
+# define __hc_typed_alloca(sz, ty) \
+  (typename ty::pointer)__builtin_alloca_with_align( \
+   ty::AllocationSize(sz), ty::totalAlign)
+#else
+# ifndef __BIGGEST_ALIGNMENT__
+#  error __BIGGEST_ALIGNMENT__ must be defined.
+# endif // __BIGGEST_ALIGNMENT__
+
+# define __hc_typed_alloca(sz, ty) \
+  (typename ty::pointer) __builtin_alloca(ty::AllocationSize(sz))
+#endif
+
+#define __dynalloc(sz, ty...) ({ \
+ using __ty = ::hc::common::DynAllocation<ty>; \
+ auto* __local_alloc = __hc_typed_alloca(sz, __ty); \
+ __ty::New(__local_alloc, sz); })
+
+#define $dynalloc(sz, ty...) (__dynalloc(sz, ##ty).__ident())
+#define $zdynalloc(sz, ty...) (__dynalloc(sz, ##ty).__zeroMemory())
+
 // TODO: $to_wstr -> $widen
 // Add $narrow, add SIMD?
-
 #define $to_wstr_sz(S, size) ({ \
   const usize __len = size; \
   auto __wstr = $zdynalloc(__len + 1, wchar_t); \
@@ -42,18 +64,6 @@
 
 #define $to_wstr(S) $to_wstr_sz(S, __builtin_strlen(S))
 
-#define __dynalloc(sz, ty...) ({ \
- using __ty = ::hc::common::DynAllocation<ty>; \
- auto* __local_alloc = __hc_typed_alloca(sz, __ty); \
- __ty::New(__local_alloc, sz); })
-
-#define $dynalloc(sz, ty...) (__dynalloc(sz, ##ty).__ident())
-#define $zdynalloc(sz, ty...) (__dynalloc(sz, ##ty).__zeroMemory())
-
-#define __hc_typed_alloca(sz, ty) \
- (typename ty::pointer)__builtin_alloca_with_align( \
-  ty::AllocationSize(sz), ty::totalAlign)
-
 namespace hc::common {
   template <typename T>
   concept __is_trivial_alloc = 
@@ -62,6 +72,7 @@ namespace hc::common {
 
   template <typename T, usize Align>
   struct [[gsl::Pointer]] DynAllocation {
+    static_assert(Align <= __BIGGEST_ALIGNMENT__);
     using value_type = T;
     using pointer = T*;
     static constexpr usize totalAlign = Align * ::__bitcount;
