@@ -1,7 +1,5 @@
 #pragma once
 
-#define VOLATILE
-
 typedef char CHAR;
 typedef wchar_t WCHAR;
 typedef unsigned char UCHAR;
@@ -23,8 +21,8 @@ typedef struct __handle_* HANDLE;
 
 typedef struct _KSYSTEM_TIME {
   ULONG LowPart;
-  LONG High1Time;
-  LONG High2Time;
+  LONG  High1Time;
+  LONG  High2Time;
 } KSYSTEM_TIME, *PKSYSTEM_TIME;
 
 typedef enum _NT_PRODUCT_TYPE {
@@ -89,9 +87,9 @@ typedef enum _MEMORY_INFORMATION_CLASS {
 struct _KUSER_SHARED_DATA {
   ULONG                         TickCountLowDeprecated;
   ULONG                         TickCountMultiplier;
-  KSYSTEM_TIME                  InterruptTime;
-  KSYSTEM_TIME                  SystemTime;
-  KSYSTEM_TIME                  TimeZoneBias;
+  volatile KSYSTEM_TIME         InterruptTime;
+  volatile KSYSTEM_TIME         SystemTime;
+  volatile KSYSTEM_TIME         TimeZoneBias;
   USHORT                        ImageNumberLow;
   USHORT                        ImageNumberHigh;
   WCHAR                         NtSystemRoot[260];
@@ -103,7 +101,7 @@ struct _KUSER_SHARED_DATA {
   ULONG                         AppCompatFlag;
   ULONGLONG                     RNGSeedVersion;
   ULONG                         GlobalValidationRunlevel;
-  LONG                          TimeZoneBiasStamp;
+  volatile LONG                 TimeZoneBiasStamp;
   ULONG                         NtBuildNumber;
   NT_PRODUCT_TYPE               NtProductType;
   BOOLEAN                       ProductTypeIsValid;
@@ -114,52 +112,52 @@ struct _KUSER_SHARED_DATA {
   BOOLEAN                       ProcessorFeatures[PROCESSOR_FEATURE_MAX];
   ULONG                         Reserved1;
   ULONG                         Reserved3;
-  ULONG                         TimeSlip;
+  volatile ULONG                TimeSlip;
   ALTERNATIVE_ARCHITECTURE_TYPE AlternativeArchitecture;
   ULONG                         BootId;
   LARGE_INTEGER                 SystemExpirationDate;
   ULONG                         SuiteMask;
   BOOLEAN                       KdDebuggerEnabled;
   union {
-    UCHAR MitigationPolicies;
+    UCHAR                       MitigationPolicies;
     struct {
-      UCHAR NXSupportPolicy : 2;
-      UCHAR SEHValidationPolicy : 2;
-      UCHAR CurDirDevicesSkippedForDlls : 2;
-      UCHAR Reserved : 2;
+      UCHAR                     NXSupportPolicy : 2;
+      UCHAR                     SEHValidationPolicy : 2;
+      UCHAR                     CurDirDevicesSkippedForDlls : 2;
+      UCHAR                     Reserved : 2;
     };
   };
   USHORT                        CyclesPerYield;
-  ULONG                         ActiveConsoleId;
-  ULONG                         DismountCount;
+  volatile ULONG                ActiveConsoleId;
+  volatile ULONG                DismountCount;
   ULONG                         ComPlusPackage;
   ULONG                         LastSystemRITEventTickCount;
   ULONG                         NumberOfPhysicalPages;
   BOOLEAN                       SafeBootMode;
   union {
-    UCHAR VirtualizationFlags;
+    UCHAR                       VirtualizationFlags;
     struct {
-      UCHAR ArchStartedInEl2 : 1;
-      UCHAR QcSlIsSupported : 1;
+      UCHAR                     ArchStartedInEl2 : 1;
+      UCHAR                     QcSlIsSupported : 1;
     };
   };
   UCHAR                         Reserved12[2];
   union {
-    ULONG SharedDataFlags;
+    ULONG                       SharedDataFlags;
     struct {
-      ULONG DbgErrorPortPresent : 1;
-      ULONG DbgElevationEnabled : 1;
-      ULONG DbgVirtEnabled : 1;
-      ULONG DbgInstallerDetectEnabled : 1;
-      ULONG DbgLkgEnabled : 1;
-      ULONG DbgDynProcessorEnabled : 1;
-      ULONG DbgConsoleBrokerEnabled : 1;
-      ULONG DbgSecureBootEnabled : 1;
-      ULONG DbgMultiSessionSku : 1;
-      ULONG DbgMultiUsersInSessionSku : 1;
-      ULONG DbgStateSeparationEnabled : 1;
-      ULONG SpareBits : 21;
-    } DUMMYSTRUCTNAME2;
+      ULONG                     ErrorPortPresent : 1;
+      ULONG                     ElevationEnabled : 1;
+      ULONG                     VirtEnabled : 1;
+      ULONG                     InstallerDetectEnabled : 1;
+      ULONG                     LkgEnabled : 1;
+      ULONG                     DynProcessorEnabled : 1;
+      ULONG                     ConsoleBrokerEnabled : 1;
+      ULONG                     SecureBootEnabled : 1;
+      ULONG                     MultiSessionSku : 1;
+      ULONG                     MultiUsersInSessionSku : 1;
+      ULONG                     StateSeparationEnabled : 1;
+      ULONG                     SpareBits : 21;
+    } Dbg;
   } DUMMYUNIONNAME2;
   ULONG                         DataFlagsPad[1];
   ULONGLONG                     TestRetInstruction;
@@ -169,11 +167,11 @@ struct _KUSER_SHARED_DATA {
   ULONGLONG                     FullNumberOfPhysicalPages;
   ULONGLONG                     SystemCallPad[1];
   union {
-    KSYSTEM_TIME TickCount;
-    ULONG64      TickCountQuad;
+    volatile KSYSTEM_TIME       TickCount;
+    volatile ULONG64            TickCountQuad;
     struct {
-      ULONG ReservedTickCountOverlay[3];
-      ULONG TickCountPad[1];
+      ULONG                     ReservedTickCountOverlay[3];
+      ULONG                     TickCountPad[1];
     } DUMMYSTRUCTNAME;
   } DUMMYUNIONNAME3;
   ULONG                         Cookie;
@@ -193,16 +191,15 @@ struct _KUSER_SHARED_DATA {
   ULONG                         ImageFileExecutionOptions;
   ULONG                         LangGenerationCount;
   ULONGLONG                     Reserved4;                                 
-  VOLATILE ULONGLONG            InterruptTimeBias;                
-  VOLATILE ULONGLONG            QpcBias;                          
+  volatile ULONGLONG            InterruptTimeBias;                
+  volatile ULONGLONG            QpcBias;                          
   ULONG                         ActiveProcessorCount;                          
-  VOLATILE UCHAR                ActiveGroupCount;                     
+  volatile UCHAR                ActiveGroupCount;                     
   UCHAR                         Reserved9;                                     
   union {
     USHORT                      QpcData;                                  
-    struct
-    {
-      VOLATILE UCHAR            QpcBypassEnabled;             
+    struct {
+      volatile UCHAR            QpcBypassEnabled;             
       UCHAR                     QpcShift;                              
     };
   };

@@ -27,6 +27,7 @@
 #include <Meta/Unwrap.hpp>
 
 #include <Bootstrap/Win64KernelDefs.hpp>
+#include <Bootstrap/ModuleParser.hpp>
 #include <Bootstrap/Syscalls.hpp>
 
 #include <Parcel/Skiplist.hpp>
@@ -187,30 +188,32 @@ void functionTests() {
 
 #include "UserShared.hpp"
 
-struct PackStore {
-  static PackStore New(
-   const char* depth, const char* type,
-   const char* name, auto& ref
-  ) {
-    return {depth, type, name, &ref};
-  }
+template <typename T>
+concept _is_array_ptr_impl = meta::is_ptr<T> && meta::is_array<meta::RemovePtr<T>>;
 
-public:
-  const char* depth;
-  const char* type;
-  const char* name;
-  void* offset;
-};
+template <typename T>
+concept is_array_ptr = _is_array_ptr_impl<meta::RemoveRef<T>>;
+
+template <typename T>
+concept not_array_ptr = !is_array_ptr<T>;
+
+template <typename T>
+concept is_inline_structure = meta::is_rvalue_ref<T> &&
+  meta::is_ptr<meta::RemoveRef<T>> &&
+  meta::is_object<meta::RemovePtr<meta::RemoveRef<T>>>;
 
 template <typename T, typename...Args>
 requires (sizeof...(Args) == 4)
 void _dump_struct(T* data, bool, const char format[], Args&&...args) {
-  auto [depth, type, name, arg] = tuple_fwd(args...);
-  if (meta::not_ptr<decltype(arg)>) {
-    const usize offset = ptr_cast<ubyte>(&arg) - ptr_cast<ubyte>(data);
+  auto [depth, type, name, arg] = tuple_fwd($fwd(args)...);
+  if constexpr (is_inline_structure<decltype(arg)>) {
+    const usize offset = (ubyte*)(arg) - (ubyte*)(data);
+    std::printf("%s%s: %s = [0x%llx];\n", depth, name, type, offset);
+  } else if constexpr (not_array_ptr<decltype(arg)>) {
+    const usize offset = (ubyte*)(&arg) - (ubyte*)(data);
     std::printf("%s%s: %s = [0x%llx];\n", depth, name, type, offset);
   } else {
-    const usize offset = ptr_cast<ubyte>(arg) - ptr_cast<ubyte>(data);
+    const usize offset = (ubyte*)(*arg) - (ubyte*)(data);
     std::printf("%s%s: %s = [0x%llx];\n", depth, name, type, offset);
   }
 }
@@ -248,20 +251,162 @@ void dump_struct(T* data) {
   __builtin_dump_struct(data, _dump_struct, data, print_extra);
 }
 
+namespace hc::bootstrap {
+COFFModule& __NtModule();
+} // namespace hc::bootstrap
+using DbgType = bootstrap::ULong(const char* fmt, ...);
+
+static void __try_dbgprint(const char* Format, auto&&...Args) {
+  static auto& M = bootstrap::__NtModule();
+  auto res = M.resolveExport<DbgType>("DbgPrint");
+  if (res.isNone()) [[unlikely]] {
+    return;
+  }
+  DbgType& F = res.some();
+  __hc_trap();
+  F(Format, Args...);
+}
+
+#define BREAKPOINT_PRINT 1
+
+struct STRING {
+  u16   Length;
+  u16   MaximumLength;
+  char* Buffer;
+};
+
+template <typename...Args>
+[[gnu::noinline, gnu::naked]]
+W::NtStatus __stdcall DebugService(Args...args) {
+  __asm__ volatile (
+    "mov  %%ecx, %%eax;\n"
+    "movq %%rdx, %%rcx;\n"
+    "mov  %%r8d, %%edx;\n"
+    "movq %%r9,  %%r8;\n"
+    "movq 40(%%rsp), %%r9;\n" ::
+  );
+  __asm__ volatile ("int $0x2D;\n"::);
+  __asm__ volatile ("int $3;\n"::);
+  __asm__ volatile (
+    // "int $3;\n"
+    "retn;\n" ::
+  );
+}
+
+#if 0
+[[gnu::noinline]]
+W::NtStatus DebugPrint(
+ STRING* DebugString,
+ u32 ComponentId,
+ u32 Level)
+{
+  __asm__ volatile (
+    "mov %[Level], %%r9d;\n"
+    :: [Level] "r"(Level)
+  );
+  __asm__ volatile (
+    "mov %[Id], %%r8d;\n"
+    :: [Id] "r"(ComponentId)
+  );
+  __asm__ volatile (
+    "movw %[Len], %%dx;\n"
+    "movq %[Buf], %%rcx;\n"
+    :: [Len] "r"(DebugString->Length),
+       [Buf] "r"(DebugString->Buffer)
+  );
+  __asm__ volatile (
+    "mov $1, %%eax;\n"
+    "int $0x2D;\n"
+    "int $3;\n"::
+  );
+
+  W::NtStatus Status;
+  __asm__ volatile (
+    "mov %%eax, %[Status];\n"
+    :: [Status] "r"(Status)
+  );
+  return Status;
+}
+#else
+[[gnu::noinline, gnu::naked]]
+W::NtStatus DebugPrint(
+ STRING* DebugString,
+ u32 ComponentId,
+ u32 Level)
+{
+  // mov r9d,r8d
+  // mov r8d,edx
+  // mov dx,word ptr ds:[rcx]
+  // mov rcx,qword ptr ds:[rcx+8]
+  // mov eax,1
+  // int 2D
+  // int3 
+  // ret
+  __asm__ volatile (
+    "mov  %%r8d, %%r9d;\n"
+    "mov  %%edx, %%r8d;\n"
+    "movw 0(%%rcx), %%dx;\n"
+    "movq 8(%%rcx), %%rcx;\n"::
+  );
+  __asm__ volatile (
+    "mov $1, %%eax;\n"
+    "int $0x2D;\n"
+    "int $3;\n"
+    "retn;\n"::
+  );
+}
+#endif
+
+__always_inline bootstrap::Win64TEB* LoadTeb() {
+  return bootstrap::Win64TEB::LoadTEBFromGS();
+}
+
+W::NtStatus DebugPrintI(
+ STRING* DebugString,
+ u32 ComponentId,
+ u32 Level)
+{
+  W::NtStatus Status = 0;
+  
+  Status = DebugPrint(DebugString, ComponentId, Level);
+
+  return Status;
+}
+
+template <usize N>
+W::NtStatus TestPrint(const char(&Str)[N]) {
+  char Buf[N];
+  inline_memcpy(Buf, Str, N);
+  STRING S {
+    .Length = u16(N - 1),
+    .MaximumLength = u16(N),
+    .Buffer = Buf,
+  };
+  //__hc_trap();
+  return DebugPrint(&S, 0x65, 3);
+}
+
 int main(int N, char* A[], char* Env[]) {
+  printPtrRange(sys::Args::WorkingDir(), "Working in");
   assert(reinterpret_cast<uptr>(&KUSER_SHARED_DATA) == 0x7FFE0000);
   std::printf("CyclesPerYield: %hu\n", KUSER_SHARED_DATA.CyclesPerYield);
   std::printf("UnparkedProcessorCount: %hu\n", KUSER_SHARED_DATA.UnparkedProcessorCount);
 
-  dump_struct(&KUSER_SHARED_DATA);
+  // dump_struct(&KUSER_SHARED_DATA);
+  // dump_struct(&KUSER_SHARED_DATA.Dbg);
   // dump_struct<MEMORY_BASIC_INFORMATION>();
+  dump_struct<B::Win64TEB>();
   // functionTests();
   // stringTableTests();
 
+  volatile auto* pSystemTime = &KUSER_SHARED_DATA.SystemTime;
   for (sys::Atomic<bool> B = true; B.load();) {
-    
+    printLargeInt(*ptr_cast<volatile W::ULargeInt>(pSystemTime));
+    break;
   }
 
+  // __try_dbgprint("Hello world!");
+  TestPrint("Hello world!");
   return 0;
 
   {
