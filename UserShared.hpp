@@ -1,5 +1,7 @@
 #pragma once
 
+#define VOLATILE
+
 typedef char CHAR;
 typedef wchar_t WCHAR;
 typedef unsigned char UCHAR;
@@ -13,6 +15,11 @@ typedef unsigned long long ULONGLONG;
 typedef UCHAR BOOLEAN;
 typedef long DWORD;
 typedef ULONGLONG ULONG64;
+typedef ULONGLONG SIZE_T;
+typedef int NTSTATUS;
+
+typedef void *PVOID;
+typedef struct __handle_* HANDLE;
 
 typedef struct _KSYSTEM_TIME {
   ULONG LowPart;
@@ -48,13 +55,38 @@ struct _XSTATE_FEATURE {
 }; 
 
 typedef struct _XSTATE_CONFIGURATION {
-  ULONGLONG EnabledFeatures;
-  ULONG Size;
-  ULONG OptimizedSave : 1;
-  struct _XSTATE_FEATURE Features[64];
-} XSTATE_CONFIGURATION, *PXSTATE_CONFIGURATION; 
+  ULONGLONG                     EnabledFeatures;                     
+  ULONGLONG                     EnabledVolatileFeatures;             
+  ULONG                         Size;                                    
+  union {
+    ULONG                       ControlFlags;                        
+    struct {
+      ULONG                     OptimizedSave : 1;                 
+      ULONG                     CompactionEnabled : 1;             
+      ULONG                     ExtendedFeatureDisable : 1;        
+    };
+  };
+  struct _XSTATE_FEATURE        Features[64];
+  ULONGLONG                     EnabledSupervisorFeatures;
+  ULONGLONG                     AlignedFeatures;
+  ULONG                         AllFeatureSize;
+  ULONG                         AllFeatures[64];
+  ULONGLONG                     EnabledUserVisibleSupervisorFeatures;
+  ULONGLONG                     ExtendedFeatureDisableFeatures;
+  ULONG                         AllNonLargeFeatureSize;
+  ULONG                         Spare;
+} XSTATE_CONFIGURATION, *PXSTATE_CONFIGURATION;
 
-typedef struct _KUSER_SHARED_DATA {
+typedef enum _MEMORY_INFORMATION_CLASS {
+  MemoryBasicInformation,           // MEMORY_BASIC_INFORMATION
+  MemoryWorkingSetInformation,      // MEMORY_WORKING_SET_INFORMATION
+  MemoryMappedFilenameInformation,  // UNICODE_STRING
+  MemoryRegionInformation,          // MEMORY_REGION_INFORMATION
+  MemoryWorkingSetExInformation,    // MEMORY_WORKING_SET_EX_INFORMATION
+  MemorySharedCommitInformation     // MEMORY_SHARED_COMMIT_INFORMATION
+} MEMORY_INFORMATION_CLASS;
+
+struct _KUSER_SHARED_DATA {
   ULONG                         TickCountLowDeprecated;
   ULONG                         TickCountMultiplier;
   KSYSTEM_TIME                  InterruptTime;
@@ -160,28 +192,39 @@ typedef struct _KUSER_SHARED_DATA {
   USHORT                        UserModeGlobalLogger[16];
   ULONG                         ImageFileExecutionOptions;
   ULONG                         LangGenerationCount;
-  ULONGLONG                     Reserved4;
-  ULONGLONG                     InterruptTimeBias;
-  ULONGLONG                     QpcBias;
-  ULONG                         ActiveProcessorCount;
-  UCHAR                         ActiveGroupCount;
-  UCHAR                         Reserved9;
+  ULONGLONG                     Reserved4;                                 
+  VOLATILE ULONGLONG            InterruptTimeBias;                
+  VOLATILE ULONGLONG            QpcBias;                          
+  ULONG                         ActiveProcessorCount;                          
+  VOLATILE UCHAR                ActiveGroupCount;                     
+  UCHAR                         Reserved9;                                     
   union {
-    USHORT QpcData;
-    struct {
-      UCHAR QpcBypassEnabled;
-      UCHAR QpcReserved;
+    USHORT                      QpcData;                                  
+    struct
+    {
+      VOLATILE UCHAR            QpcBypassEnabled;             
+      UCHAR                     QpcShift;                              
     };
   };
-  LARGE_INTEGER                 TimeZoneBiasEffectiveStart;
-  LARGE_INTEGER                 TimeZoneBiasEffectiveEnd;
+  LARGE_INTEGER                 TimeZoneBiasEffectiveStart;     
+  LARGE_INTEGER                 TimeZoneBiasEffectiveEnd;       
   XSTATE_CONFIGURATION          XState;
   KSYSTEM_TIME                  FeatureConfigurationChangeStamp;
   ULONG                         Spare;
-  ULONG64                       UserPointerAuthMask;
-  XSTATE_CONFIGURATION          XStateArm64;
-  ULONG                         Reserved10[210];
+  ULONGLONG                     UserPointerAuthMask;
 };
+
+typedef NTSTATUS(__stdcall *PPSS_CAPTURE_ROUTINE)(HANDLE, PVOID, MEMORY_INFORMATION_CLASS, PVOID, SIZE_T, SIZE_T *);
+
+typedef struct _MEMORY_BASIC_INFORMATION {
+  PVOID    BaseAddress;
+  PVOID    AllocationBase;
+  DWORD    AllocationProtect;
+  SIZE_T   RegionSize;
+  DWORD    State;
+  DWORD    Protect;
+  DWORD    Type;
+} MEMORY_BASIC_INFORMATION, *PMEMORY_BASIC_INFORMATION;
 
 extern _KUSER_SHARED_DATA KUSER_SHARED_DATA;
 __asm__ (".equ KUSER_SHARED_DATA, 0x7FFE0000");
