@@ -6,3 +6,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 23)
+
+if(WIN32)
+  add_link_options(-fuse-ld=lld -g -Wl,--pdb=)
+endif()
