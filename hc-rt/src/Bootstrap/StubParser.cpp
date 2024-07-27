@@ -17,10 +17,10 @@
 //===----------------------------------------------------------------===//
 
 #include <Bootstrap/StubParser.hpp>
-#include <Bootstrap/ModuleParser.hpp>
 #include <Common/Casting.hpp>
 #include <Meta/Refl.hpp>
 #include <Meta/ExTraits.hpp>
+#include "_NtModule.hpp"
 
 #undef $StubErr
 #undef $MatchInstr
@@ -73,10 +73,9 @@ namespace {
   }
 } // namespace `anonymous`
 
-namespace hc::bootstrap {
-  /// Also used in `Syscalls.cpp`.
-  COFFModule& __NtModule() { return NtModule(); }
-} // namespace hc::bootstrap
+COFFModule& B::__NtModule() {
+  return NtModule();
+}
 
 [[gnu::hot]] Instruction B::get_instruction(const u8* bytes) {
   const u8 primary = *bytes;

@@ -18,9 +18,9 @@
 
 #include <Bootstrap/Syscalls.hpp>
 #include <Bootstrap/StubParser.hpp>
-#include <Bootstrap/ModuleParser.hpp>
 #include <Meta/Refl.hpp>
 #include <Meta/Unwrap.hpp>
+#include "_NtModule.hpp"
 
 using namespace hc;
 using namespace hc::bootstrap;
@@ -30,8 +30,6 @@ using DbgType = ULong(const char* fmt, ...);
 
 namespace hc::bootstrap {
 constinit common::EnumArray<u32, Syscall> __syscalls_ {};
-/// Defined in `StubParser.cpp`.
-COFFModule& __NtModule();
 } // namespace hc::bootstrap
 
 namespace {
