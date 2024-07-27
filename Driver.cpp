@@ -186,7 +186,10 @@ void functionTests() {
   test(deduced);
 }
 
-#include "UserShared.hpp"
+#include <Bootstrap/KUserSharedData.hpp>
+// #include "UserShared.hpp"
+
+using hc::bootstrap::KUSER_SHARED_DATA;
 
 template <typename T>
 concept _is_array_ptr_impl = meta::is_ptr<T> && meta::is_array<meta::RemovePtr<T>>;
@@ -254,9 +257,7 @@ void dump_struct(T* data) {
 // #define X64DBG_HALT() __hc_trap()
 #define X64DBG_HALT() (void(0))
 
-namespace hc::bootstrap {
-COFFModule& __NtModule();
-} // namespace hc::bootstrap
+#include <Bootstrap/_NtModule.hpp>
 using DbgType = bootstrap::ULong(const char* fmt, ...);
 
 struct EXCEPTION_RECORD {
@@ -287,87 +288,25 @@ struct STRING {
   char* Buffer;
 };
 
-template <typename...Args>
-[[gnu::noinline, gnu::naked]]
-W::NtStatus __stdcall DebugService(Args...args) {
-  __asm__ volatile (
-    "mov  %%ecx, %%eax;\n"
-    "movq %%rdx, %%rcx;\n"
-    "mov  %%r8d, %%edx;\n"
-    "movq %%r9,  %%r8;\n"
-    "movq 40(%%rsp), %%r9;\n" ::
-  );
-  __asm__ volatile ("int $0x2D;\n"::);
-  __asm__ volatile ("int $3;\n"::);
-  __asm__ volatile (
-    // "int $3;\n"
-    "retn;\n" ::
-  );
-}
-
-#if 0
-[[gnu::noinline]]
-W::NtStatus DebugPrint(
- STRING* DebugString,
- u32 ComponentId,
- u32 Level)
-{
-  __asm__ volatile (
-    "mov %[Level], %%r9d;\n"
-    :: [Level] "r"(Level)
-  );
-  __asm__ volatile (
-    "mov %[Id], %%r8d;\n"
-    :: [Id] "r"(ComponentId)
-  );
-  __asm__ volatile (
-    "movw %[Len], %%dx;\n"
-    "movq %[Buf], %%rcx;\n"
-    :: [Len] "r"(DebugString->Length),
-       [Buf] "r"(DebugString->Buffer)
-  );
-  __asm__ volatile (
-    "mov $1, %%eax;\n"
-    "int $0x2D;\n"
-    "int $3;\n"::
-  );
-
-  W::NtStatus Status;
-  __asm__ volatile (
-    "mov %%eax, %[Status];\n"
-    :: [Status] "r"(Status)
-  );
-  return Status;
-}
-#else
 [[gnu::noinline, gnu::naked]]
 W::NtStatus __stdcall DebugPrint(
  STRING* DebugString,
  u32 ComponentId,
  u32 Level)
 {
-  // mov r9d,r8d
-  // mov r8d,edx
-  // mov dx,word ptr ds:[rcx]
-  // mov rcx,qword ptr ds:[rcx+8]
-  // mov eax,1
-  // int 2D
-  // int3 
-  // ret
   __asm__ volatile (
     "mov  %%r8d, %%r9d;\n"
     "mov  %%edx, %%r8d;\n"
     "movw 0(%%rcx), %%dx;\n"
-    "movq 8(%%rcx), %%rcx;\n"::
+    "movq 8(%%rcx), %%rcx;\n"
+    "movq $1, %%rax;\n"::
   );
-  __asm__ volatile ("movq $1, %%rax;\n"::);
   __asm__ volatile (
     "int $0x2D;\n"
     "int $3;\n"::
   );
   __asm__ volatile ("retn;\n"::);
 }
-#endif
 
 __always_inline bootstrap::Win64TEB* LoadTeb() {
   return bootstrap::Win64TEB::LoadTEBFromGS();
@@ -390,7 +329,10 @@ static void UnsetInDbgPrint() {
 }
 
 static bool CheckDbgStatus() {
-  return LoadPeb()->being_debugged;
+  bool Status = LoadPeb()->being_debugged;
+  if (!Status)
+    Status = KUSER_SHARED_DATA.KdDebuggerEnabled;
+  return Status;
 }
 
 W::NtStatus DebugPrintI(
@@ -431,8 +373,13 @@ static W::NtStatus TestPrintExI(const char* Str, usize N) {
   static auto& M = bootstrap::__NtModule();
   auto res = M.resolveExport<void(EXCEPTION_RECORD*)>("RtlRaiseException");
   void(*Ex)(EXCEPTION_RECORD*) = $unwrap(res);
-
   W::NtStatus Status = 0;
+
+  if (!CheckDbgStatus()) {
+    return std::fprintf(
+      stderr, "[DBG] %*s", int(N), Str);
+  }
+
   EXCEPTION_RECORD Record {};
   Record.ExceptionCode    = 0x40010006;
   Record.ExceptionRecord  = nullptr;
@@ -440,8 +387,8 @@ static W::NtStatus TestPrintExI(const char* Str, usize N) {
   Record.NumberParameters = 2;
   Record.ExceptionInformation[0] = N;
   Record.ExceptionInformation[1] = uptr(Str);
-
   Ex(&Record);
+
   return 0;
 }
 
@@ -454,6 +401,7 @@ extern constinit bool OnlyNt;
 extern void symdumper_main();
 
 int main(int N, char* A[], char* Env[]) {
+  printPtrRange(sys::Args::ProgramDir(), "Executable");
   printPtrRange(sys::Args::WorkingDir(), "Working in");
   OnlyNt = false;
   symdumper_main();
@@ -462,7 +410,7 @@ int main(int N, char* A[], char* Env[]) {
   std::printf("CyclesPerYield: %hu\n", KUSER_SHARED_DATA.CyclesPerYield);
   std::printf("UnparkedProcessorCount: %hu\n", KUSER_SHARED_DATA.UnparkedProcessorCount);
 
-  // dump_struct(&KUSER_SHARED_DATA);
+  dump_struct(&KUSER_SHARED_DATA);
   // dump_struct(&KUSER_SHARED_DATA.Dbg);
   // dump_struct<MEMORY_BASIC_INFORMATION>();
   // dump_struct<B::Win64TEB>();
@@ -486,8 +434,7 @@ int main(int N, char* A[], char* Env[]) {
   }
 
   printVolumeInfo("\\??\\C:\\");
-  std::printf("\nCurrent directory: ");
-  printPtrRange(S::Args::WorkingDir());
+  printPtrRange(sys::Args::WorkingDir(), "\nCurrent directory");
 
   {
     using enum sys::PathType;
