@@ -24,7 +24,6 @@
 
 #include <Common/Fundamental.hpp>
 #include <Common/Memory.hpp>
-#include <Common/PtrRange.hpp>
 
 namespace hc {
 namespace common {

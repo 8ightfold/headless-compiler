@@ -26,6 +26,7 @@
 #include <Common/Features.hpp>
 #include <Common/Fundamental.hpp>
 #include <Common/DynAlloc.hpp>
+#include <Common/PtrRange.hpp>
 #include <BinaryFormat/Consumer.hpp>
 #include <Bootstrap/UnicodeString.hpp>
 
