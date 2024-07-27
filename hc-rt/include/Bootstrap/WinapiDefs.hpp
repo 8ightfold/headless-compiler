@@ -33,6 +33,11 @@
 //======================================================================//
 
 namespace hc {
+namespace common {
+  template <typename> struct PtrRange;
+  using AddrRange = PtrRange<void>;
+} // namespace common
+
 namespace sys {
   struct IIOFile;
   struct RawOSSemaphore;
