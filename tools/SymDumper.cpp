@@ -68,6 +68,8 @@ namespace B = hc::bootstrap;
 namespace P = hc::parcel;
 namespace S = hc::sys;
 
+constinit bool OnlyNt = true;
+
 void __dump_introspect(
  u32& count, const char* fmt, auto&&...args) {
   ++count;
@@ -337,7 +339,7 @@ static void dump_exports(B::COFFModule& M, bool dump_body = false) {
       std::printf("Exported names for `%s`:\n", S);
     for (auto off : NPT) {
       auto S = com::StrRef::NewRaw(M->getRVA<char>(off));
-      if (S.beginsWith("Nt")) {
+      if (!OnlyNt || S.beginsWith("Nt")) {
         std::printf("%.*s\n", int(S.size()), S.data());
       }
     }
@@ -471,5 +473,6 @@ void symdumper_main() {
   // list_modules();
 
   // check_module(self);
-  check_module("ntdll.dll");
+  // check_module("ntdll.dll");
+  dump_exports("ntdll.dll");
 }

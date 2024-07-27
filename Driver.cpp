@@ -251,10 +251,22 @@ void dump_struct(T* data) {
   __builtin_dump_struct(data, _dump_struct, data, print_extra);
 }
 
+// #define X64DBG_HALT() __hc_trap()
+#define X64DBG_HALT() (void(0))
+
 namespace hc::bootstrap {
 COFFModule& __NtModule();
 } // namespace hc::bootstrap
 using DbgType = bootstrap::ULong(const char* fmt, ...);
+
+struct EXCEPTION_RECORD {
+  i32               ExceptionCode;
+  i32               ExceptionFlags;
+  EXCEPTION_RECORD* ExceptionRecord;
+  void*             ExceptionAddress;
+  i32               NumberParameters;
+  uptr              ExceptionInformation[15];
+};
 
 static void __try_dbgprint(const char* Format, auto&&...Args) {
   static auto& M = bootstrap::__NtModule();
@@ -263,7 +275,7 @@ static void __try_dbgprint(const char* Format, auto&&...Args) {
     return;
   }
   DbgType& F = res.some();
-  __hc_trap();
+  X64DBG_HALT();
   F(Format, Args...);
 }
 
@@ -329,7 +341,7 @@ W::NtStatus DebugPrint(
 }
 #else
 [[gnu::noinline, gnu::naked]]
-W::NtStatus DebugPrint(
+W::NtStatus __stdcall DebugPrint(
  STRING* DebugString,
  u32 ComponentId,
  u32 Level)
@@ -348,17 +360,37 @@ W::NtStatus DebugPrint(
     "movw 0(%%rcx), %%dx;\n"
     "movq 8(%%rcx), %%rcx;\n"::
   );
+  __asm__ volatile ("movq $1, %%rax;\n"::);
   __asm__ volatile (
-    "mov $1, %%eax;\n"
     "int $0x2D;\n"
-    "int $3;\n"
-    "retn;\n"::
+    "int $3;\n"::
   );
+  __asm__ volatile ("retn;\n"::);
 }
 #endif
 
 __always_inline bootstrap::Win64TEB* LoadTeb() {
   return bootstrap::Win64TEB::LoadTEBFromGS();
+}
+
+__always_inline bootstrap::Win64PEB* LoadPeb() {
+  return bootstrap::Win64TEB::LoadPEBFromGS();
+}
+
+static bool SetInDbgPrint() {
+  if (LoadTeb()->in_debug_print) {
+    return true;
+  }
+  LoadTeb()->in_debug_print = true;
+  return false;
+}
+
+static void UnsetInDbgPrint() {
+  LoadTeb()->in_debug_print = false;
+}
+
+static bool CheckDbgStatus() {
+  return LoadPeb()->being_debugged;
 }
 
 W::NtStatus DebugPrintI(
@@ -367,9 +399,19 @@ W::NtStatus DebugPrintI(
  u32 Level)
 {
   W::NtStatus Status = 0;
+  if (SetInDbgPrint())
+    return Status;
   
-  Status = DebugPrint(DebugString, ComponentId, Level);
+  if (CheckDbgStatus()) {
+    std::printf("%*s", 
+      int(DebugString->Length),
+      DebugString->Buffer);
+    return Status;
+  }
 
+  X64DBG_HALT();
+  Status = DebugPrint(DebugString, ComponentId, Level);
+  UnsetInDbgPrint();
   return Status;
 }
 
@@ -382,12 +424,40 @@ W::NtStatus TestPrint(const char(&Str)[N]) {
     .MaximumLength = u16(N),
     .Buffer = Buf,
   };
-  //__hc_trap();
   return DebugPrint(&S, 0x65, 3);
 }
 
+static W::NtStatus TestPrintExI(const char* Str, usize N) {
+  static auto& M = bootstrap::__NtModule();
+  auto res = M.resolveExport<void(EXCEPTION_RECORD*)>("RtlRaiseException");
+  void(*Ex)(EXCEPTION_RECORD*) = $unwrap(res);
+
+  W::NtStatus Status = 0;
+  EXCEPTION_RECORD Record {};
+  Record.ExceptionCode    = 0x40010006;
+  Record.ExceptionRecord  = nullptr;
+  Record.ExceptionAddress = ptr_cast<void>(&TestPrintExI);
+  Record.NumberParameters = 2;
+  Record.ExceptionInformation[0] = N;
+  Record.ExceptionInformation[1] = uptr(Str);
+
+  Ex(&Record);
+  return 0;
+}
+
+template <usize N>
+W::NtStatus TestPrintEx(const char(&Str)[N]) {
+  return TestPrintExI(Str, N);
+}
+
+extern constinit bool OnlyNt;
+extern void symdumper_main();
+
 int main(int N, char* A[], char* Env[]) {
   printPtrRange(sys::Args::WorkingDir(), "Working in");
+  OnlyNt = false;
+  symdumper_main();
+
   assert(reinterpret_cast<uptr>(&KUSER_SHARED_DATA) == 0x7FFE0000);
   std::printf("CyclesPerYield: %hu\n", KUSER_SHARED_DATA.CyclesPerYield);
   std::printf("UnparkedProcessorCount: %hu\n", KUSER_SHARED_DATA.UnparkedProcessorCount);
@@ -395,7 +465,7 @@ int main(int N, char* A[], char* Env[]) {
   // dump_struct(&KUSER_SHARED_DATA);
   // dump_struct(&KUSER_SHARED_DATA.Dbg);
   // dump_struct<MEMORY_BASIC_INFORMATION>();
-  dump_struct<B::Win64TEB>();
+  // dump_struct<B::Win64TEB>();
   // functionTests();
   // stringTableTests();
 
@@ -407,6 +477,7 @@ int main(int N, char* A[], char* Env[]) {
 
   // __try_dbgprint("Hello world!");
   TestPrint("Hello world!");
+  TestPrintEx("Hello world!");
   return 0;
 
   {
