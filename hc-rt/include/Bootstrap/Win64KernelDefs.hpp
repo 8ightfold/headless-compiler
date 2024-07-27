@@ -23,12 +23,10 @@
 
 #pragma once
 
-#include <Common/Features.hpp>
-#include <Common/Fundamental.hpp>
 #include <Common/DynAlloc.hpp>
 #include <Common/PtrRange.hpp>
 #include <BinaryFormat/Consumer.hpp>
-#include <Bootstrap/UnicodeString.hpp>
+#include <Bootstrap/WinapiDefs.hpp>
 
 // For more info:
 // "Finding Kernel32 Base and Function Addresses in Shellcode"
@@ -41,22 +39,7 @@
 
 static_assert(HC_PLATFORM_WIN64, "Windows only.");
 
-namespace hc {
-namespace sys {
-  struct IIOFile;
-  struct RawOSSemaphore;
-} // namespace sys
-
-using RawIOFile = sys::IIOFile;
-using IOFile    = RawIOFile*;
-
-namespace bootstrap {
-  using Win64Addr       = void*;
-  using Win64AddrRange  = common::AddrRange;
-  using Win64Handle     = hc::__void*;
-  using Win64Lock       = sys::RawOSSemaphore;
-  using Win64Bool       = ubyte;
-
+namespace hc::bootstrap {
   struct Win64ModuleType {
     static constexpr usize loadOrder  = 0U;
     static constexpr usize memOrder   = 1U;
@@ -371,24 +354,6 @@ namespace bootstrap {
   //====================================================================//
   // TEB Data
   //====================================================================//
-  
-  struct ClientID {
-    Win64Handle unique_process;
-    Win64Handle unique_thread;
-  };
-
-  struct ListEntry {
-    ListEntry* prev;
-    ListEntry* next;
-  };
-
-  struct alignas(u32) ProcessorNumber {
-    u16   group;
-    ubyte number;
-    ubyte __reserved;
-  };
-
-  ////////////////////////////////////////////////////////////////////////
 
   struct Win64TIB {
     Win64Addr         SEH_frame;
@@ -517,5 +482,4 @@ namespace bootstrap {
     uptr getThreadId() const;
     Win64PEB* getPEB() const;
   };
-} // namespace bootstrap
-} // namespace hc
+} // namespace hc::bootstrap

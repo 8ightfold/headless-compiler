@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <Bootstrap/LargeInteger.hpp>
 #include <Bootstrap/UnicodeString.hpp>
 #include <Bootstrap/Syscalls.hpp>
 #include <Common/EnumBitwise.hpp>
@@ -36,52 +37,16 @@
 #define __nt_attrs __attribute__((noinline)) inline
 
 namespace hc::sys::win {
+  using bootstrap::LargeInt;
+  using bootstrap::ULargeInt;
+  using bootstrap::UnicodeString;
   using bootstrap::StaticUnicodeString;
-  using UnicodeString = bootstrap::Win64UnicodeString;
   using WNameRange    = common::PtrRange<wchar_t>;
   using NtStatus      = i32;
   using Long          = i32;
   using ULong         = u32;
   using DWord         = ULong;
   using Boolean       = bool; // AKA. u8
-  
-  union LargeInt {
-    __ndbg_inline operator i64() const {
-      return this->quad;
-    }
-    __ndbg_inline operator i64() const volatile {
-      return this->quad;
-    }
-    __ndbg_inline LargeInt& operator=(i64 I) {
-      this->quad = I;
-      return *this;
-    }
-  public:
-    i64 quad = 0L;
-    struct {
-      u32 low;
-      i32 high;
-    };
-  };
-
-  union ULargeInt {
-    __ndbg_inline operator u64() const {
-      return this->quad;
-    }
-    __ndbg_inline operator u64() const volatile {
-      return this->quad;
-    }
-    __ndbg_inline ULargeInt& operator=(u64 I) {
-      this->quad = I;
-      return *this;
-    }
-  public:
-    u64 quad = 0UL;
-    struct {
-      u32 low;
-      u32 high;
-    };
-  };
 
   //====================================================================//
   // Enumerations
