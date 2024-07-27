@@ -34,6 +34,7 @@
 // https://en.wikipedia.org/wiki/Win32_Thread_Information_Block
 // https://www.geoffchappell.com/studies/windows/km/
 // https://github.com/wine-mirror/wine/blob/master/include/winternl.h
+// https://www.vergiliusproject.com/kernels/x64/windows-11/23h2/_TEB
 
 #define _MutLDRNode mutable ::hc::bootstrap::Win64ListEntryNode
 
