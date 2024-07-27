@@ -25,9 +25,9 @@ using namespace hc::bootstrap;
 
 static constexpr wchar_t __gnull = L'\0';
 
-Win64UnicodeString Win64UnicodeString::New(wchar_t* S) {
+UnicodeString UnicodeString::New(wchar_t* S) {
   __hc_invariant(S != nullptr);
-  Win64UnicodeString new_ustr;
+  UnicodeString new_ustr;
   usize str_len = __wstrlen(S);
   new_ustr.buffer = S;
   new_ustr.__size = str_len * 2;
@@ -35,9 +35,9 @@ Win64UnicodeString Win64UnicodeString::New(wchar_t* S) {
   return new_ustr;
 }
 
-Win64UnicodeString Win64UnicodeString::New(wchar_t* S, usize max) {
+UnicodeString UnicodeString::New(wchar_t* S, usize max) {
   __hc_invariant(S != nullptr);
-  Win64UnicodeString new_ustr;
+  UnicodeString new_ustr;
   new_ustr.buffer = S;
   new_ustr.__size = __wstrlen(S) * 2;
   new_ustr.__size_max = max * 2;
@@ -46,12 +46,12 @@ Win64UnicodeString Win64UnicodeString::New(wchar_t* S, usize max) {
 }
 
 [[gnu::flatten]]
-Win64UnicodeString Win64UnicodeString::New(PtrRange<wchar_t> R) {
+UnicodeString UnicodeString::New(PtrRange<wchar_t> R) {
   __hc_invariant(!R.isEmpty());
-  return Win64UnicodeString::New(R.data(), R.size());
+  return UnicodeString::New(R.data(), R.size());
 }
 
-bool Win64UnicodeString::isEqual(const Win64UnicodeString& rhs) const {
+bool UnicodeString::isEqual(const UnicodeString& rhs) const {
   if __expect_false(!this->buffer || !rhs.buffer)
     return false;
   if (this->__size != rhs.__size) 
@@ -62,7 +62,7 @@ bool Win64UnicodeString::isEqual(const Win64UnicodeString& rhs) const {
 
 // "Mutators"
 
-com::PtrRange<wchar_t> Win64UnicodeString::intoRange() const {
+com::PtrRange<wchar_t> UnicodeString::intoRange() const {
   const int sz = getSize();
   if __expect_false(sz == 0)
     return {};
@@ -70,18 +70,18 @@ com::PtrRange<wchar_t> Win64UnicodeString::intoRange() const {
   return {buffer, buffer + sz};
 }
 
-com::PtrRange<const wchar_t> Win64UnicodeString::intoImmRange() const {
+com::PtrRange<const wchar_t> UnicodeString::intoImmRange() const {
   return this->intoRange().intoImmRange();
 }
 
-const wchar_t& Win64UnicodeString::frontSafe() const {
+const wchar_t& UnicodeString::frontSafe() const {
   if __expect_false(getSize() == 0)
     return __gnull;
   __hc_invariant(buffer != nullptr);
   return buffer[0];
 }
 
-const wchar_t& Win64UnicodeString::backSafe() const {
+const wchar_t& UnicodeString::backSafe() const {
   if __expect_false(getSize() == 0)
     return __gnull;
   __hc_invariant(buffer != nullptr);

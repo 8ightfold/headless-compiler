@@ -31,14 +31,14 @@ extern "C" {
 } // extern "C"
 
 namespace {
-  B::Win64UnicodeString __get_program_path() {
+  B::UnicodeString __get_program_path() {
     B::Win64PEB* PEB = B::Win64TEB::LoadPEBFromGS();
     auto* mods = PEB->getLDRModulesInMemOrder();
     return mods->prev()->fullName();
   }
 
   // https://github.com/wine-mirror/wine/blob/master/dlls/ntdll/path.c#L886
-  B::Win64UnicodeString __get_working_path() {
+  B::UnicodeString __get_working_path() {
     B::Win64PEB* PEB = B::Win64TEB::LoadPEBFromGS();
     return PEB->process_params->getCurrDir();
   }
@@ -60,12 +60,12 @@ Args::ArgType<char*> Args::Envp() {
 }
 
 Args::ArgType<wchar_t> Args::ProgramDir() {
-  static thread_local B::Win64UnicodeString S = __get_program_path();
+  static thread_local B::UnicodeString S = __get_program_path();
   return S.intoImmRange();
 }
 
 Args::ArgType<wchar_t> Args::WorkingDir() {
   // Unlike the program path, this may change, so we cant cache it :(
-  const B::Win64UnicodeString S = __get_working_path();
+  const B::UnicodeString S = __get_working_path();
   return S.intoImmRange();
 }

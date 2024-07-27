@@ -31,16 +31,16 @@ namespace common {
 } // namespace common
 
 namespace bootstrap {
-  struct [[gsl::Pointer]] Win64UnicodeString {
+  struct [[gsl::Pointer]] UnicodeString {
     u16 __size = 0, __size_max = 0; // In bytes
     wchar_t* buffer = nullptr;
   public:
-    [[nodiscard]] static Win64UnicodeString New(wchar_t* str);
-    [[nodiscard]] static Win64UnicodeString New(wchar_t* str, usize max);
-    [[nodiscard]] static Win64UnicodeString New(com::PtrRange<wchar_t> R);
+    [[nodiscard]] static UnicodeString New(wchar_t* str);
+    [[nodiscard]] static UnicodeString New(wchar_t* str, usize max);
+    [[nodiscard]] static UnicodeString New(com::PtrRange<wchar_t> R);
     usize getSize() const { return __size / sizeof(wchar_t); }
     usize getMaxSize() const { return __size_max / sizeof(wchar_t); }
-    bool isEqual(const Win64UnicodeString& rhs) const;
+    bool isEqual(const UnicodeString& rhs) const;
     com::PtrRange<const wchar_t> intoImmRange() const;
     com::PtrRange<wchar_t> intoRange() const;
     const wchar_t& frontSafe() const;
@@ -48,11 +48,11 @@ namespace bootstrap {
   };
 
   template <usize N>
-  struct [[gsl::Owner]] StaticUnicodeString : Win64UnicodeString {
+  struct [[gsl::Owner]] StaticUnicodeString : UnicodeString {
     static constexpr u16 sizeMax = u16(N);
   public:
     constexpr StaticUnicodeString(u16 init_len = 0U) :
-     Win64UnicodeString(
+     UnicodeString(
        init_len * sizeof(wchar_t), 
        sizeMax  * sizeof(wchar_t), __buffer)
     {
@@ -63,7 +63,7 @@ namespace bootstrap {
      StaticUnicodeString(u16(sizeof...(CC) + 1)), 
      __buffer{C, static_cast<wchar_t>(CC)...} {
       static_assert(sizeof...(CC) < N);
-      // Win64UnicodeString::size = u16(sizeof...(CC) + 1);
+      // UnicodeString::size = u16(sizeof...(CC) + 1);
     }
 
     constexpr StaticUnicodeString(char C, auto...CC) :
@@ -79,18 +79,18 @@ namespace bootstrap {
     }
   
   public:
-    Win64UnicodeString& asBase() {
-      return *static_cast<Win64UnicodeString*>(this);
+    UnicodeString& asBase() {
+      return *static_cast<UnicodeString*>(this);
     }
-    const Win64UnicodeString& asBase() const {
-      return *static_cast<const Win64UnicodeString*>(this);
+    const UnicodeString& asBase() const {
+      return *static_cast<const UnicodeString*>(this);
     }
 
-    Win64UnicodeString* operator->() {
-      return static_cast<Win64UnicodeString*>(this);
+    UnicodeString* operator->() {
+      return static_cast<UnicodeString*>(this);
     }
-    const Win64UnicodeString* operator->() const {
-      return static_cast<const Win64UnicodeString*>(this);
+    const UnicodeString* operator->() const {
+      return static_cast<const UnicodeString*>(this);
     }
 
   public:
