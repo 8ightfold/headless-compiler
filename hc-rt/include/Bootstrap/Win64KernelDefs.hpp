@@ -53,7 +53,7 @@ namespace bootstrap {
   using Win64AddrRange  = common::AddrRange;
   using Win64Handle     = hc::__void*;
   using Win64Lock       = sys::RawOSSemaphore;
-  using Win64Bool       = bool;
+  using Win64Bool       = ubyte;
 
   struct Win64ModuleType {
     static constexpr usize loadOrder  = 0U;
