@@ -419,6 +419,13 @@ extern constinit bool OnlyNt;
 extern void symdumper_main();
 
 int main(int N, char* A[], char* Env[]) {
+  for (int I = 0; I < 16; ++I) {
+    using W::ContextSave;
+    ContextSave Ctx;
+    ContextSave::Capture(&Ctx);
+    // ContextSave::Capture(nullptr);
+  }
+
   printPtrRange(sys::Args::ProgramDir(), "Executable");
   printPtrRange(sys::Args::WorkingDir(), "Working in");
   OnlyNt = false;
@@ -435,6 +442,13 @@ int main(int N, char* A[], char* Env[]) {
   // dump_struct<B::Win64TEB>();
   // functionTests();
   // stringTableTests();
+
+  {
+    using W::ContextSave;
+    ContextSave Ctx;
+    ContextSave::Capture(&Ctx);
+    // ContextSave::Capture(nullptr);
+  }
 
   volatile auto* pSystemTime = &KUSER_SHARED_DATA.SystemTime;
   for (sys::Atomic<bool> B = true; B.load();) {
