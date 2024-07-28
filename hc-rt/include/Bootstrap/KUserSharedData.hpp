@@ -70,7 +70,7 @@ namespace hc::bootstrap {
     u32           AllNonLargeFeatureSize;
     u32           __Spare;
   };
-} // hc::bootstrap
+} // namespace hc::bootstrap
 
 //======================================================================//
 // Implementation
@@ -207,4 +207,4 @@ namespace hc::bootstrap {
     extern hc::bootstrap::KUserSharedData KUSER_SHARED_DATA;
     __asm__ (".equ KUSER_SHARED_DATA, 0x7ffe0000");
   } // extern "C"
-} // hc::bootstrap
+} // namespace hc::bootstrap
