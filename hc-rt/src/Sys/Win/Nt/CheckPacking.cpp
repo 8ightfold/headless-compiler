@@ -68,6 +68,7 @@ XMM_TEST(0x20,  legacy);
 XMM_TEST(0xa0,  xmm0);
 XMM_TEST(0x190, xmm15);
 
+static_assert(sizeof(ExceptionRecord) == 0x98);
 static_assert(sizeof(ContextSave) == 0x4d0);
 CTX_TEST(0x0,   p1h);
 CTX_TEST(0x8,   p2h);
