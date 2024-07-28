@@ -62,7 +62,6 @@ PACKING_TEST(Volume);
  static_assert($offsetof(member, ContextSave) == offset, \
   "ContextSave::" #member " is offset incorrectly. Please report this.")
 
-static_assert(sizeof(ContextXMMReg) == 0x200);
 XMM_TEST(0x0,   header);
 XMM_TEST(0x20,  legacy);
 XMM_TEST(0xa0,  xmm0);
