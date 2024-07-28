@@ -38,7 +38,18 @@
 // )
 //////////////////////////////////////////////////////////////////////////
 
-#define $ASM_stmt(expr) expr ";\n"
+/// !defined(HC_FORCE_INTEL)
+#define __$ASM_style_HC_FORCE_INTEL
+/// #define HC_FORCE_INTEL
+#define __$ASM_style_  ".intel_syntax"
+/// #define HC_FORCE_INTEL _ASM_DEFAULT
+#define __$ASM_style_0 __$ASM_style_
+/// #define HC_FORCE_INTEL _ASM_NOPREFIX
+#define __$ASM_style_1 ".intel_syntax noprefix"
+/// Gets the style directive from ``HC_FORCE_INTEL``.
+#define $ASM_style() $3cat(__$ASM_style, _, HC_FORCE_INTEL)
+
+#define $ASM_stmt(expr) expr ";"
 #define $ASM_block(exprs...) __asm__ volatile ( exprs );
 /// Creates an `__asm__` block with the input expressions, appends `";\n"`.
 #define $ASM(exprs...) $ASM_block( $PP_mapC($ASM_stmt, ##exprs) )
@@ -56,7 +67,7 @@
 #define $ASM_func_cc(ret, cconv, name, arglist, exprs...) \
 [[gnu::noinline, gnu::naked]] \
 $PP_rm_parens(ret) cconv name arglist { \
-  $ASM( exprs ) \
+  $ASM( $ASM_style(), ##exprs, ".att_syntax" ) \
 }
 
 /// Creates an assembly-only function with the default calling convention.

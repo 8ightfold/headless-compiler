@@ -57,6 +57,15 @@
 # define _HC_CXX23 0
 #endif
 
+#undef  _ASM_DEFAULT
+#undef  _ASM_NOPREFIX
+
+#define _ASM_DEFAULT  0
+#define _ASM_NOPREFIX 1
+
+#pragma clang final(_ASM_DEFAULT)
+#pragma clang final(_ASM_NOPREFIX)
+
 //======================================================================//
 // General Macros
 //======================================================================//
