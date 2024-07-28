@@ -35,6 +35,7 @@
 #include <Parcel/StringTable.hpp>
 
 #include <Sys/Win/Nt/Structs.hpp>
+#include <Sys/Win/Nt/Except.hpp>
 #include <Sys/Win/Volume.hpp>
 #include <Sys/Win/Filesystem.hpp>
 #include <Sys/Win/Mutant.hpp>
@@ -397,6 +398,23 @@ W::NtStatus TestPrintEx(const char(&Str)[N]) {
   return TestPrintExI(Str, N);
 }
 
+static void DrawTextI(wchar_t Str[], usize N) {
+  using bootstrap::UnicodeString;
+  static auto& M = bootstrap::__NtModule();
+  auto OFn = M.resolveExport<W::NtStatus(UnicodeString*)>("NtDrawText");
+  const auto Fn = $unwrap_void(OFn);
+  
+  auto UStr = UnicodeString::New(Str, N);
+  Fn(&UStr);
+}
+
+template <usize N>
+static void DrawText(const wchar_t(&Str)[N]) {
+  wchar_t Buf[N];
+  inline_memcpy(Buf, Str, N);
+  DrawTextI(Buf, N);
+}
+
 extern constinit bool OnlyNt;
 extern void symdumper_main();
 
@@ -413,6 +431,7 @@ int main(int N, char* A[], char* Env[]) {
   dump_struct(&KUSER_SHARED_DATA);
   // dump_struct(&KUSER_SHARED_DATA.Dbg);
   // dump_struct<MEMORY_BASIC_INFORMATION>();
+  dump_struct<W::ContextSave>();
   // dump_struct<B::Win64TEB>();
   // functionTests();
   // stringTableTests();
@@ -426,6 +445,7 @@ int main(int N, char* A[], char* Env[]) {
   // __try_dbgprint("Hello world!");
   TestPrint("Hello world!");
   TestPrintEx("Hello world!");
+  DrawText(L"Testing... Testing...");
   return 0;
 
   {
