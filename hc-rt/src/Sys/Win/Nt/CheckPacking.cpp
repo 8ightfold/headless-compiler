@@ -55,12 +55,34 @@ PACKING_TEST(Volume);
 
 #include "Except.hpp"
 
+#define PACKING_TEST(obj, offset, member) \
+ static_assert($offsetof(member, obj) == offset, \
+  #obj "::" #member " is offset incorrectly. Please report this.")
+
+#define GP_TEST(offset, member) \
+ PACKING_TEST(ContextGPReg, offset, member)
 #define XMM_TEST(offset, member) \
- static_assert($offsetof(member, ContextXMMReg) == offset, \
-  "ContextXMMReg::" #member " is offset incorrectly. Please report this.")
+ PACKING_TEST(ContextXMMReg, offset, member)
 #define CTX_TEST(offset, member) \
- static_assert($offsetof(member, ContextSave) == offset, \
-  "ContextSave::" #member " is offset incorrectly. Please report this.")
+ PACKING_TEST(ContextSave, offset, member)
+
+GP_TEST(0x0,  rax);
+GP_TEST(0x8,  rcx);
+GP_TEST(0x10, rdx);
+GP_TEST(0x18, rbx);
+GP_TEST(0x20, rsp);
+GP_TEST(0x28, rbp);
+GP_TEST(0x30, rsi);
+GP_TEST(0x38, rdi);
+GP_TEST(0x40, r8);
+GP_TEST(0x48, r9);
+GP_TEST(0x50, r10);
+GP_TEST(0x58, r11);
+GP_TEST(0x60, r12);
+GP_TEST(0x68, r13);
+GP_TEST(0x70, r14);
+GP_TEST(0x78, r15);
+GP_TEST(0x80, rip);
 
 XMM_TEST(0x0,   header);
 XMM_TEST(0x20,  legacy);
