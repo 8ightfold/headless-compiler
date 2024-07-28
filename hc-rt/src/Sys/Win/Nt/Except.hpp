@@ -59,6 +59,7 @@ namespace hc::sys::win {
   }; 
 
   struct ContextSave {
+    [[gnu::used, gnu::noinline, gnu::naked]]
     static void Capture(ContextSave* ctx);
   public:
     u64           p1h, p2h, p3h, p4h, p5h, p6h;

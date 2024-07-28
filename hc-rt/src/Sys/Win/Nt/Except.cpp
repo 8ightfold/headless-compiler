@@ -23,77 +23,7 @@
 
 using namespace hc::sys::win;
 
-/*
-extern "C" $ASM_func(void,
- _ZN2hc3sys3win11ContextSave7CaptureEPS2_, (ContextSave* ctx),
-  "pushfq",
-  "movq   %rax, 0x78(%rcx)",
-
-  // Store GP
-  "movq   %rcx, 0x80(%rcx)",
-  "movq   %rdx, 0x88(%rcx)",
-  "movq   %rbx, 0x90(%rcx)",
-  "movq   %rbp, 0xa0(%rcx)",
-
-  // Store return address (Rip)
-  "movq   8(%rsp), %rax",
-  "movq   %rax, 0xf8(%rcx)",
-
-  // Store stack address (Rsp)
-  "leaq   16(%rsp), %rax",
-  "movq   %rax, 0x98(%rcx)",
-  
-  // Store GP (cont.)
-  "movq   %rsi, 0xa8(%rcx)",
-  "movq   %rdi, 0xb0(%rcx)",
-  "movq   %r8,  0xb8(%rcx)",
-  "movq   %r9,  0xc0(%rcx)",
-  "movq   %r10, 0xc8(%rcx)",
-  "movq   %r11, 0xd0(%rcx)",
-  "movq   %r12, 0xd8(%rcx)",
-  "movq   %r13, 0xe0(%rcx)",
-  "movq   %r14, 0xe8(%rcx)",
-  "movq   %r15, 0xf0(%rcx)",
-
-  // Store flags
-  "movq   (%rcx), %rax",
-  "mov    %eax, 0x44(%rcx)",
-
-  // Store segments
-  "movw   %cs, 0x38(%rcx)",
-  "movw   %ds, 0x3a(%rcx)",
-  "movw   %es, 0x3c(%rcx)",
-  "movw   %fs, 0x3e(%rcx)",
-  "movw   %gs, 0x40(%rcx)",
-  "movw   %ss, 0x42(%rcx)",
-
-  // Store XMM
-  "movaps %xmm0,  0x1a0(%rcx)",
-  "movaps %xmm1,  0x1b0(%rcx)",
-  "movaps %xmm2,  0x1c0(%rcx)",
-  "movaps %xmm3,  0x1d0(%rcx)",
-  "movaps %xmm4,  0x1e0(%rcx)",
-  "movaps %xmm5,  0x1f0(%rcx)",
-  "movaps %xmm6,  0x200(%rcx)",
-  "movaps %xmm7,  0x210(%rcx)",
-  "movaps %xmm8,  0x220(%rcx)",
-  "movaps %xmm9,  0x230(%rcx)",
-  "movaps %xmm10, 0x240(%rcx)",
-  "movaps %xmm11, 0x250(%rcx)",
-  "movaps %xmm12, 0x260(%rcx)",
-  "movaps %xmm13, 0x270(%rcx)",
-  "movaps %xmm14, 0x280(%rcx)",
-  "movaps %xmm15, 0x290(%rcx)",
-
-  // Store legacy
-  "fxsave  0x100(%rcx)",
-  "stmxcsr 0x34(%rcx)",
-
-  "addq  $0x8, %rsp",
-  "ret"
-)
-*/
-
+/// Symbolized `hc::sys::win::ContextSave::Capture(ContextSave*)`.
 extern "C" $ASM_func(void,
  _ZN2hc3sys3win11ContextSave7CaptureEPS2_, (ContextSave* ctx),
   "pushfq",

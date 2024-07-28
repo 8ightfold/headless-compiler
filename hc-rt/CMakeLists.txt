@@ -101,9 +101,9 @@ if(WIN32)
     src/Bootstrap/UnicodeString.cpp
     src/Bootstrap/Win64KernelDefs.cpp
     src/Bootstrap/CheckPacking.cpp
-
     ${HC_RSYS}/PathNormalizer.cpp
     ${HC_RSYS}/PathPredictor.cpp
+    ${HC_RSYS}/Nt/Except.cpp
     ${HC_RSYS}/Nt/CheckPacking.cpp
   )
 endif()
