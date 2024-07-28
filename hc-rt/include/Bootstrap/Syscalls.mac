@@ -24,6 +24,9 @@
 # define $NtFile(name) $NtGen(name##File)
 #endif // $NtFile
 
+// Exception
+$NtGen(RaiseException)
+$NtGen(RaiseHardError)
 // File
 $NtFile(CancelIo)
 $NtFile(Create)
