@@ -121,6 +121,9 @@ namespace hc::meta {
   concept is_trivial = __is_trivial(T);
 
   template <typename T>
+  concept is_standard_layout =  __is_standard_layout(T);
+
+  template <typename T>
   concept is_trivially_copyable = __is_trivially_copyable(T);
 
   template <typename T>
