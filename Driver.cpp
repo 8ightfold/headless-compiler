@@ -418,7 +418,7 @@ int main(int N, char* A[], char* Env[]) {
   // OnlyNt = false;
   // symdumper_main();
 
-  DbgPrint("[DbgPrint] Hello world!");
+  // DbgPrint("[DbgPrint] Hello world!");
   TestPrintEx("H!\n");
   // TestPrintEx("[TstPrint] Hello world!");
   return 0;
