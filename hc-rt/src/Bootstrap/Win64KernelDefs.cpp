@@ -24,7 +24,6 @@ static_assert(sizeof(void*) == 8,
 
 using namespace hc;
 using namespace hc::bootstrap;
-namespace B = hc::bootstrap;
 
 namespace {
   /// Load from segment register at `offset`.
@@ -45,15 +44,15 @@ Win64ListEntryNode* Win64ListEntryNode::GetBaseNode() {
   return Win64TEB::LoadPEBFromGS()->LDR_data->getBaseEntryNode();
 }
 
-template struct B::TWin64ListEntry<Win64ModuleType::loadOrder>;
-template struct B::TWin64ListEntry<Win64ModuleType::memOrder>;
-template struct B::TWin64ListEntry<Win64ModuleType::initOrder>;
+template struct boot::TWin64ListEntry<Win64ModuleType::loadOrder>;
+template struct boot::TWin64ListEntry<Win64ModuleType::memOrder>;
+template struct boot::TWin64ListEntry<Win64ModuleType::initOrder>;
 
 // PEB
 
 Win64InitOrderList* Win64PEB::getLDRModulesInInitOrder() const {
   __hc_invariant(LDR_data->is_initialized);
-  return this->LDR_data->getEntryNodeAt<B::Win64ModuleType::initOrder>();
+  return this->LDR_data->getEntryNodeAt<boot::Win64ModuleType::initOrder>();
 }
 
 Win64MemOrderList*  Win64PEB::getLDRModulesInMemOrder() const {

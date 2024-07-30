@@ -25,7 +25,6 @@
 
 using namespace hc;
 using namespace hc::bootstrap;
-namespace B = hc::bootstrap;
 
 namespace {
   // TODO: Add hash/cache?

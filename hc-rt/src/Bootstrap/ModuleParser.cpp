@@ -22,9 +22,9 @@
 #include <BinaryFormat/COFF.hpp>
 #include <Meta/Unwrap.hpp>
 
+using namespace hc;
 using namespace hc::bootstrap;
 using hc::binfmt::MMagic;
-namespace B = hc::bootstrap;
 
 /*
 auto get_sym = [&] (C::StrRef S) {
@@ -47,14 +47,14 @@ static inline const Win64PEB* __get_PEB() {
 
 // Parser API
 
-ModuleHandle B::ModuleParser::GetModuleHandle(DualString name) {
+ModuleHandle ModuleParser::GetModuleHandle(DualString name) {
   auto* modules = __get_PEB()->getLDRModulesInMemOrder();
   return name.visitR<ModuleHandle>([modules] (auto* str) {
     return modules->findModule(str);
   });
 }
 
-OptCOFFModule B::ModuleParser::Parse(ModuleHandle handle) {
+OptCOFFModule ModuleParser::Parse(ModuleHandle handle) {
   COFFModule M(handle);
   ImageConsumer IC;
   ModuleParser P(M, IC);
@@ -63,7 +63,7 @@ OptCOFFModule B::ModuleParser::Parse(ModuleHandle handle) {
   return $Some(M);
 }
 
-OptCOFFModule B::ModuleParser::GetParsedModule(DualString name) {
+OptCOFFModule ModuleParser::GetParsedModule(DualString name) {
   const auto handle = 
     ModuleParser::GetModuleHandle(name);
   if (!handle) 
@@ -73,7 +73,7 @@ OptCOFFModule B::ModuleParser::GetParsedModule(DualString name) {
 
 // Parser Impl
 
-COFF::FileHeader* B::ModuleParser::parseHeader() {
+COFF::FileHeader* ModuleParser::parseHeader() {
   COFFHeader& H = mod.__header;
   H.dos = IC.intoIfMatches<COFF::DosHeader>(MMagic::DosHeader);
   if (H.dos != nullptr)
@@ -82,7 +82,7 @@ COFF::FileHeader* B::ModuleParser::parseHeader() {
   return H.file;
 }
 
-COFF::PEWindowsHeader& B::ModuleParser::parseOpt(u32& size) {
+COFF::PEWindowsHeader& ModuleParser::parseOpt(u32& size) {
   using COFF::OptPEWindowsHeader;
   COFFHeader& H = mod.__header;
   if (IC.matches(MMagic::COFFOptPE64)) {
@@ -95,13 +95,13 @@ COFF::PEWindowsHeader& B::ModuleParser::parseOpt(u32& size) {
   return H.win;
 }
 
-void B::ModuleParser::parseTables(u32 RVAs, COFF::FileHeader* fh) {
+void ModuleParser::parseTables(u32 RVAs, COFF::FileHeader* fh) {
   COFFTables& tbls = mod.__tables;
   tbls.data_dirs = IC.consumeRange<COFF::DataDirectoryHeader>(RVAs);
   tbls.sections = IC.consumeRange<COFF::SectionHeader>(fh->section_count);
 }
 
-bool B::ModuleParser::runParser() {
+bool ModuleParser::runParser() {
   IC.reInit(mod->getImageRange());
   COFF::FileHeader* file_header = this->parseHeader();
   u32 opt_size = $unwrap(file_header).optional_header_size;
