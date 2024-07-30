@@ -207,4 +207,7 @@ namespace hc::bootstrap {
     extern hc::bootstrap::KUserSharedData KUSER_SHARED_DATA;
     __asm__ (".equ KUSER_SHARED_DATA, 0x7ffe0000");
   } // extern "C"
+
+  inline constinit XStateConfig&
+    KUSER_XState = KUSER_SHARED_DATA.XState;
 } // namespace hc::bootstrap
