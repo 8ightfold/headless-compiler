@@ -49,6 +49,8 @@ namespace hc::sys::win {
   ////////////////////////////////////////////////////////////////////////
 
   struct ExceptionRecord {
+    static bool CheckDbgStatus();
+    static void Raise(ExceptionRecord& record);
   public:
     i32               code;
     u32               flags;
@@ -58,7 +60,7 @@ namespace hc::sys::win {
     u64               info[15];
   }; 
 
-  struct ContextSave {
+  struct alignas(16) ContextSave {
     [[gnu::used, gnu::noinline, gnu::naked]]
     static void Capture(ContextSave* ctx);
   public:
@@ -78,4 +80,24 @@ namespace hc::sys::win {
     u64           lex_to_rip;   // Last exception to RIP
     u64           lex_from_rip; // Last exception from RIP
   };
+
+  struct RuntimeFunction {
+    u32 begin_addr;
+    u32 end_addr;
+    u32 unwind_info_addr;
+  };
 } // namespace hc::sys::win
+
+namespace hc::sys {
+inline namespace __nt {
+  __nt_attrs win::NtStatus raise_exception(
+    win::ExceptionRecord& record,
+    __nonnull win::ContextSave* ctx,
+    bool first_chance = false
+  ) {
+    return isyscall<NtSyscall::RaiseException>(
+      &record, ctx, win::Boolean(first_chance)
+    );
+  }
+} // namespace __nt
+} // namespace hc::sys

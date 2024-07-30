@@ -28,6 +28,8 @@ namespace hc {
   }
 
   namespace sys {
+    // Win/Nt/Except.cpp
+    extern bool init_SEH_exceptions();
     // {PLATFORM}/PFiles.cpp
     extern void __init_pfiles();
     extern void __fini_pfiles();

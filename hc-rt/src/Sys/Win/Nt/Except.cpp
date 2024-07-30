@@ -17,17 +17,111 @@
 //===----------------------------------------------------------------===//
 
 #include "Except.hpp"
+#include <Common/Casting.hpp>
+#include <Common/DefaultFuncPtr.hpp>
+#include <Bootstrap/_NtModule.hpp>
+#include <Bootstrap/KUserSharedData.hpp>
+#include <Bootstrap/Win64KernelDefs.hpp>
 #include <Meta/ASM.hpp>
+#include <Meta/Unwrap.hpp>
 
 #define HC_FORCE_INTEL _ASM_NOPREFIX
 
+using namespace hc;
 using namespace hc::sys::win;
+using bootstrap::__NtModule;
+using bootstrap::KUSER_SHARED_DATA;
+using bootstrap::Win64TEB;
 
-/// Symbolized `hc::sys::win::ContextSave::Capture(ContextSave*)`.
-extern "C" $ASM_func(void,
- _ZN2hc3sys3win11ContextSave7CaptureEPS2_, (ContextSave* ctx),
+namespace hc::sys {
+  using LookupType = RuntimeFunction*(u64, u64*, void*);
+  using UnwindType = void*(
+    u32, u64, u64, 
+    RuntimeFunction*, ContextSave*,
+    void**, u64*, void*
+  );
+  
+  static constinit DefaultFuncPtr<LookupType> RtlLookupFunctionEntry {};
+  static constinit DefaultFuncPtr<UnwindType> RtlVirtualUnwind {};
+
+  template <typename F>
+  static bool load_nt_symbol(
+   DefaultFuncPtr<F>& func, StrRef symbol) {
+    auto exp = __NtModule()->resolveExport<F>(symbol);
+    return func.setSafe($unwrap(exp));
+  }
+
+  bool init_SEH_exceptions() {
+# define $load_symbol(name) \
+   succeeded &= load_nt_symbol(name, #name)
+    bool succeeded = true;
+    $load_symbol(RtlLookupFunctionEntry);
+    $load_symbol(RtlVirtualUnwind);
+    return succeeded;
+# undef $load_symbol
+  }
+} // namespace hc::sys
+
+bool ExceptionRecord::CheckDbgStatus() {
+  bool status = Win64TEB::LoadPEBFromGS()->being_debugged;
+  if (!status) {
+    const u8 dbgv = KUSER_SHARED_DATA.KdDebuggerEnabled & 0b11;
+    status = (dbgv == 0b11);
+  }
+  return status;
+}
+
+void ExceptionRecord::Raise(ExceptionRecord& record) {
+  const bool has_exceptions = init_SEH_exceptions();
+  if __expect_false(!has_exceptions)
+    return;
+  if (!CheckDbgStatus())
+    return;
+  
+  ContextSave ctx;
+  ContextSave::Capture(&ctx);
+
+  const u64 pc = ctx.GP.rip;
+  u64 image_base = 0;
+  RuntimeFunction* entry =
+    RtlLookupFunctionEntry(pc, &image_base, nullptr);
+  if (!entry) {
+    // RtlRaiseStatus
+    return;
+  }
+
+  void* handler_data = nullptr;
+  u64 establisher_frame = 0;
+  RtlVirtualUnwind(0, image_base, pc, entry,
+    &ctx, &handler_data, &establisher_frame, nullptr);
+  record.address = ptr_cast<>(ctx.GP.rip);
+  // record.address = __builtin_return_address(0);
+
+  raise_exception(record, &ctx, true);
+  return;
+
+  /*
+  volatile bool already_printed = false;
+  if (!already_printed) {
+    already_printed = true;
+    raise_exception(record, &ctx, true);
+  }
+  */
+}
+
+/// Like legacy RtlCaptureContext.
+$ASM_func(void, ContextSave::Capture, (ContextSave* ctx),
   "pushfq",
+  "test rcx, rcx",
+  "je   Quit",
   "mov qword ptr [rcx + 0x78], rax",
+
+  // CONTEXT_CONTROL: 0b00001
+  // CONTEXT_INTEGER: 0b00010
+  // CONTEXT_SEGMENT: 0b00100
+  // CONTEXT_FLOAT:   0b01000
+  // CONTEXT_TAG:     0x100000
+  "mov dword ptr [rcx + 0x30], 0x10000f",
 
   // Store GP
   "mov qword ptr [rcx + 0x80], rcx",
@@ -89,6 +183,7 @@ extern "C" $ASM_func(void,
   "fxsave  [rcx + 0x100]",
   "stmxcsr dword ptr [rcx + 0x34]",
 
+ "Quit:"
   "add rsp, 8",
   "ret"
 )
