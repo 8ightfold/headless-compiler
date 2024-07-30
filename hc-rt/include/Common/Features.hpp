@@ -107,10 +107,24 @@
 # define __counted_by(name)
 #endif
 
+#if __has_attribute(nonnull)
+# define __hc_nonnull __attribute__((nonnull))
+#else
+# define __hc_nonnull
+#endif
+
+#if !__is_reserved(__nonnull)
+# define __nonnull __hc_nonnull
+#endif
+
 #if __has_attribute(__nodebug__)
 # define __nodebug __attribute__((__nodebug__))
 #else
 # define __nodebug
+#endif
+
+#if !__has_cpp_attribute(clang::trivial_abi)
+# error [[clang::trivial_abi]] is required.
 #endif
 
 #if __has_cpp_attribute(clang::lifetimebound)
@@ -287,6 +301,9 @@ HC_HAS_BUILTIN(launder);
 HC_HAS_BUILTIN(unreachable);
 HC_HAS_BUILTIN(is_constant_evaluated);
 
+#define __builtin_return_address(n) \
+  __builtin_extract_return_addr(__builtin_return_address(n))
+
 extern "C" { 
 #if !__has_builtin(__builtin_stack_address)
   [[maybe_unused, gnu::noinline]] static 
@@ -322,10 +339,12 @@ extern "C" {
 } // extern "C"
 
 namespace hc {
-  namespace parcel {}
-  namespace pcl = parcel;
+  namespace bootstrap {}
+  namespace boot = bootstrap;
   namespace common {}
   namespace com = common;
+  namespace parcel {}
+  namespace pcl = parcel;
 #if _HC_COMMON_INLINE
   using namespace common;
 #endif // _HC_COMMON_INLINE
