@@ -33,6 +33,7 @@ extern "C" {
   $ASM_alias(
   void, (__chkstk, ___chkstk_ms), (uptrdiff size));
 
+  // TODO: Switch to intel syntax
   [[gnu::used]] $ASM_func(
   void, ___chkstk_ms, (uptrdiff size),
     "push %rax",
