@@ -123,6 +123,14 @@ namespace hc::meta {
   template <typename T>
   concept is_standard_layout =  __is_standard_layout(T);
 
+  template <typename T, typename...Args>
+  concept is_trivially_constructible =
+    __is_trivially_constructible(T, Args...);
+  
+  template <typename T>
+  concept is_trivially_default_constructible = 
+    __is_trivially_constructible(T);
+
   template <typename T>
   concept is_trivially_copyable = __is_trivially_copyable(T);
 
@@ -151,6 +159,9 @@ namespace hc::meta {
 
   template <typename T>
   concept is_object = __is_object(T);
+
+  template <typename T>
+  concept is_function = __is_function(T);
 
   template <typename T, typename U>
   concept is_same_size = 
