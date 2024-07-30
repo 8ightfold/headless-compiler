@@ -32,7 +32,6 @@ if (primaryOpcode<Instruction::I> == e) \
 
 using namespace hc;
 using namespace hc::bootstrap;
-namespace B = hc::bootstrap;
 
 namespace {
   COFFModule& NtModule() __noexcept {
@@ -73,11 +72,13 @@ namespace {
   }
 } // namespace `anonymous`
 
-COFFModule& B::__NtModule() {
-  return NtModule();
+namespace hc::bootstrap {
+
+COFFModule* __NtModule() {
+  return &NtModule();
 }
 
-[[gnu::hot]] Instruction B::get_instruction(const u8* bytes) {
+[[gnu::hot]] Instruction get_instruction(const u8* bytes) {
   const u8 primary = *bytes;
   $MatchInstr(KCall, primary)
   else $MatchInstr(MovRcxToR10, primary)
@@ -98,7 +99,7 @@ COFFModule& B::__NtModule() {
   return Instruction::Unknown;
 }
 
-StubResult B::parse_stub(StrRef S) {
+StubResult parse_stub(StrRef S) {
   if (!S.beginsWith("Nt"))
     return $StubErr(NonNTFunction);
   void* stub = NtModule().resolveExportRaw(S);
@@ -106,3 +107,5 @@ StubResult B::parse_stub(StrRef S) {
     return $StubErr(UnknownFunction);
   return do_parsing(hc::ptr_cast<const u8>(stub));
 }
+
+} // namespace hc::bootstrap

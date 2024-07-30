@@ -72,8 +72,8 @@ namespace {
   /// Attempts to load the debug print functions on error.
   /// It will then forward the function to `__list_invalid`.
   [[gnu::cold]] void __try_dbgprint() {
-    auto& M = __NtModule();
-    auto res = M.resolveExport<DbgType>("DbgPrint");
+    // TODO: Replace with custom print.
+    auto res = __NtModule()->resolveExport<DbgType>("DbgPrint");
     if (res.isNone()) return;
     __list_invalid(res.some());
   }

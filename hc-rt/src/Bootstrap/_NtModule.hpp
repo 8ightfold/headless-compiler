@@ -27,5 +27,5 @@
 #include <Bootstrap/ModuleParser.hpp>
 
 namespace hc::bootstrap {
-  extern COFFModule& __NtModule();
+  extern COFFModule* __NtModule();
 } // namespace hc::bootstrap

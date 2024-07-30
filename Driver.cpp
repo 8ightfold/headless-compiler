@@ -17,6 +17,7 @@
 //===----------------------------------------------------------------===//
 
 #include <Common/Checked.hpp>
+#include <Common/DefaultFuncPtr.hpp>
 #include <Common/Function.hpp>
 #include <Common/Limits.hpp>
 #include <Common/RawLazy.hpp>
@@ -190,7 +191,8 @@ void functionTests() {
 #include <Bootstrap/KUserSharedData.hpp>
 // #include "UserShared.hpp"
 
-using hc::bootstrap::KUSER_SHARED_DATA;
+using hc::boot::KUSER_SHARED_DATA;
+using hc::boot::KUSER_XState;
 
 template <typename T>
 concept _is_array_ptr_impl = meta::is_ptr<T> && meta::is_array<meta::RemovePtr<T>>;
@@ -259,26 +261,28 @@ void dump_struct(T* data) {
 #define X64DBG_HALT() (void(0))
 
 #include <Bootstrap/_NtModule.hpp>
-using DbgType = bootstrap::ULong(const char* fmt, ...);
+using DbgType = boot::ULong(const char* fmt, ...);
+using W::ExceptionRecord;
+using W::ContextSave;
 
-struct EXCEPTION_RECORD {
-  i32               ExceptionCode;
-  i32               ExceptionFlags;
-  EXCEPTION_RECORD* ExceptionRecord;
-  void*             ExceptionAddress;
-  i32               NumberParameters;
-  uptr              ExceptionInformation[15];
-};
+static constinit DefaultFuncPtr<DbgType> DbgPrint {};
+static constinit bool triedLoadDbgPrint = false;
+
+static bool __try_load_dbgprint() {
+  if __expect_true(triedLoadDbgPrint)
+    return DbgPrint.isSet();
+  triedLoadDbgPrint = true;
+  auto* M = boot::__NtModule();
+  auto res = M->resolveExport<DbgType>("DbgPrint");
+  if (res.isNone())
+    return false;
+  return DbgPrint.setSafe(*res);
+}
 
 static void __try_dbgprint(const char* Format, auto&&...Args) {
-  static auto& M = bootstrap::__NtModule();
-  auto res = M.resolveExport<DbgType>("DbgPrint");
-  if (res.isNone()) [[unlikely]] {
-    return;
-  }
-  DbgType& F = res.some();
+  static bool load = __try_load_dbgprint();
   X64DBG_HALT();
-  F(Format, Args...);
+  DbgPrint(Format, Args...);
 }
 
 #define BREAKPOINT_PRINT 1
@@ -309,12 +313,12 @@ W::NtStatus __stdcall DebugPrint(
   __asm__ volatile ("retn;\n"::);
 }
 
-__always_inline bootstrap::Win64TEB* LoadTeb() {
-  return bootstrap::Win64TEB::LoadTEBFromGS();
+__always_inline boot::Win64TEB* LoadTeb() {
+  return boot::Win64TEB::LoadTEBFromGS();
 }
 
-__always_inline bootstrap::Win64PEB* LoadPeb() {
-  return bootstrap::Win64TEB::LoadPEBFromGS();
+__always_inline boot::Win64PEB* LoadPeb() {
+  return boot::Win64TEB::LoadPEBFromGS();
 }
 
 static bool SetInDbgPrint() {
@@ -329,13 +333,6 @@ static void UnsetInDbgPrint() {
   LoadTeb()->in_debug_print = false;
 }
 
-static bool CheckDbgStatus() {
-  bool Status = LoadPeb()->being_debugged;
-  if (!Status)
-    Status = KUSER_SHARED_DATA.KdDebuggerEnabled;
-  return Status;
-}
-
 W::NtStatus DebugPrintI(
  STRING* DebugString,
  u32 ComponentId,
@@ -345,7 +342,7 @@ W::NtStatus DebugPrintI(
   if (SetInDbgPrint())
     return Status;
   
-  if (CheckDbgStatus()) {
+  if (ExceptionRecord::CheckDbgStatus()) {
     std::printf("%*s", 
       int(DebugString->Length),
       DebugString->Buffer);
@@ -370,70 +367,66 @@ W::NtStatus TestPrint(const char(&Str)[N]) {
   return DebugPrint(&S, 0x65, 3);
 }
 
-static W::NtStatus TestPrintExI(const char* Str, usize N) {
-  static auto& M = bootstrap::__NtModule();
-  auto res = M.resolveExport<void(EXCEPTION_RECORD*)>("RtlRaiseException");
-  void(*Ex)(EXCEPTION_RECORD*) = $unwrap(res);
-  W::NtStatus Status = 0;
+static W::NtStatus TestPrintExIPrologue(const char* Str, usize N);
 
-  if (!CheckDbgStatus()) {
+static W::NtStatus TestPrintExI(const char* Str, usize N) {
+  using W::ExceptionRecord;
+  static auto* M = boot::__NtModule();
+  auto res = M->resolveExport<void(ExceptionRecord*)>("RtlRaiseException");
+  void(*Ex)(ExceptionRecord*) = $unwrap(res);
+
+  W::NtStatus Status = 0;
+  if (!ExceptionRecord::CheckDbgStatus()) {
     return std::fprintf(
       stderr, "[DBG] %*s", int(N), Str);
   }
 
-  EXCEPTION_RECORD Record {};
-  Record.ExceptionCode    = 0x40010006;
-  Record.ExceptionRecord  = nullptr;
-  Record.ExceptionAddress = ptr_cast<void>(&TestPrintExI);
-  Record.NumberParameters = 2;
-  Record.ExceptionInformation[0] = N;
-  Record.ExceptionInformation[1] = uptr(Str);
-  Ex(&Record);
+  if (SetInDbgPrint())
+    return 0;
 
+  ExceptionRecord Record {};
+  Record.code    = 0x40010006; // DBG_PRINTEXCEPTION_C
+  Record.record  = nullptr;
+  Record.address = ptr_cast<void>(&TestPrintExIPrologue);
+  Record.nparams = 2;
+  Record.info[0] = N;
+  Record.info[1] = uptr(Str);
+  ExceptionRecord::Raise(Record);
+  // sys::raise_exception(&Record, true);
+  // Ex(&Record);
+
+  UnsetInDbgPrint();
   return 0;
+}
+
+W::NtStatus TestPrintExIPrologue(const char* Str, usize N) {
+  return TestPrintExI(Str, N);
 }
 
 template <usize N>
 W::NtStatus TestPrintEx(const char(&Str)[N]) {
-  return TestPrintExI(Str, N);
-}
-
-static void DrawTextI(wchar_t Str[], usize N) {
-  using bootstrap::UnicodeString;
-  static auto& M = bootstrap::__NtModule();
-  auto OFn = M.resolveExport<W::NtStatus(UnicodeString*)>("NtDrawText");
-  const auto Fn = $unwrap_void(OFn);
-  
-  auto UStr = UnicodeString::New(Str, N);
-  Fn(&UStr);
-}
-
-template <usize N>
-static void DrawText(const wchar_t(&Str)[N]) {
-  wchar_t Buf[N];
-  inline_memcpy(Buf, Str, N);
-  DrawTextI(Buf, N);
+  return TestPrintExIPrologue(Str, N);
 }
 
 extern constinit bool OnlyNt;
 extern void symdumper_main();
 
 int main(int N, char* A[], char* Env[]) {
-  for (int I = 0; I < 16; ++I) {
-    using W::ContextSave;
-    ContextSave Ctx;
-    ContextSave::Capture(&Ctx);
-    // ContextSave::Capture(nullptr);
-  }
-
+  __try_load_dbgprint();
   printPtrRange(sys::Args::ProgramDir(), "Executable");
   printPtrRange(sys::Args::WorkingDir(), "Working in");
-  OnlyNt = false;
-  symdumper_main();
+  // OnlyNt = false;
+  // symdumper_main();
+
+  DbgPrint("[DbgPrint] Hello world!");
+  TestPrintEx("H!\n");
+  // TestPrintEx("[TstPrint] Hello world!");
+  return 0;
 
   assert(reinterpret_cast<uptr>(&KUSER_SHARED_DATA) == 0x7FFE0000);
   std::printf("CyclesPerYield: %hu\n", KUSER_SHARED_DATA.CyclesPerYield);
   std::printf("UnparkedProcessorCount: %hu\n", KUSER_SHARED_DATA.UnparkedProcessorCount);
+  std::printf("XState.CompactionEnabled: %u\n", KUSER_XState.CompactionEnabled);
 
   dump_struct(&KUSER_SHARED_DATA);
   // dump_struct(&KUSER_SHARED_DATA.Dbg);
@@ -447,6 +440,8 @@ int main(int N, char* A[], char* Env[]) {
     using W::ContextSave;
     ContextSave Ctx;
     ContextSave::Capture(&Ctx);
+    std::printf("BeingDebugged?: %s\n",
+      LoadPeb()->being_debugged ? "true" : "false");
     // ContextSave::Capture(nullptr);
   }
 
@@ -456,10 +451,9 @@ int main(int N, char* A[], char* Env[]) {
     break;
   }
 
-  // __try_dbgprint("Hello world!");
-  TestPrint("Hello world!");
-  TestPrintEx("Hello world!");
-  DrawText(L"Testing... Testing...");
+  DbgPrint("Hello world!");
+  // TestPrint("Hello world!");
+  // TestPrintEx("Hello world!");
   return 0;
 
   {
