@@ -100,4 +100,16 @@ namespace hc::common {
 namespace hc {
   template <usize I>
   __global meta::IdxNode<I> __i { };
+
+  template <char...CC>
+  constexpr usize __i_gen() noexcept {
+    usize V = 0U;
+    ((V = V * 10 + (CC - '0')), ...);
+    return V;
+  }
+
+  template <char...CC>
+  constexpr auto operator""_i() noexcept {
+    return __i<__i_gen<CC...>()>;
+  }
 } // namespace hc
