@@ -420,10 +420,9 @@ int main(int N, char* A[], char* Env[]) {
   OnlyNt = false;
   // symdumper_main();
 
-  // DbgPrint("[DbgPrint] Hello world!\n");
+  DbgPrint("[DbgPrint] Hello world!\n");
   std::printf("BeingDebugged: %u\n", LoadPeb()->being_debugged);
-  TestPrintEx("H!\n");
-  // TestPrintEx("[TstPrint] Hello world!");
+  TestPrintEx("[TstPrint] Hello world!");
   ret = 1;
   return ret;
 
