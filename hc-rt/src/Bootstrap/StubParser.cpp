@@ -17,6 +17,7 @@
 //===----------------------------------------------------------------===//
 
 #include <Bootstrap/StubParser.hpp>
+#include <Common/AtomicLazy.hpp>
 #include <Common/Casting.hpp>
 #include <Meta/Refl.hpp>
 #include <Meta/ExTraits.hpp>
@@ -34,10 +35,15 @@ using namespace hc;
 using namespace hc::bootstrap;
 
 namespace {
+  /// Use an `AtomicLazy` to avoid thread bs.
+  __imut AtomicLazy<COFFModule> __parsed_ntdll_ {};
+
   COFFModule& NtModule() __noexcept {
-    static thread_local COFFModule M = 
-      ModuleParser::GetParsedModule("ntdll.dll").some();
-    return M;
+    if __expect_false(__parsed_ntdll_.isEmpty()) {
+      auto MOpt = ModuleParser::GetParsedModule("ntdll.dll");
+      return __parsed_ntdll_.ctor(*MOpt);
+    }
+    return __parsed_ntdll_.unwrap();
   }
 
   template <Instruction I>

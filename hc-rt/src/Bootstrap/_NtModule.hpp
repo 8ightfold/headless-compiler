@@ -25,6 +25,7 @@
 #pragma once
 
 #include <Bootstrap/ModuleParser.hpp>
+#include <Bootstrap/Win64KernelDefs.hpp>
 
 namespace hc::bootstrap {
   inline Win64TIB* HcCurrentTIB() { return Win64TEB::LoadTIBFromGS(); }
