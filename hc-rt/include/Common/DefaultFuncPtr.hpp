@@ -30,8 +30,16 @@ namespace hc::common {
   inline Ret default_func(Args...) { return Ret{}; }
 
   template <typename Ret, typename...Args>
+  requires meta::is_void<Ret>
+  inline void default_func(Args...) { }
+
+  template <typename Ret, typename...Args>
   requires meta::is_trivially_default_constructible<Ret>
   inline Ret default_vfunc(Args..., ...) { return Ret{}; }
+
+  template <typename Ret, typename...Args>
+  requires meta::is_void<Ret>
+  inline void default_vfunc(Args..., ...) { }
 
   template <typename Ret, typename...Args>
   __global Ret(*default_func_ptr)(Args...) = &default_func<Ret, Args...>;
