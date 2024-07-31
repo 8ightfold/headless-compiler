@@ -27,5 +27,7 @@
 #include <Bootstrap/ModuleParser.hpp>
 
 namespace hc::bootstrap {
+  inline Win64TIB* HcCurrentTIB() { return Win64TEB::LoadTIBFromGS(); }
+  inline Win64TEB* HcCurrentTEB() { return Win64TEB::LoadTEBFromGS(); }
   extern COFFModule* __NtModule();
 } // namespace hc::bootstrap
