@@ -29,28 +29,29 @@
 // https://nullprogram.com/blog/2024/02/05
 // https://github.com/skeeto/w64devkit/blob/master/src/libchkstk.S
 
+#define HC_FORCE_INTEL _ASM_NOPREFIX
+
 extern "C" {
   $ASM_alias(
   void, (__chkstk, ___chkstk_ms), (uptrdiff size));
 
-  // TODO: Switch to intel syntax
   [[gnu::used]] $ASM_func(
   void, ___chkstk_ms, (uptrdiff size),
-    "push %rax",
-    "push %rcx",
-    "mov  %gs:(0x10), %rcx",
-    "neg  %rax",
-    "add  %rsp, %rax",
-    "jb   one",
-    "xor  %eax, %eax",
-   $lbl(zero)
-     "sub $0x1000, %rcx",
-     "test %eax, (%rcx)",
-   $lbl(one)
-     "cmp %rax, %rcx",
-    "ja   zero",
-    "pop  %rcx",
-    "pop  %rax",
+    "push rax",
+    "push rcx",
+    "mov  rcx, qword ptr gs:[16]",
+    "neg  rax",
+    "add  rax, rsp",
+    "jb   1f",
+    "xor  eax, eax",
+   "0:"
+    "sub  rcx, 4096",
+    "test dword ptr [rcx], eax",
+   "1:"
+    "cmp  rcx, rax",
+    "ja   0b",
+    "pop  rcx",
+    "pop  rax",
     "ret"
   )
-}
+} // extern "C"
