@@ -54,18 +54,16 @@ namespace {
 
 namespace hc::sys {
   using LookupType = RuntimeFunction*(u64 pc, u64* image_base, void*);
-  using UnwindType = void*(
-    u32 type, u64 image_base, u64 pc, 
-    RuntimeFunction* entry, ContextSave* ctx,
-    void** data, u64* establisher_frame, void*
+  using UnwindType = void*(u32 type, u64 image_base, u64 pc,
+    RuntimeFunction* entry, ContextSave* ctx, void** data,
+    u64* establisher_frame, void*
   );
 
   using ExCtxLen2Type = u32(u32 flags, u32* len, u64 compaction_mask);
-  using ExCtxInit2Type = u32(
-    void* ctx, u32 flags, 
-    ContextSaveEx** ctxex,
-    u64 compaction_mask
-  );
+  using ExCtxInit2Type = u32(void* ctx, u32 flags,
+    ContextSaveEx** ctxex, u64 compaction_mask
+  )
+  ;
   using CaptureCtx2Type  = void(ContextSave* ctx);
   using LegacyCtxLocType = ContextSave*(ContextSaveEx* ctxex, u32* len);
   
@@ -73,7 +71,6 @@ namespace hc::sys {
   __imut DefaultFuncPtr<UnwindType>       RtlVirtualUnwind {};
   __imut DefaultFuncPtr<ExCtxLen2Type>    RtlGetExtendedContextLength2 {};
   __imut DefaultFuncPtr<ExCtxInit2Type>   RtlInitializeExtendedContext2 {};
-  // __imut DefaultFuncPtr<CaptureCtx2Type>  RtlpCaptureContext2 {};
   __imut DefaultFuncPtr<CaptureCtx2Type>  RtlCaptureContext2 {};
   __imut DefaultFuncPtr<LegacyCtxLocType> RtlLocateLegacyContext {};
 
@@ -85,8 +82,7 @@ namespace hc::sys {
   }
 
   bool init_SEH_exceptions() {
-# define $load_symbol(name) \
-   succeeded &= load_nt_symbol(name, #name)
+# define $load_symbol(name) succeeded &= load_nt_symbol(name, #name)
     bool succeeded = true;
     $load_symbol(RtlLookupFunctionEntry);
     $load_symbol(RtlVirtualUnwind);
