@@ -83,11 +83,13 @@
 #define __clpragma(args...) _Pragma(__hc_stringify(clang args))
 #define __cldiag(args...) __clpragma(diagnostic args)
 #define __cldebug(...) __clpragma(__debug __VA_ARGS__)
+#define __nounroll _Pragma("nounroll")
 
 #define __always_inline __attribute__((always_inline, artificial)) inline
 #define __ndbg_inline   __attribute__((always_inline, nodebug))    inline
 #define __visibility(ty) __attribute__((__visibility__(#ty)))
 #define __aligned(n) __attribute__((aligned(n)))
+#define __section(sect_str) __attribute__((section(sect_str), used))
 
 #if __has_attribute(preferred_type)
 # define __prefer_type(name) __attribute__((preferred_type(name)))
@@ -162,8 +164,10 @@
 # define __unpredictable(expr...)  (bool(expr))
 #endif
 
-#define __nounroll _Pragma("nounroll")
 #define __global inline constexpr
+#define __intrnl static constexpr
+#define __gmut   inline constinit
+#define __imut   static constinit
 
 #if _HC_CXX23
 // statics in constexpr functions

@@ -65,7 +65,7 @@ namespace hc::bootstrap {
     return A;
   }
 
-  static constexpr u32 __invalid_syscall_ = ~0UL;
+  enum : u32 { __invalid_syscall_ = ~0UL };
   extern constinit common::EnumArray<u32, Syscall> __syscalls_;
 
   /// Ensure `__syscalls_` has been initialized, otherwise you'll

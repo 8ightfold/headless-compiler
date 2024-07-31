@@ -32,9 +32,6 @@
 
 #define HC_FORCE_INTEL _ASM_NOPREFIX
 
-#undef  __imut
-#define __imut static constinit
-
 using namespace hc;
 using namespace hc::sys::win;
 using bootstrap::__NtModule;

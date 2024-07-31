@@ -23,7 +23,7 @@
 using namespace hc;
 using namespace hc::bootstrap;
 
-static constexpr wchar_t __gnull = L'\0';
+__intrnl wchar_t __gnull = L'\0';
 
 UnicodeString UnicodeString::New(wchar_t* S) {
   __hc_invariant(S != nullptr);

@@ -33,8 +33,8 @@ constinit common::EnumArray<u32, Syscall> __syscalls_ {};
 } // namespace hc::bootstrap
 
 namespace {
-  static constinit EnumArray<StubError, Syscall> __errors_ {};
-  static constinit bool __did_succeed_ = false;
+  __imut EnumArray<StubError, Syscall> __errors_ {};
+  __imut bool __did_succeed_ = false;
 
   [[gnu::hot]] u32 handle_syscall(Syscall C, StrRef name) {
     StubResult stub = parse_stub(name);
