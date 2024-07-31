@@ -42,6 +42,12 @@ else()
   target_compile_options(hcrt-inc INTERFACE -fno-threadsafe-statics)
 endif()
 
+if(HC_EMUTLS)
+  target_compile_options(hcrt-inc INTERFACE -femulated-tls)
+else()
+  target_compile_options(hcrt-inc INTERFACE -fno-emulated-tls)
+endif()
+
 if(HC_EXTRA_DIAGNOSTICS)
   target_compile_options(hcrt-inc INTERFACE
     -fdiagnostics-show-category=name
@@ -57,6 +63,7 @@ target_internal_flags(
   HC_DO_TRACING 
   HC_RTTI
   HC_MULTITHREADED
+  HC_EMUTLS
   HC_SOFTWARE_PREFETCH
   HC_COMMON_INLINE
   HC_ENABLE_LTO
@@ -133,6 +140,13 @@ target_compile_definitions(hcrt-xinc INTERFACE __XCRT__=1)
 target_compile_options(hcrt-xinc INTERFACE -nostdinc++ -nostdinc -static)
 target_link_options(hcrt-xinc INTERFACE -nostdlib -nostartfiles)
 
+if(WIN32)
+  target_link_options(hcrt-xinc INTERFACE 
+    -Wl,-e,mainCRTStartup 
+    -mno-stack-arg-probe
+  )
+endif()
+
 ##======================================================================##
 ## xcrt - CRT Implementation
 ##======================================================================##
@@ -168,10 +182,6 @@ if(WIN32)
     xcrt/Phase0/Chkstk.cpp
     xcrt/Phase0/InitCookie.cpp
     xcrt/Mingw/NtdllLdr.cpp
-  )
-  target_link_options(hcrt-xinc INTERFACE 
-    -Wl,-e,mainCRTStartup 
-    -mno-stack-arg-probe
   )
 else()
   message(FATAL_ERROR "The hc runtime is not supported on your platform.")
