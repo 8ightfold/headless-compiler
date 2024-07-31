@@ -25,24 +25,60 @@
 #include <Meta/ASM.hpp>
 #include <Meta/Unwrap.hpp>
 
+// For more info:
+// https://windows-internals.com/cet-on-windows
+// https://richard-ac.github.io/posts/SEH
+// https://github.com/mic101/windows/blob/master/WRK-v1.2/base/ntos/dbgk/dbgkport.c#L30
+
 #define HC_FORCE_INTEL _ASM_NOPREFIX
+
+#undef  __imut
+#define __imut static constinit
 
 using namespace hc;
 using namespace hc::sys::win;
 using bootstrap::__NtModule;
 using bootstrap::KUSER_SHARED_DATA;
+using bootstrap::KUSER_XState;
 using bootstrap::Win64TEB;
 
+namespace {
+  struct ContextChunk {
+    i32 offset;
+    u32 length;
+  };
+
+  struct ContextSaveEx {
+    ContextChunk all;
+    ContextChunk legacy;
+    ContextChunk xstate;
+  };
+} // namespace `anonymous`
+
 namespace hc::sys {
-  using LookupType = RuntimeFunction*(u64, u64*, void*);
+  using LookupType = RuntimeFunction*(u64 pc, u64* image_base, void*);
   using UnwindType = void*(
-    u32, u64, u64, 
-    RuntimeFunction*, ContextSave*,
-    void**, u64*, void*
+    u32 type, u64 image_base, u64 pc, 
+    RuntimeFunction* entry, ContextSave* ctx,
+    void** data, u64* establisher_frame, void*
   );
+
+  using ExCtxLen2Type = u32(u32 flags, u32* len, u64 compaction_mask);
+  using ExCtxInit2Type = u32(
+    void* ctx, u32 flags, 
+    ContextSaveEx** ctxex,
+    u64 compaction_mask
+  );
+  using CaptureCtx2Type  = void(ContextSave* ctx);
+  using LegacyCtxLocType = ContextSave*(ContextSaveEx* ctxex, u32* len);
   
-  static constinit DefaultFuncPtr<LookupType> RtlLookupFunctionEntry {};
-  static constinit DefaultFuncPtr<UnwindType> RtlVirtualUnwind {};
+  __imut DefaultFuncPtr<LookupType>       RtlLookupFunctionEntry {};
+  __imut DefaultFuncPtr<UnwindType>       RtlVirtualUnwind {};
+  __imut DefaultFuncPtr<ExCtxLen2Type>    RtlGetExtendedContextLength2 {};
+  __imut DefaultFuncPtr<ExCtxInit2Type>   RtlInitializeExtendedContext2 {};
+  // __imut DefaultFuncPtr<CaptureCtx2Type>  RtlpCaptureContext2 {};
+  __imut DefaultFuncPtr<CaptureCtx2Type>  RtlCaptureContext2 {};
+  __imut DefaultFuncPtr<LegacyCtxLocType> RtlLocateLegacyContext {};
 
   template <typename F>
   static bool load_nt_symbol(
@@ -57,6 +93,11 @@ namespace hc::sys {
     bool succeeded = true;
     $load_symbol(RtlLookupFunctionEntry);
     $load_symbol(RtlVirtualUnwind);
+    // TODO: Split up as version check
+    $load_symbol(RtlGetExtendedContextLength2);
+    $load_symbol(RtlInitializeExtendedContext2);
+    $load_symbol(RtlCaptureContext2);
+    $load_symbol(RtlLocateLegacyContext);
     return succeeded;
 # undef $load_symbol
   }
@@ -71,6 +112,75 @@ bool ExceptionRecord::CheckDbgStatus() {
   return status;
 }
 
+#if 1
+void ExceptionRecord::Raise(ExceptionRecord& record) {
+  const bool has_exceptions = init_SEH_exceptions();
+  if __expect_false(!has_exceptions)
+    return;
+  if (!CheckDbgStatus())
+    return;
+
+  u32 ctx_flags = 0x10000b;
+  u64 compaction_mask = 0;
+
+  $scope {
+    // Theres some bitfield flags here in the release,
+    // not sure what they do exactly.
+    if (KUSER_XState.EnabledFeatures == 0 /* && !some_bitfield.@42 */)
+      break;
+    ctx_flags |= 0x40;
+    if (!(KUSER_XState.ControlFlags & 2))
+      break;
+    const u64 enabled_features =
+      KUSER_XState.EnabledFeatures |
+      KUSER_XState.EnabledSupervisorFeatures;
+    u64 feature_mask = enabled_features | 0x8000000000000000;
+    // Hope and pray our bit is always 0. From my testing the entire
+    // value is usually cleared, but there's no way to know for sure.
+    if (enabled_features & 0x800 /* && !some_bitfield.@42 */) {
+      feature_mask = (enabled_features & 0xfffffffffffff7ff);
+      feature_mask |= 0x8000000000000000;
+    }
+    // Ngl ion know what any of these fuckin values mean
+    // TODO: MAKE SOME GOD DAMN TESTS!!!
+    compaction_mask = (feature_mask & 0xfffffffffff9ffff);
+  }
+
+  u32 ctxex_len = 0;
+  RtlGetExtendedContextLength2(
+    ctx_flags, &ctxex_len, compaction_mask);
+  void* raw_ctx = __builtin_alloca(ctxex_len);
+
+  ContextSaveEx* ctxex = nullptr;
+  if (RtlInitializeExtendedContext2(
+   raw_ctx, ctx_flags, &ctxex, compaction_mask))
+    return;
+  
+  u32 ctx_len = 0;
+  ContextSave* ctx =
+    RtlLocateLegacyContext(ctxex, &ctx_len);
+  if __expect_false(!ctx || ctx_len == 0) return;
+  RtlCaptureContext2(ctx);
+
+  const u64 pc = ctx->GP.rip;
+  u64 image_base = 0;
+  RuntimeFunction* entry =
+    RtlLookupFunctionEntry(pc, &image_base, nullptr);
+  if (!entry) {
+    // RtlRaiseStatus
+    return;
+  }
+
+  void* handler_data = nullptr;
+  u64 establisher_frame = 0;
+  RtlVirtualUnwind(0, image_base, pc, entry,
+    ctx, &handler_data, &establisher_frame, nullptr);
+  record.address = ptr_cast<>(ctx->GP.rip);
+
+  raise_exception(record, ctx, true);
+  return;
+}
+#else
 void ExceptionRecord::Raise(ExceptionRecord& record) {
   const bool has_exceptions = init_SEH_exceptions();
   if __expect_false(!has_exceptions)
@@ -95,19 +205,11 @@ void ExceptionRecord::Raise(ExceptionRecord& record) {
   RtlVirtualUnwind(0, image_base, pc, entry,
     &ctx, &handler_data, &establisher_frame, nullptr);
   record.address = ptr_cast<>(ctx.GP.rip);
-  // record.address = __builtin_return_address(0);
 
   raise_exception(record, &ctx, true);
   return;
-
-  /*
-  volatile bool already_printed = false;
-  if (!already_printed) {
-    already_printed = true;
-    raise_exception(record, &ctx, true);
-  }
-  */
 }
+#endif
 
 /// Like legacy RtlCaptureContext.
 $ASM_func(void, ContextSave::Capture, (ContextSave* ctx),

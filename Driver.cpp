@@ -371,9 +371,9 @@ static W::NtStatus TestPrintExIPrologue(const char* Str, usize N);
 
 static W::NtStatus TestPrintExI(const char* Str, usize N) {
   using W::ExceptionRecord;
-  static auto* M = boot::__NtModule();
-  auto res = M->resolveExport<void(ExceptionRecord*)>("RtlRaiseException");
-  void(*Ex)(ExceptionRecord*) = $unwrap(res);
+  // static auto* M = boot::__NtModule();
+  // auto res = M->resolveExport<void(ExceptionRecord*)>("RtlRaiseException");
+  // void(*Ex)(ExceptionRecord*) = $unwrap(res);
 
   W::NtStatus Status = 0;
   if (!ExceptionRecord::CheckDbgStatus()) {
@@ -387,7 +387,7 @@ static W::NtStatus TestPrintExI(const char* Str, usize N) {
   ExceptionRecord Record {};
   Record.code    = 0x40010006; // DBG_PRINTEXCEPTION_C
   Record.record  = nullptr;
-  Record.address = ptr_cast<void>(&TestPrintExIPrologue);
+  Record.address = ptr_cast<void>(&TestPrintExI);
   Record.nparams = 2;
   Record.info[0] = N;
   Record.info[1] = uptr(Str);
@@ -412,16 +412,20 @@ extern constinit bool OnlyNt;
 extern void symdumper_main();
 
 int main(int N, char* A[], char* Env[]) {
+  volatile int ret = 0;
   __try_load_dbgprint();
-  printPtrRange(sys::Args::ProgramDir(), "Executable");
-  printPtrRange(sys::Args::WorkingDir(), "Working in");
-  // OnlyNt = false;
+  // printPtrRange(sys::Args::ProgramDir(), "Executable");
+  // printPtrRange(sys::Args::WorkingDir(), "Working in");
+  
+  OnlyNt = false;
   // symdumper_main();
 
-  // DbgPrint("[DbgPrint] Hello world!");
+  // DbgPrint("[DbgPrint] Hello world!\n");
+  std::printf("BeingDebugged: %u\n", LoadPeb()->being_debugged);
   TestPrintEx("H!\n");
   // TestPrintEx("[TstPrint] Hello world!");
-  return 0;
+  ret = 1;
+  return ret;
 
   assert(reinterpret_cast<uptr>(&KUSER_SHARED_DATA) == 0x7FFE0000);
   std::printf("CyclesPerYield: %hu\n", KUSER_SHARED_DATA.CyclesPerYield);
