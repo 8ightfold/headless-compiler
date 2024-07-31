@@ -190,7 +190,8 @@ namespace hc::sys {
     }
 
     __always_inline T store(T V, MemoryOrder ord = SeqCnst) {
-      return __atomic_store_n(&data, V, int(ord));
+      __atomic_store_n(&data, V, int(ord));
+      return V;
     }
 
     [[nodiscard]] __always_inline T xchg(T V, MemoryOrder ord = SeqCnst) {
