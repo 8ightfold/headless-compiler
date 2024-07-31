@@ -70,6 +70,9 @@ namespace hc::common {
   concept __is_trivial_alloc = 
     __is_trivially_constructible(T) &&
     __is_trivially_destructible(T);
+  
+  template <typename T>
+  using StackPtr = DynAllocation<T>;
 
   template <typename T, usize Align>
   struct [[gsl::Pointer]] DynAllocation {
