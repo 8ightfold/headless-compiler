@@ -39,11 +39,11 @@ namespace {
   __imut AtomicLazy<COFFModule> __parsed_ntdll_ {};
 
   COFFModule& NtModule() __noexcept {
-    if __expect_false(__parsed_ntdll_.isEmpty()) {
-      auto MOpt = ModuleParser::GetParsedModule("ntdll.dll");
-      return __parsed_ntdll_.ctor(*MOpt);
-    }
-    return __parsed_ntdll_.unwrap();
+    return __parsed_ntdll_.ctorDeferred(
+    [](auto& base) -> COFFModule& {
+      OptCOFFModule O = ModuleParser::GetParsedModule("ntdll.dll");
+      return base.ctor(*O);
+    });
   }
 
   template <Instruction I>

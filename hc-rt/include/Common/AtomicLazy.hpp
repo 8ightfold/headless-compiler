@@ -25,6 +25,7 @@
 #pragma once
 
 #include "RawLazy.hpp"
+#include "Function.hpp"
 #include <Sys/AtomicMutex.hpp>
 
 namespace hc::common {
@@ -44,6 +45,17 @@ namespace hc::common {
         return BaseType::unwrap();
       __mtx.lock();
       T& ref = BaseType::ctor(__hc_fwd(args)...);
+      __init.store(true, Release);
+      __mtx.unlock();
+      return ref;
+    }
+
+    inline T& ctorDeferred(Function<T&(BaseType&)> fn) noexcept {
+      if __expect_true(__init.load(Acquire))
+        return BaseType::unwrap();
+      __mtx.lock();
+      T& ref = fn(static_cast<BaseType&>(*this));
+      __hc_invariant(__addressof(ref) == BaseType::data());
       __init.store(true, Release);
       __mtx.unlock();
       return ref;
