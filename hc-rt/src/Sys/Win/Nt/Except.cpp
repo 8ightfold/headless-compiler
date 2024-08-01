@@ -62,8 +62,8 @@ namespace hc::sys {
   using ExCtxLen2Type = u32(u32 flags, u32* len, u64 compaction_mask);
   using ExCtxInit2Type = u32(void* ctx, u32 flags,
     ContextSaveEx** ctxex, u64 compaction_mask
-  )
-  ;
+  );
+  
   using CaptureCtx2Type  = void(ContextSave* ctx);
   using LegacyCtxLocType = ContextSave*(ContextSaveEx* ctxex, u32* len);
   

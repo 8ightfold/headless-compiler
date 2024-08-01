@@ -23,6 +23,7 @@
 # error Invalid main signature! Only mainCRTStartup is supported.
 #endif
 
+#undef __externally_visible
 #ifdef __has_attribute
 # if __has_attribute(externally_visible)
 #  define __externally_visible __attribute__((externally_visible))
@@ -30,20 +31,39 @@
 #endif // __has_attribute?
 
 #ifndef __externally_visible
-# define __externally_visible
+# define __externally_visible __attribute__((used))
 #endif
 
 extern "C" {
-  extern void __security_init_cookie(void);
-  extern int  __xcrtCRTStartupPhase1(void);
+// Phase0/InitCookie.cpp
+extern void __security_init_cookie(void);
+// Phase1/Initialization.cpp
+extern int  __xcrtCRTStartupPhase1(void);
 } // extern "C"
+
+// TODO: Implement SEH
+#undef __SEH__
 
 extern "C" {
   [[gnu::force_align_arg_pointer]]
   __externally_visible int mainCRTStartup(void) {
     int __ret = 255;
+#ifdef __SEH__
+    __asm__ volatile (".l_start:;");
+#endif
     __security_init_cookie();
     __ret = __xcrtCRTStartupPhase1();
+#ifdef __SEH__
+  __asm__ volatile (
+    "nop;"
+    ".l_end: nop;"
+    ".seh_handler [C HANDLER], @except;"
+    ".seh_handlerdata;"
+    ".long 1;"
+    ".rva .l_start, .l_end, [EXCEPTION HANDLER], .l_end;"
+    ".text"
+  );
+#endif
     return __ret;
   }
 } // extern "C"

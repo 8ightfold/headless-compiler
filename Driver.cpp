@@ -411,11 +411,37 @@ W::NtStatus TestPrintEx(const char(&Str)[N]) {
 extern constinit bool OnlyNt;
 extern void symdumper_main();
 
+extern "C" {
+  enum __enative_startup_state {
+    __uninitialized = 0, __initializing, __initialized
+  };
+  extern volatile __enative_startup_state __native_startup_state;
+
+  typedef void (__cdecl* _PVFV)(void);
+  typedef int  (__cdecl* _PIFV)(void);
+
+#pragma clang push_macro("__section")
+#undef  __section
+#define __section(s) __attribute__((section(s)))
+  extern __section(".CRT$XIA") _PIFV __xi_a[]; // First C Initializer
+  extern __section(".CRT$XIZ") _PIFV __xi_z[]; // Last C Initializer
+  extern __section(".CRT$XCA") _PVFV __xc_a[]; // First C++ Initializer
+  extern __section(".CRT$XCZ") _PVFV __xc_z[]; // Last C++ Initializer
+  extern __section(".CRT$XPA") _PVFV __xp_a[]; // First Pre-Terminator
+  extern __section(".CRT$XPZ") _PVFV __xp_z[]; // Last Pre-Terminator
+  extern __section(".CRT$XTA") _PVFV __xt_a[]; // First Terminator
+  extern __section(".CRT$XTZ") _PVFV __xt_z[]; // Last Terminator
+#pragma clang pop_macro("__section")
+}
+
 int main(int N, char* A[], char* Env[]) {
   volatile int ret = 0;
   __try_load_dbgprint();
   // printPtrRange(sys::Args::ProgramDir(), "Executable");
   // printPtrRange(sys::Args::WorkingDir(), "Working in");
+
+  if (__native_startup_state == __initialized)
+    TestPrintEx("Omg!\n");
   
   OnlyNt = false;
   // symdumper_main();

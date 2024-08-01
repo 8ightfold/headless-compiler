@@ -17,34 +17,72 @@
 //===----------------------------------------------------------------===//
 
 #include <Phase1/Initialization.hpp>
+#include <Parcel/StaticVec.hpp>
+#include <Sys/Args.hpp>
 #include <xcrtDefs.hpp>
+// TODO: Swap out
+#include <GlobalXtors.hpp>
 
+using namespace hc;
 using namespace hc::bootstrap;
 
+#if _HC_EMUTLS
+# define EMUTLS_STARTUP()   __xcrt_emutils_setup()
+# define EMUTLS_SHUTDOWN()  __xcrt_emutils_shutdown()
+#else
+# define EMUTLS_STARTUP()   (void(0))
+# define EMUTLS_SHUTDOWN()  (void(0))
+#endif
+
 extern "C" {
-  /// At this point, constructors still have not been called.
-  /// We need to get everything initialized, especially the syscalls.
-  [[gnu::used, gnu::noinline]]
-  int __xcrtCRTStartupPhase1(void) {
-    // Make sure syscalls are bootstrapped.
-    force_syscall_reload();
-    if (!are_syscalls_loaded())
-      // TODO: Abort with message.
-      __hc_unreachable("Fuck!");
-    // Set up CRT locks.
-    __xcrt_locks_setup();
-    __xcrt_sysio_setup();
-    // Set up thread_local backend.
-    // After sysio as that may print on error.
-    __xcrt_emutils_setup();
+/// C++ Setup function, in Phase0/Xtors.cpp
+extern void __main(void);
+extern int main(int argc, char** argv, char** envp);
+} // extern "C"
 
-    // TODO: Setup main here!!
-
-    // Run shutdown functions in reverse order.
-    __xcrt_emutils_shutdown();
-    __xcrt_sysio_shutdown();
-    __xcrt_locks_shutdown();
-
-    return -1;
-  }
+static int xcrtMainInvoker() {
+  // TODO: Setup main here!!
+  __main();
+  pcl::StaticVec<char, RT_MAX_PATH + 1> tmp {};
+  for (wchar_t C : sys::Args::WorkingDir())
+    tmp.push(static_cast<char>(C));
+  tmp.push('\0');
+  char* filler[] {tmp.data(), nullptr};
+  int ret = main(1, filler, filler);
+  // TODO: Swap out
+  __do_global_dtors();
+  return ret;
 }
+
+extern "C" {
+/// At this point, constructors still have not been called.
+/// We need to get everything initialized, especially the syscalls.
+/// Assume this is pure C++ (not C++/CLI), so no `__native_startup_state`.
+[[gnu::used, gnu::noinline]]
+int __xcrtCRTStartupPhase1(void) {
+  // Make sure syscalls are bootstrapped.
+  force_syscall_reload();
+  if (!are_syscalls_loaded()) {
+    // TODO: Abort with message.
+    __hc_unreachable("Fuck!");
+  }
+  // Set up CRT locks.
+  __xcrt_locks_setup();
+  // __xcrt_sysio_setup();
+  // Set up thread_local backend after sysio, 
+  // as that may print on error.
+  EMUTLS_STARTUP();
+
+  // TODO: Set up TLS fr
+  // TODO: Autorelocation >> _pei386_runtime_relocator
+  // TODO: Set up SEH exception filter
+  int ret = xcrtMainInvoker();
+
+  // Run shutdown functions in reverse order.
+  EMUTLS_SHUTDOWN();
+  // __xcrt_sysio_shutdown();
+  // __xcrt_locks_shutdown();
+
+  return ret;
+}
+} // extern "C"

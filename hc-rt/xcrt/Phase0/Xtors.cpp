@@ -20,34 +20,35 @@
 #include <Common/Fundamental.hpp>
 
 extern "C" {
-  static constinit bool __did_init_ctors_ = false;
+static constinit bool __did_init_ctors_ = false;
 
-  [[gnu::used]] void __do_global_ctors(void) {
-    if __expect_true(__did_init_ctors_)
-      return;
-    __did_init_ctors_ = true;
+[[gnu::used]] void __do_global_ctors(void) {
+  if __expect_true(__did_init_ctors_)
+    return;
+  __did_init_ctors_ = true;
 
-    auto N = reinterpret_cast<usize>(__CTOR_LIST__[0]);
-    if (N == static_cast<usize>(-1)) {
-      for (N = 0; __CTOR_LIST__[N + 1] != 0; ++N);
-    }
-    for (usize I = N; I >= 1; --I)
-      __CTOR_LIST__[I]();
+  auto N = reinterpret_cast<usize>(__CTOR_LIST__[0]);
+  if (N == static_cast<usize>(-1)) {
+    for (N = 0; __CTOR_LIST__[N + 1] != 0; ++N);
   }
+  for (usize I = N; I >= 1; --I)
+    __CTOR_LIST__[I]();
+  // TODO: Set atexit(__do_global_dtors)
+}
 
-  [[gnu::used]] void __do_global_dtors(void) {
-    static bool __did_fini = false;
-    if __expect_false(__did_fini)
-      return;
-    __did_fini = true;
+[[gnu::used]] void __do_global_dtors(void) {
+  static bool __did_fini = false;
+  if __expect_false(__did_fini)
+    return;
+  __did_fini = true;
 
-    const XtorFunc* D = __DTOR_LIST__;
-    while (*++D) { (*D)(); }
-  }
+  const XtorFunc* D = __DTOR_LIST__;
+  while (*++D) { (*D)(); }
+}
 
-  [[gnu::used]] void __main(void) {
-    if __expect_true(__did_init_ctors_)
-      return;
-    __do_global_ctors();
-  }
+[[gnu::used]] void __main(void) {
+  if __expect_true(__did_init_ctors_)
+    return;
+  __do_global_ctors();
+}
 } // extern "C"

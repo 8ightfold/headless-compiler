@@ -18,29 +18,30 @@
 
 #include <Sys/Args.hpp>
 #include <Bootstrap/Win64KernelDefs.hpp>
+#include <Bootstrap/_NtModule.hpp>
 
 using namespace hc;
 using namespace hc::sys;
 namespace B = hc::bootstrap;
 namespace S = hc::sys;
 
+#ifndef __XCRT__
 extern "C" {
-  // TODO: Prolly change this lol
-  extern char*** __p___argv(void);
-  extern char*** __imp___initenv;
+// TODO: Prolly change this lol
+extern char*** __p___argv(void);
+extern char*** __imp___initenv;
 } // extern "C"
+#endif // !__XCRT__
 
 namespace {
   B::UnicodeString __get_program_path() {
-    B::Win64PEB* PEB = B::Win64TEB::LoadPEBFromGS();
-    auto* mods = PEB->getLDRModulesInMemOrder();
+    auto* mods = boot::HcCurrentPEB()->getLDRModulesInMemOrder();
     return mods->prev()->fullName();
   }
 
   // https://github.com/wine-mirror/wine/blob/master/dlls/ntdll/path.c#L886
   B::UnicodeString __get_working_path() {
-    B::Win64PEB* PEB = B::Win64TEB::LoadPEBFromGS();
-    return PEB->process_params->getCurrDir();
+    return boot::HcCurrentPEB()->process_params->getCurrDir();
   }
 
   template <typename T>
@@ -50,6 +51,10 @@ namespace {
     return {PP, E};
   }
 } // namespace `anonymous`
+
+#ifdef __XCRT__
+# define __find_end(...) {}
+#endif // __XCRT__
 
 Args::ArgType<char*> Args::Argv() {
   return __find_end(*__p___argv());

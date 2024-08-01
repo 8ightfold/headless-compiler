@@ -4,7 +4,7 @@ include(Setup.cmake)
 
 project(
   headless-compiler
-  VERSION 0.1.1
+  VERSION 0.1.2
   LANGUAGES CXX C
 )
 
@@ -94,13 +94,15 @@ message(STATUS "Max path: ${RT_MAX_PATH}")
 add_subdirectory(hc-rt)
 
 if(TEST_DRIVER)
+  set(DRIVER_NAME driver)
   message(STATUS "Testing Driver.cpp")
   add_executable(driver Driver.cpp tools/SymDumper.cpp)
   target_link_libraries(driver PRIVATE hcrt::dev)
-  target_include_directories(driver PRIVATE hc-rt/src hc-rt/xcrt)
 else()
+  set(DRIVER_NAME nostartup)
   message(STATUS "Testing NoStartup.cpp")
   add_executable(nostartup NoStartup.cpp)
   target_link_libraries(nostartup PUBLIC hc::rt)
   # target_link_options(nostartup PUBLIC -v)
 endif()
+target_include_directories(${DRIVER_NAME} PRIVATE hc-rt/src hc-rt/xcrt)

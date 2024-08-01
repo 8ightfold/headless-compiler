@@ -1,4 +1,4 @@
-//===- Locks.hpp ----------------------------------------------------===//
+//===- Phase1/TLS.cpp -----------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -16,31 +16,13 @@
 //
 //===----------------------------------------------------------------===//
 //
-//  Implementation can be found in {PLATFORM}/Phase1/Locks.cpp.
+//  This file implements the underlying TLS API.
 //
 //===----------------------------------------------------------------===//
 
-#pragma once
+#include "Initialization.hpp"
 
-#include <Sys/OSMutex.hpp>
-#include <Sys/Locks.hpp>
-
-#define $XCRTLock(value) \
- ::hc::sys::ScopedPtrLock $var(xcrt_lock) \
-  {::__xcrt_get_lock(::xcrt::Locks::value)}
-
-#if defined(RT_MAX_THREADS) && (RT_MAX_THREADS != 0)
-# error Multithreading temporarily disabled.
-#endif
-
-namespace xcrt {
-  enum class Locks : u64 {
-    ProcessInfoBlock,
-    ThreadLocalStorage,
-    AtExit,
-    MaxValue
-  };
-} // namespace xcrt
-
-extern "C" hc::sys::OSMtx*
-  __xcrt_get_lock(xcrt::Locks V);
+extern "C" {
+// TODO: Actually initialize
+constinit u32 _tls_index = 0;
+} // extern "C"

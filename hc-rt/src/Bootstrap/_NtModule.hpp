@@ -30,5 +30,6 @@
 namespace hc::bootstrap {
   inline Win64TIB* HcCurrentTIB() { return Win64TEB::LoadTIBFromGS(); }
   inline Win64TEB* HcCurrentTEB() { return Win64TEB::LoadTEBFromGS(); }
+  inline Win64PEB* HcCurrentPEB() { return Win64TEB::LoadPEBFromGS(); }
   extern COFFModule* __NtModule();
 } // namespace hc::bootstrap

@@ -22,18 +22,18 @@
 #include <Locks.hpp>
 
 extern "C" {
-  using VVFunc = void(*)(void);
-  using IVFunc = int(*)(void);
-  using VIFunc = void(*)(int);
+using VVFunc = void(*)(void);
+using IVFunc = int(*)(void);
+using VIFunc = void(*)(int);
 
-  extern i32  __xcrt_atexit(VVFunc);
-  extern void __xcrt_invoke_atexit(void);
+extern i32  __xcrt_atexit(VVFunc);
+extern void __xcrt_invoke_atexit(void);
 
-  extern u64  __xcrt_locks_setup(void);
-  extern void __xcrt_sysio_setup(void);
-  extern void __xcrt_emutils_setup(void);
+extern u64  __xcrt_locks_setup(void);
+extern void __xcrt_sysio_setup(void);
+extern void __xcrt_emutils_setup(void);
 
-  extern void __xcrt_locks_shutdown(void);
-  extern void __xcrt_sysio_shutdown(void);
-  extern void __xcrt_emutils_shutdown(void);
+extern void __xcrt_locks_shutdown(void);
+extern void __xcrt_sysio_shutdown(void);
+extern void __xcrt_emutils_shutdown(void);
 }
