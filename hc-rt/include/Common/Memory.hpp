@@ -104,7 +104,7 @@ namespace hc::common {
 namespace hc::common {
   template <typename T>
   [[nodiscard, gnu::nodebug, gnu::always_inline]]
-  __visibility(hidden) inline constexpr auto 
+  __abi_hidden inline constexpr auto 
    __addressof(T& t) __noexcept {
     return __builtin_addressof(t);
   }
@@ -122,7 +122,7 @@ namespace hc::common {
 
   template <typename To, typename From>
   [[nodiscard, gnu::always_inline, gnu::nodebug]]
-  __visibility(hidden) inline constexpr To
+  __abi_hidden inline constexpr To
    __bit_cast(const From& from) __noexcept
    requires __is_bit_castable<To, From> {
     if $is_consteval() {
