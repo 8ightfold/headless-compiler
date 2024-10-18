@@ -29,7 +29,7 @@
 /// @param on_err The value to be used if `!obj`.
 #define $unwrap(obj, on_err...) ({ \
   auto&& objU__ = (obj); \
-  if __expect_false(!objU__) \
+  if __likely_false(!objU__) \
     return ::hc::__unwrap_fail(objU__, ##on_err); \
   ::hc::_FwdWrapper{*objU__}; \
 }).get()
@@ -44,14 +44,16 @@
 //======================================================================//
 
 namespace hc::common {
-  template <typename>
-  struct Err;
 
-  template <typename, typename>
-  struct Result;
+template <typename E>
+struct Err;
 
-  template <typename>
-  struct Option;
+template <typename T, typename E>
+struct Result;
+
+template <typename T>
+struct Option;
+
 } // namespace hc::common
 
 //======================================================================//
@@ -59,63 +61,65 @@ namespace hc::common {
 //======================================================================//
 
 namespace hc {
-  template <typename...TT>
-  struct _Wrapper {
-    using _Ids = common::make_idxseq<sizeof...(TT)>;
-  public:
-    template <typename U>
-    constexpr operator U() {
-      return [this] <usize...II> 
-       (common::IdxSeq<II...>) -> U {
-        return __Ctor<U>(__hc_fwd(__tup[__i<II>])...);
-      }(_Ids{});
-    }
-  
-  private:
-    template <typename U, typename...Args>
-    constexpr static U __Ctor(Args&&...args) __noexcept {
-      static_assert(__is_constructible(U, Args...),
-        "The requested type is not constructible "
-        "from the current arguments.");
-      return U(__hc_fwd(args)...);
-    }
 
-  public:
-    common::Tuple<TT...> __tup;
-  };
-
-  template <typename...TT>
-  _Wrapper(TT&&...) -> _Wrapper<TT...>;
-
-  template <typename T>
-  struct _FwdWrapper {
-    constexpr operator T() {
-      return static_cast<T>(__data);
-    }
-    constexpr T get() {
-      return static_cast<T>(__data);
-    }
-  public:
-    T __data;
-  };
-
-  template <typename T>
-  _FwdWrapper(T&&) -> _FwdWrapper<T>;
-
-  [[gnu::always_inline, gnu::nodebug]]
-  inline constexpr auto __unwrap_fail(auto&&, auto&&...args) __noexcept {
-    return _Wrapper{__hc_fwd(args)...};
+template <typename...TT>
+struct _Wrapper {
+  using _Ids = common::make_idxseq<sizeof...(TT)>;
+public:
+  template <typename U>
+  constexpr operator U() {
+    return [this] <usize...II> 
+     (common::IdxSeq<II...>) -> U {
+      return __Ctor<U>(__hc_fwd(__tup[__i<II>])...);
+    }(_Ids{});
   }
 
-  [[gnu::always_inline, gnu::nodebug]]
-  inline constexpr void __unwrap_fail(auto&&, __void) __noexcept { }
-
-  template <typename T, typename E>
-  [[gnu::always_inline, gnu::nodebug]]
-  constexpr auto __unwrap_fail(
-   const common::Result<T, E>& R, auto&&...args) __noexcept {
-    if constexpr (sizeof...(args) == 0) 
-      return common::Err(R.err());
-    else _Wrapper{__hc_fwd(args)...};
+private:
+  template <typename U, typename...Args>
+  constexpr static U __Ctor(Args&&...args) __noexcept {
+    static_assert(__is_constructible(U, Args...),
+      "The requested type is not constructible "
+      "from the current arguments.");
+    return U(__hc_fwd(args)...);
   }
+
+public:
+  common::Tuple<TT...> __tup;
+};
+
+template <typename...TT>
+_Wrapper(TT&&...) -> _Wrapper<TT...>;
+
+template <typename T>
+struct _FwdWrapper {
+  constexpr operator T() {
+    return static_cast<T>(__data);
+  }
+  constexpr T get() {
+    return static_cast<T>(__data);
+  }
+public:
+  T __data;
+};
+
+template <typename T>
+_FwdWrapper(T&&) -> _FwdWrapper<T>;
+
+[[gnu::always_inline, gnu::nodebug]]
+inline constexpr auto __unwrap_fail(auto&&, auto&&...args) __noexcept {
+  return _Wrapper{__hc_fwd(args)...};
+}
+
+[[gnu::always_inline, gnu::nodebug]]
+inline constexpr void __unwrap_fail(auto&&, __void) __noexcept { }
+
+template <typename T, typename E>
+[[gnu::always_inline, gnu::nodebug]]
+constexpr auto __unwrap_fail(
+ const common::Result<T, E>& R, auto&&...args) __noexcept {
+  if constexpr (sizeof...(args) == 0) 
+    return common::Err(R.err());
+  else _Wrapper{__hc_fwd(args)...};
+}
+
 } // namespace hc
