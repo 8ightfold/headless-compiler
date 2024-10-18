@@ -115,6 +115,12 @@ namespace hc::meta {
   template <typename T>
   concept not_cv = not_const<T> && not_volatile<T>;
 
+  template <typename T>
+  concept only_const = is_const<T> && not_volatile<T>;
+
+  template <typename T>
+  concept only_volatile = not_const<T> && is_volatile<T>;
+
   // Complex
 
   template <typename T>
