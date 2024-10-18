@@ -90,9 +90,11 @@
 
 #define __always_inline __attribute__((always_inline, artificial)) inline
 #define __ndbg_inline   __attribute__((always_inline, nodebug))    inline
-#define __visibility(ty) __attribute__((__visibility__(#ty)))
 #define __aligned(n) __attribute__((aligned(n)))
 #define __section(sect_str) __attribute__((section(sect_str), used))
+
+#define __visibility(ty) __attribute__((__visibility__(#ty)))
+#define __hidden __visibility(hidden)
 
 #if __has_attribute(preferred_type)
 # define __prefer_type(name) __attribute__((preferred_type(name)))
@@ -141,13 +143,32 @@
 #endif
 
 #if __has_attribute(exclude_from_explicit_instantiation)
-# define __exclude_from_explicit_instantiation __attribute__((__exclude_from_explicit_instantiation__))
+# define __exclude_from_explicit_instantiation \
+  __attribute__((__exclude_from_explicit_instantiation__))
 #else
-# define __exclude_from_explicit_instantiation __attribute__((__always_inline__))
+# define __exclude_from_explicit_instantiation \
+  __attribute__((__always_inline__)) inline
 #endif
 
-#define __hidden __visibility(hidden)
-#define __abi_hidden __hidden __exclude_from_explicit_instantiation
+#if _HC_CHECK_INVARIANTS && _HC_DEBUG
+# define _HC_HARDENING_SIG d
+#elif _HC_DEBUG
+# define _HC_HARDENING_SIG e
+#else
+# define _HC_HARDENING_SIG n
+#endif
+
+#if _HC_EXCEPTIONS
+# define _HC_EXCEPTION_SIG e
+#else
+# define _HC_EXCEPTION_SIG n
+#endif
+
+#define _HC_ODR_SIG $2cat(_HC_HARDENING_SIG, _HC_EXCEPTION_SIG)
+
+#define __abi_hidden \
+  __hidden __exclude_from_explicit_instantiation \
+  __attribute__((__abi_tag__($stringify(_HC_ODR_SIG))))
 
 #if __has_builtin(__builtin_expect_with_probability)
 # define __expect_false(expr...) (__builtin_expect_with_probability(bool(expr), 0, 1.0))
@@ -184,35 +205,31 @@
 # define __throw(ty...) throw(ty)
 # define __noexcept noexcept(false)
 #else
+// TODO: Make this something...
 # define __throw(...)
 # define __noexcept noexcept
 #endif
 
-#define _HC_SEMANTIC_ATTRS \
-[[nodiscard, gnu::always_inline, gnu::nodebug]]
-
 template <typename T>
-_HC_SEMANTIC_ATTRS 
+[[nodiscard, gnu::always_inline, gnu::nodebug]] 
 inline constexpr __remove_reference_t(T)&&
  __hc_move_(__lifetimebound T&& V) __noexcept {
   return static_cast<__remove_reference_t(T)&&>(V);
 }
 
 template <typename T>
-_HC_SEMANTIC_ATTRS
+[[nodiscard, gnu::always_inline, gnu::nodebug]]
 inline constexpr T&& 
  __hc_fwd_(__lifetimebound __remove_reference_t(T)& V) {
   return static_cast<T&&>(V);
 }
 
 template <typename T>
-_HC_SEMANTIC_ATTRS
+[[nodiscard, gnu::always_inline, gnu::nodebug]]
 inline constexpr T&& 
  __hc_fwd_(__lifetimebound __remove_reference_t(T)&& V) {
   return static_cast<T&&>(V);
 }
-
-#undef _HC_SEMANTIC_ATTRS
 
 #define __hc_fwd(expr...) static_cast<decltype(expr)&&>(expr)
 #define __hc_move(expr...) ::__hc_move_(expr)
@@ -280,15 +297,17 @@ inline constexpr T&&
 #define $scope switch (0) case 0:
 
 namespace hc {
-  template <typename T>
-  consteval bool compile_failure() {
-    return false;
-  }
 
-  template <auto V>
-  consteval bool compile_failure() {
-    return false;
-  }
+template <typename T>
+consteval bool compile_failure() {
+  return false;
+}
+
+template <auto V>
+consteval bool compile_failure() {
+  return false;
+}
+
 } // namespace hc
 
 #define $compile_failure(ty, ...) static_assert( \
