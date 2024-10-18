@@ -23,6 +23,9 @@
 #define HC_HAS_REQUIRED(ty, name) static_assert(__has_##ty(name))
 #define HC_HAS_BUILTIN(name) static_assert(__has_builtin(__builtin_##name))
 
+// Not currently implemented in C++.
+#define _HC_COUNTED_BY_CPP 0
+
 #define HC_MARK_DELETED(name)             \
   name(const name&)            = delete;  \
   name& operator=(const name&) = delete;  \
@@ -103,7 +106,7 @@
 # define __prefer_name(name)
 #endif
 
-#if __has_attribute(counted_by)
+#if _HC_COUNTED_BY_CPP && __has_attribute(counted_by)
 # define __counted_by(name) __attribute__((counted_by(name)))
 #else
 # define __counted_by(name)
