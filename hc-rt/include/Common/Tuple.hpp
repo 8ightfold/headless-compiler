@@ -21,85 +21,86 @@
 #include "Fundamental.hpp"
 #include <Meta/ExTraits.hpp>
 #include <Std/utility>
+#include <Std/__tuple/tuple_element.hpp>
+#include <Std/__tuple/tuple_size.hpp>
 
 #define _HC_AGGRESSIVE_INLINE \
  __attribute__((always_inline, flatten, artificial)) inline
 
 namespace hc::common {
-  template <usize I, typename T>
-  struct _TupleLeaf {
-    T __data;
-  };
 
-  template <usize I, typename T>
-  _HC_AGGRESSIVE_INLINE constexpr T& __extract_leaf(
-   _TupleLeaf<I, T>& l) __noexcept {
-    return l.__data;
-  }
+template <usize I, typename T>
+struct _TupleLeaf { T __data; };
 
-  template <usize I, typename T>
-  _HC_AGGRESSIVE_INLINE constexpr T&& __extract_leaf(
-   _TupleLeaf<I, T>&& l) __noexcept {
-    return static_cast<T&&>(l.__data);
-  }
+template <usize I, typename T>
+_HC_AGGRESSIVE_INLINE constexpr T& __extract_leaf(
+ _TupleLeaf<I, T>& l) __noexcept {
+  return l.__data;
+}
 
-  template <usize I, typename T>
-  _HC_AGGRESSIVE_INLINE constexpr const T& __extract_leaf(
-   const _TupleLeaf<I, T>& l) __noexcept {
-    return l.__data;
-  }
+template <usize I, typename T>
+_HC_AGGRESSIVE_INLINE constexpr T&& __extract_leaf(
+ _TupleLeaf<I, T>&& l) __noexcept {
+  return static_cast<T&&>(l.__data);
+}
 
-  template <usize I, typename T>
-  _HC_AGGRESSIVE_INLINE constexpr const T&& __extract_leaf(
-   const _TupleLeaf<I, T>&& l) __noexcept {
-    return static_cast<const T&&>(l.__data);
-  }
+template <usize I, typename T>
+_HC_AGGRESSIVE_INLINE constexpr const T& __extract_leaf(
+ const _TupleLeaf<I, T>& l) __noexcept {
+  return l.__data;
+}
 
-  template <typename, typename...>
-  struct _TupleBranch;
+template <usize I, typename T>
+_HC_AGGRESSIVE_INLINE constexpr const T&& __extract_leaf(
+ const _TupleLeaf<I, T>&& l) __noexcept {
+  return static_cast<const T&&>(l.__data);
+}
 
-  template <usize...II, typename...TT>
-  struct _TupleBranch<IdxSeq<II...>, TT...> : _TupleLeaf<II, TT>... {
-    static constexpr bool __isArray = false;
-  };
+template <typename, typename...>
+struct _TupleBranch;
 
-  // Array Optimization
+template <usize...II, typename...TT>
+struct _TupleBranch<IdxSeq<II...>, TT...> : _TupleLeaf<II, TT>... {
+  static constexpr bool __isArray = false;
+};
 
-  template <usize N, typename T>
-  struct _TupleArray {
-    static constexpr bool __isArray = true;
-    T __data[N];
-  };
+// Array Optimization
 
-  template <typename T, typename...TT>
-  _TupleArray(T&&, TT&&...) -> 
-    _TupleArray<sizeof...(TT) + 1, __decay(T)>;
+template <usize N, typename T>
+struct _TupleArray {
+  static constexpr bool __isArray = true;
+  T __data[N];
+};
 
-  template <usize I, usize N, typename T>
-  _HC_AGGRESSIVE_INLINE constexpr T& __extract_leaf(
-   _TupleArray<N, T>& l) __noexcept {
-    return l.__data[I];
-  }
+template <typename T, typename...TT>
+_TupleArray(T&&, TT&&...) -> 
+  _TupleArray<sizeof...(TT) + 1, __decay(T)>;
 
-  template <usize I, usize N, typename T>
-  _HC_AGGRESSIVE_INLINE constexpr T&& __extract_leaf(
-   _TupleArray<N, T>&& l) __noexcept {
-    return static_cast<T&&>(l.__data[I]);
-  }
+template <usize I, usize N, typename T>
+_HC_AGGRESSIVE_INLINE constexpr T& __extract_leaf(
+ _TupleArray<N, T>& l) __noexcept {
+  return l.__data[I];
+}
 
-  template <usize I, usize N, typename T>
-  _HC_AGGRESSIVE_INLINE constexpr const T& __extract_leaf(
-   const _TupleArray<N, T>& l) __noexcept {
-    return l.__data[I];
-  }
+template <usize I, usize N, typename T>
+_HC_AGGRESSIVE_INLINE constexpr T&& __extract_leaf(
+ _TupleArray<N, T>&& l) __noexcept {
+  return static_cast<T&&>(l.__data[I]);
+}
 
-  template <usize I, usize N, typename T>
-  _HC_AGGRESSIVE_INLINE constexpr const T&& __extract_leaf(
-   const _TupleArray<N, T>&& l) __noexcept {
-    return static_cast<const T&&>(l.__data[I]);
-  }
+template <usize I, usize N, typename T>
+_HC_AGGRESSIVE_INLINE constexpr const T& __extract_leaf(
+ const _TupleArray<N, T>& l) __noexcept {
+  return l.__data[I];
+}
 
-  // TODO: Small List Optimization ?
+template <usize I, usize N, typename T>
+_HC_AGGRESSIVE_INLINE constexpr const T&& __extract_leaf(
+ const _TupleArray<N, T>&& l) __noexcept {
+  return static_cast<const T&&>(l.__data[I]);
+}
+
+// TODO: Small List Optimization ?
 
 } // namespace hc::common
 
@@ -108,24 +109,26 @@ namespace hc::common {
 //======================================================================//
 
 namespace hc::common {
-  template <typename T, typename...TT>
-  concept __array_compatible = 
-    meta::not_ref<T> && meta::__all_same<T, TT...>;
 
-  template <typename IIs, typename...TT>
-  struct _TupleSelector {
-    using Type = _TupleBranch<IIs, TT...>;
-  };
-  
-  template <usize...II, typename Tx, typename Ty, typename...TT>
-  requires __array_compatible<Tx, Ty, TT...>
-  struct _TupleSelector<IdxSeq<II...>, Tx, Ty, TT...> {
-    using Type = _TupleArray<sizeof...(II), Tx>;
-  };
+template <typename T, typename...TT>
+concept __array_compatible = 
+  meta::not_ref<T> && meta::__all_same<T, TT...>;
 
-  template <typename...TT>
-  using __tuple_t = typename _TupleSelector<
-    make_idxseq<sizeof...(TT)>, TT...>::Type;
+template <typename IIs, typename...TT>
+struct _TupleSelector {
+  using Type = _TupleBranch<IIs, TT...>;
+};
+
+template <usize...II, typename Tx, typename Ty, typename...TT>
+requires __array_compatible<Tx, Ty, TT...>
+struct _TupleSelector<IdxSeq<II...>, Tx, Ty, TT...> {
+  using Type = _TupleArray<sizeof...(II), Tx>;
+};
+
+template <typename...TT>
+using __tuple_t = typename _TupleSelector<
+  make_idxseq<sizeof...(TT)>, TT...>::Type;
+
 } // namespace hc::common
 
 //======================================================================//
@@ -133,112 +136,114 @@ namespace hc::common {
 //======================================================================//
 
 namespace hc::common {
-  template <typename...TT>
-  struct Tuple {
-    using BaseType = __tuple_t<TT...>;
-    static constexpr auto __isArray = BaseType::__isArray;
-    static constexpr usize size = sizeof...(TT);
-  public:
-    /**
-     * @brief Extracts the element at `I` from the tuple.
-     * @note C++20: Does not resolve if I >= Size().
-     * @tparam I The element to access.
-     */
-    template <usize I>
-    requires(I < sizeof...(TT))
-    constexpr decltype(auto) operator[](IdxNode<I>)& {
-      return __extract_leaf<I>(__data);
-    }
 
-    /// @overload
-    template <usize I>
-    requires(I < sizeof...(TT))
-    constexpr decltype(auto) operator[](IdxNode<I>)&& __noexcept {
-      return __extract_leaf<I>(static_cast<BaseType&&>(__data));
-    }
-
-    /// @overload
-    template <usize I>
-    requires(I < sizeof...(TT))
-    constexpr decltype(auto) operator[](IdxNode<I>) const& {
-      return __extract_leaf<I>(__data);
-    }
-
-    /// @overload
-    template <usize I>
-    requires(I < sizeof...(TT))
-    constexpr decltype(auto) operator[](IdxNode<I>) const&& __noexcept {
-      return __extract_leaf<I>(static_cast<const BaseType&&>(__data));
-    }
-
-    /// Returns sizeof...(TT).
-    constexpr static usize Size() __noexcept { return sizeof...(TT); }
-    /// Returns `true` if Size() == 0.
-    constexpr static bool IsEmpty() __noexcept { return sizeof...(TT) == 0U; }
-    /// Returns `true` if using array storage
-    constexpr static bool IsArray() __noexcept { return __isArray; }
-
-  public:
-    BaseType __data;
-  };
-
-  template <typename...TT>
-  Tuple(TT&&...) -> Tuple<__decay(TT)...>;
-
-  template <typename...TT>
-  constexpr Tuple<TT&...> tie(TT&...tt) {
-    return { tt... };
+template <typename...TT>
+struct Tuple {
+  using BaseType = __tuple_t<TT...>;
+  static constexpr auto __isArray = BaseType::__isArray;
+  static constexpr usize size = sizeof...(TT);
+public:
+  /**
+   * @brief Extracts the element at `I` from the tuple.
+   * @note C++20: Does not resolve if I >= Size().
+   * @tparam I The element to access.
+   */
+  template <usize I>
+  requires(I < sizeof...(TT))
+  constexpr decltype(auto) operator[](IdxNode<I>)& {
+    return __extract_leaf<I>(__data);
   }
 
-  template <typename...TT>
-  constexpr auto tuple_fwd(TT&&...tt)
-   -> Tuple<decltype(tt)...> {
-    return { __hc_fwd(tt)... };
+  /// @overload
+  template <usize I>
+  requires(I < sizeof...(TT))
+  constexpr decltype(auto) operator[](IdxNode<I>)&& __noexcept {
+    return __extract_leaf<I>(static_cast<BaseType&&>(__data));
   }
+
+  /// @overload
+  template <usize I>
+  requires(I < sizeof...(TT))
+  constexpr decltype(auto) operator[](IdxNode<I>) const& {
+    return __extract_leaf<I>(__data);
+  }
+
+  /// @overload
+  template <usize I>
+  requires(I < sizeof...(TT))
+  constexpr decltype(auto) operator[](IdxNode<I>) const&& __noexcept {
+    return __extract_leaf<I>(static_cast<const BaseType&&>(__data));
+  }
+
+  /// Returns sizeof...(TT).
+  constexpr static usize Size() __noexcept { return sizeof...(TT); }
+  /// Returns `true` if Size() == 0.
+  constexpr static bool IsEmpty() __noexcept { return sizeof...(TT) == 0U; }
+  /// Returns `true` if using array storage
+  constexpr static bool IsArray() __noexcept { return __isArray; }
+
+public:
+  BaseType __data;
+};
+
+template <typename...TT>
+Tuple(TT&&...) -> Tuple<__decay(TT)...>;
+
+template <typename...TT>
+constexpr Tuple<TT&...> tie(TT&...tt) {
+  return { tt... };
+}
+
+template <typename...TT>
+constexpr auto tuple_fwd(TT&&...tt)
+ -> Tuple<decltype(tt)...> {
+  return { __hc_fwd(tt)... };
+}
+
 } // namespace hc::common
 
-namespace std {
-  using ::hc::common::Tuple;
+//////////////////////////////////////////////////////////////////////////
 
-  template <typename...TT>
-  struct tuple_size<Tuple<TT...>> {
-    static constexpr size_t value = sizeof...(TT);
-  };
+template <typename...TT>
+struct std::tuple_size<hc::com::Tuple<TT...>> :
+ public std::index_constant<sizeof...(TT)> {};
 
-  template <size_t I, typename...TT>
-  struct tuple_element<I, Tuple<TT...>> {
-    using type = __type_pack_element<I, TT...>;
-  };
-} // namespace std
+template <std::size_t I, typename...TT>
+struct std::tuple_element<I, hc::com::Tuple<TT...>> {
+  static_assert(I < sizeof...(TT), "Tuple index out of range!");
+  using type __nodebug = hc::meta::__selector_t<I, TT...>;
+};
 
 namespace hc::common {
-  template <usize I, typename...TT>
-  inline constexpr decltype(auto)
-   get(Tuple<TT...>& V) {
-    return __extract_leaf<I>(V.__data);
-  }
 
-  template <usize I, typename...TT>
-  inline constexpr decltype(auto)
-   get(const Tuple<TT...>& V) {
-    return __extract_leaf<I>(V.__data);
-  }
+template <usize I, typename...TT>
+inline constexpr meta::__selector_t<I, TT...>&
+ get(Tuple<TT...>& V) {
+  return __extract_leaf<I>(V.__data);
+}
 
-  template <usize I, typename...TT>
-  inline constexpr decltype(auto)
-   get(Tuple<TT...>&& V) {
-    using Type = typename Tuple<TT...>::BaseType;
-    return __extract_leaf<I>(
-      static_cast<Type&&>(V.__data));
-  }
+template <usize I, typename...TT>
+inline constexpr const meta::__selector_t<I, TT...>&
+ get(const Tuple<TT...>& V) {
+  return __extract_leaf<I>(V.__data);
+}
 
-  template <usize I, typename...TT>
-  inline constexpr decltype(auto)
-   get(const Tuple<TT...>&& V) {
-    using Type = typename Tuple<TT...>::BaseType;
-    return __extract_leaf<I>(
-      static_cast<const Type&&>(V.__data));
-  }
+template <usize I, typename...TT>
+inline constexpr meta::__selector_t<I, TT...>&&
+ get(Tuple<TT...>&& V) {
+  using Type = typename Tuple<TT...>::BaseType;
+  return __extract_leaf<I>(
+    static_cast<Type&&>(V.__data));
+}
+
+template <usize I, typename...TT>
+inline constexpr const meta::__selector_t<I, TT...>&&
+ get(const Tuple<TT...>&& V) {
+  using Type = typename Tuple<TT...>::BaseType;
+  return __extract_leaf<I>(
+    static_cast<const Type&&>(V.__data));
+}
+
 } // namespace hc::common
 
 #undef _HC_AGGRESSIVE_INLINE

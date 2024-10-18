@@ -1,4 +1,4 @@
-//===- Std/utility --------------------------------------------------===//
+//===- Std/__tuple/tuple_element.hpp --------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -17,8 +17,30 @@
 //===----------------------------------------------------------------===//
 
 #pragma once
-#pragma clang system_header
 
-#include <Meta/Objects.hpp>
-#include <Std/__tuple/tuple_element.hpp>
-#include <Std/__tuple/tuple_size.hpp>
+#include <Std/cstddef>
+
+namespace std {
+
+template <size_t I, class T>
+struct tuple_element;
+
+template <size_t I, class T>
+using tuple_element_t __nodebug = typename tuple_element<I, T>::type;
+
+template <size_t I, class T>
+struct tuple_element<I, const T> {
+  using type __nodebug = const tuple_element_t<I, T>;
+};
+
+template <size_t I, class T>
+struct tuple_element<I, volatile T> {
+  using type __nodebug = volatile tuple_element_t<I, T>;
+};
+
+template <size_t I, class T>
+struct tuple_element<I, const volatile T> {
+  using type __nodebug = const volatile tuple_element_t<I, T>;
+};
+
+} // namespace std

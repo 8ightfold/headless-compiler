@@ -18,23 +18,69 @@
 
 #pragma once
 
+#include <Meta/Traits.hpp>
+#include <Std/__tuple/tuple_element.hpp>
+#include <Std/__tuple/tuple_size.hpp>
+
 namespace hc::common {
-  template <typename T, typename U>
-  struct Pair {
-    using SelfType = Pair;
-    using TypeT = T;
-    using TypeU = U;
-  public:
-    friend bool operator==(
-      const SelfType&, const SelfType&) = default;
-  public:
-    T t;
-    U u;
-  };
 
-  template <typename T, typename U>
-  Pair(T&&, U&&) -> Pair<__decay(T), __decay(U)>;
+template <typename T, typename U>
+struct Pair {
+  using SelfType = Pair;
+  using TypeT = T;
+  using TypeU = U;
+public:
+  friend bool operator==(
+    const SelfType&, const SelfType&) = default;
+public:
+  T t;
+  U u;
+};
 
-  template <typename T>
-  using DPair = Pair<T, T>;
+template <typename T, typename U>
+Pair(T&&, U&&) -> Pair<__decay(T), __decay(U)>;
+
+template <typename T>
+using DPair = Pair<T, T>;
+
+//////////////////////////////////////////////////////////////////////////
+
+template <usize I, class T, class U>
+inline constexpr meta::__conditional_t<!!I, T, U>&
+ get(Pair<T, U>& V) {
+  if constexpr (I == 0) return V.t;
+  else return V.u;
+}
+
+template <usize I, class T, class U>
+inline constexpr const meta::__conditional_t<!!I, T, U>&
+ get(const Pair<T, U>& V) {
+  if constexpr (I == 0) return V.t;
+  else return V.u;
+}
+
+template <usize I, class T, class U>
+inline constexpr meta::__conditional_t<!!I, T, U>&&
+ get(Pair<T, U>&& V) {
+  if constexpr (I == 0) return V.t;
+  else return V.u;
+}
+
+template <usize I, class T, class U>
+inline constexpr const meta::__conditional_t<!!I, T, U>&&
+ get(const Pair<T, U>&& V) {
+  if constexpr (I == 0) return V.t;
+  else return V.u;
+}
+
 } // namespace hc::common
+
+template <class T, class U>
+struct std::tuple_size<hc::com::Pair<T, U>> :
+ public std::index_constant<2U> {};
+
+template <std::size_t I, class T, class U>
+struct std::tuple_element<I, hc::com::Pair<T, U>> {
+  static_assert(I < 2, "Pair index out of range!");
+  using type __nodebug = hc::meta::__conditional_t<!!I, T, U>;
+};
