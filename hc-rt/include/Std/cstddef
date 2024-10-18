@@ -20,19 +20,19 @@
 #pragma clang system_header
 
 #include <Common/Fundamental.hpp>
+
 #undef NULL
+#define NULL nullptr
+#pragma clang final(NULL)
 
 extern "C++" {
 
 namespace std {
-  static constexpr nullptr_t NULL = nullptr;
-  using size_t    = ::usize;
-  using ptrdiff_t = ::iptrdiff;
-  using nullptr_t = ::nullptr_t;
-  enum class byte : u8 {};
-  // TODO: byte operators
+using size_t    = ::usize;
+using ptrdiff_t = ::iptrdiff;
+using nullptr_t = ::nullptr_t;
+enum class byte : u8 {};
+// TODO: byte operators
 } // namespace std
-
-using std::NULL;
 
 } // extern "C++"
