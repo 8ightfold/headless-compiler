@@ -30,25 +30,25 @@ HC_HAS_REQUIRED(builtin, __make_integer_seq);
 //======================================================================//
 
 namespace hc::meta {
-  template <typename T>
-  struct TyNode {
-    using Type = T;
-  };
 
-  template <usize I>
-  struct IdxNode {
-    static constexpr usize value = I;
-    constexpr operator usize() const { return I; }
-  };
+template <typename T> struct TyNode {
+  using Type = T;
+};
 
-  template <typename T, T V>
-  struct ValNode {
-    static constexpr T value = V;
-    constexpr operator T() const { return V; }
-  };
+template <usize I> struct IdxNode {
+  static constexpr usize value = I;
+  constexpr operator usize() const { return I; }
+};
 
-  template <auto V>
-  using AutoNode = ValNode<decltype(V), V>;
+template <typename T, T V>
+struct ValNode {
+  static constexpr T value = V;
+  constexpr operator T() const { return V; }
+};
+
+template <auto V>
+using AutoNode = ValNode<decltype(V), V>;
+
 } // namespace hc::meta
 
 //======================================================================//
@@ -56,32 +56,42 @@ namespace hc::meta {
 //======================================================================//
 
 namespace hc::meta {
-  template <typename...TT>
-  struct TySeq {
-    static constexpr auto size = sizeof...(TT);
-  };
 
-  template <auto...VV>
-  struct ValSeq {
-    static constexpr auto size = sizeof...(VV);
-  };
+template <typename...TT>
+struct TySeq {
+  static constexpr usize size = sizeof...(TT);
+  static constexpr usize Size() noexcept { return size; }
+};
 
-  // Integer sequences
+template <auto...VV>
+struct ValSeq {
+  static constexpr usize size = sizeof...(VV);
+  static constexpr usize Size() noexcept { return size; }
+};
 
-  template <typename I, I...NN>
-  struct IntSeq {
-    using Type = I;
-    static constexpr auto size = sizeof...(NN);
-  };
+// Integer sequences
 
-  template <usize...NN>
-  using IdxSeq = IntSeq<usize, NN...>;
+template <typename I, I...NN>
+struct IntSeq {
+  using Type = I;
+  static constexpr usize size = sizeof...(NN);
+  static constexpr usize Size() noexcept { return size; }
+};
 
-  template <typename I, I N>
-  using make_intseq = __make_integer_seq<IntSeq, I, N>;
+template <usize...NN>
+using IdxSeq = IntSeq<usize, NN...>;
 
-  template <usize N>
-  using make_idxseq = __make_integer_seq<IntSeq, usize, N>;
+// Aliases
+
+template <typename I, I N>
+using make_intseq = __make_integer_seq<IntSeq, I, N>;
+
+template <usize N>
+using make_idxseq = make_intseq<usize, N>;
+
+template <typename...TT>
+using idxseq_for = make_idxseq<sizeof...(TT)>;
+
 } // namespace hc::meta
 
 //======================================================================//
@@ -89,27 +99,29 @@ namespace hc::meta {
 //======================================================================//
 
 namespace hc::common {
-  using meta::TyNode;
-  using meta::IdxNode;
-  using meta::TySeq;
-  using meta::IntSeq;
-  using meta::IdxSeq;
-  using meta::make_idxseq;
+using meta::TyNode;
+using meta::IdxNode;
+using meta::TySeq;
+using meta::IntSeq;
+using meta::IdxSeq;
+using meta::make_idxseq;
 } // namespace hc::common
 
 namespace hc {
-  template <usize I>
-  __global meta::IdxNode<I> __i { };
 
-  template <char...CC>
-  constexpr usize __i_gen() noexcept {
-    usize V = 0U;
-    ((V = V * 10 + (CC - '0')), ...);
-    return V;
-  }
+template <usize I>
+__global meta::IdxNode<I> __i { };
 
-  template <char...CC>
-  constexpr auto operator""_i() noexcept {
-    return __i<__i_gen<CC...>()>;
-  }
+template <char...CC>
+constexpr usize __i_gen() noexcept {
+  usize V = 0U;
+  ((V = V * 10 + (CC - '0')), ...);
+  return V;
+}
+
+template <char...CC>
+constexpr auto operator""_i() noexcept {
+  return __i<__i_gen<CC...>()>;
+}
+
 } // namespace hc
