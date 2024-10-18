@@ -31,6 +31,8 @@
 // https://github.com/mic101/windows/blob/master/WRK-v1.2/base/ntos/dbgk/dbgkport.c#L30
 
 #define HC_FORCE_INTEL _ASM_NOPREFIX
+#define $load_symbol(name) \
+  succeeded &= load_nt_symbol(name, #name)
 
 using namespace hc;
 using namespace hc::sys::win;
@@ -77,22 +79,26 @@ namespace hc::sys {
   template <typename F>
   static bool load_nt_symbol(
    DefaultFuncPtr<F>& func, StrRef symbol) {
+    if __expect_true(func.isSet())
+      return true;
     auto exp = __NtModule()->resolveExport<F>(symbol);
     return func.setSafe($unwrap(exp));
   }
 
   bool init_SEH_exceptions() {
-# define $load_symbol(name) succeeded &= load_nt_symbol(name, #name)
-    bool succeeded = true;
-    $load_symbol(RtlLookupFunctionEntry);
-    $load_symbol(RtlVirtualUnwind);
-    // TODO: Split up as version check
-    $load_symbol(RtlGetExtendedContextLength2);
-    $load_symbol(RtlInitializeExtendedContext2);
-    $load_symbol(RtlCaptureContext2);
-    $load_symbol(RtlLocateLegacyContext);
-    return succeeded;
-# undef $load_symbol
+    static bool has_succeeded = false;
+    if __expect_false(!has_succeeded) {
+      bool succeeded = true;
+      $load_symbol(RtlLookupFunctionEntry);
+      $load_symbol(RtlVirtualUnwind);
+      // TODO: Split up as version check
+      $load_symbol(RtlGetExtendedContextLength2);
+      $load_symbol(RtlInitializeExtendedContext2);
+      $load_symbol(RtlCaptureContext2);
+      $load_symbol(RtlLocateLegacyContext);
+      has_succeeded = succeeded;
+    }
+    return has_succeeded;
   }
 } // namespace hc::sys
 
@@ -122,7 +128,7 @@ void ExceptionRecord::Raise(ExceptionRecord& record) {
     if (KUSER_XState.EnabledFeatures == 0 /* && !some_bitfield.@42 */)
       break;
     ctx_flags |= 0x40;
-    if (!(KUSER_XState.ControlFlags & 2))
+    if ((KUSER_XState.ControlFlags & 2) == 0)
       break;
     const u64 enabled_features =
       KUSER_XState.EnabledFeatures |
