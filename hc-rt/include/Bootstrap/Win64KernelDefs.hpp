@@ -311,6 +311,10 @@ namespace hc::bootstrap {
     IOFile       std_out;
     IOFile       std_err;
     Win64CurrDir curr_dir;
+    Win64UnicodeString dll_path;
+    Win64UnicodeString image_path;
+    Win64UnicodeString commandline;
+    wchar_t*     environment;
     // ...
     HC_MARK_DELETED(Win64ProcParams);
   public:
