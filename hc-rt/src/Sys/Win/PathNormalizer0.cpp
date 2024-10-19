@@ -221,7 +221,7 @@ void PathNormalizer::push(C::ImmPtrRange<char> P) {
 
 namespace {
   char current_drive_letter() {
-    const wchar_t prefix = Args::WorkingDir()[0];
+    const wchar_t prefix = Args::WorkingDirW()[0];
     return static_cast<char>(prefix);
   }
 } // namespace `anonymous`
