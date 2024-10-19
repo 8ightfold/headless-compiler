@@ -92,11 +92,11 @@ namespace hc::sys {
     };
 
     struct FileLock {
-      FileLock(IIOFile* f) : file(f) { file->lock(); }
-      FileLock(IIOFile& f) : FileLock(&f) { }
+      __always_inline FileLock(IIOFile* f) : file(f) { file->lock(); }
+      __always_inline FileLock(IIOFile& f) : FileLock(&f) { }
+      __always_inline ~FileLock() { file->unlock(); }
       FileLock(const FileLock&) = delete;
       FileLock& operator=(const FileLock&) = delete;
-      ~FileLock() { file->unlock(); }
     private:
       IIOFile* file;
     };
@@ -149,10 +149,18 @@ namespace hc::sys {
     /// r: Read, w: Write, a: Append, +: Plus, b: Binary, x: Exclude.
     static IIOMode ParseModeFlags(common::StrRef flags);
 
+#if _HC_MULTITHREADED
     void initialize(common::DualString S) { mtx.initialize(S); }
     void initialize() { mtx.initialize(); }
     void lock() { mtx.lock(); }
     void unlock() { mtx.unlock(); }
+#else
+    // TODO: Move this to the rwlock
+    void initialize(common::DualString) {}
+    void initialize() {}
+    void lock() {}
+    void unlock() {}
+#endif
 
     u8* bufPtr() const { return buf->buf_ptr; }
     usize bufSize() const { return buf->size; }
@@ -246,7 +254,7 @@ namespace hc::sys {
     FWriteType* write_fn;
     FSeekType*  seek_fn;
     FCloseType* close_fn;
-    OSMtx mtx;
+    [[maybe_unused]] OSMtx mtx;
 
     u8 ungetc_buf = 0;
     IIOFileBuf* buf;
