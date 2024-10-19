@@ -164,11 +164,17 @@
 # define _HC_EXCEPTION_SIG n
 #endif
 
-#define _HC_ODR_SIG $2cat(_HC_HARDENING_SIG, _HC_EXCEPTION_SIG)
+#if _HC_MULTITHREADED
+# define _HC_THREADING_SIG m
+#else
+# define _HC_THREADING_SIG n
+#endif
 
-#define __abi_hidden \
-  __hidden __exclude_from_explicit_instantiation \
-  __attribute__((__abi_tag__($stringify(_HC_ODR_SIG))))
+#define _HC_ODR_SIG $3cat( \
+  _HC_HARDENING_SIG, _HC_EXCEPTION_SIG, _HC_THREADING_SIG)
+
+#define __abi __attribute__((__abi_tag__($stringify(_HC_ODR_SIG))))
+#define __abi_hidden __hidden __exclude_from_explicit_instantiation __abi
 
 #if __has_builtin(__builtin_expect_with_probability)
 # define __expect_false(expr...) (__builtin_expect_with_probability(bool(expr), 0, 1.0))
