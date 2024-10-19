@@ -261,6 +261,9 @@ namespace hc::parcel {
     inline constexpr
     const T* __data() const __noexcept 
     { return nullptr; }
+  
+  public:
+    static constexpr T* __sto = nullptr;
   };
 
   //====================================================================//
@@ -408,7 +411,7 @@ namespace hc::parcel {
     constexpr bool __setSize(usize N) {
       if (N > this->capacity())
         return false;
-      this->__setSize(N);
+      StaticVecBase<T>::__setSize(N);
       return true;
     }
   };
@@ -424,14 +427,14 @@ namespace hc::parcel {
     using SelfType = IStaticVec<T>;
     using Type = T;
   protected:
-    constexpr IStaticVec(T* P, usize cap) :
-     IStaticVecBase<T>(P, cap) {}
-
+    constexpr IStaticVec(T* P, usize cap) : BaseType(P, cap) {}
   public:
     using BaseType::begin;
     using BaseType::end;
     using BaseType::growUninit;
 
+    /// @brief Sets the size to `n` without initializing.
+    /// @return If resizing was successful.
     constexpr bool resizeUninit(usize n) {
       if __expect_true(n < this->capacity()) {
         this->__setSize(n);
@@ -440,6 +443,8 @@ namespace hc::parcel {
       return false;
     }
 
+    /// Same as `emplace_back` in normal vectors.
+    /// Does nothing if capacity has been reached.
     constexpr void emplace(auto&&...args) {
       if __expect_false(this->isFull())
         return;
@@ -461,6 +466,11 @@ namespace hc::parcel {
 
     [[nodiscard]]
     com::ImmPtrRange<T> intoRange() const __noexcept {
+      return { begin(), end() };
+    }
+
+    [[nodiscard]]
+    com::ImmPtrRange<T> intoImmRange() const __noexcept {
       return { begin(), end() };
     }
 
@@ -511,7 +521,7 @@ namespace hc::parcel {
     static constexpr usize __capacity = BufferSize;
   public:
     constexpr StaticVec() : 
-     BaseType(this->__data(), __capacity), StorageType() {}
+     BaseType(StorageType::__sto, __capacity), StorageType() {}
 
     template <typename...Args>
     requires(sizeof...(Args) <= __capacity)
