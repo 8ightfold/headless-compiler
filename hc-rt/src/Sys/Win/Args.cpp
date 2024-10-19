@@ -19,11 +19,14 @@
 #include <Sys/Args.hpp>
 #include <Bootstrap/Win64KernelDefs.hpp>
 #include <Bootstrap/_NtModule.hpp>
+#include <Common/ManualDrop.hpp>
+#include <Meta/Once.hpp>
+#include <Parcel/StaticVec.hpp>
 
 using namespace hc;
 using namespace hc::sys;
-namespace B = hc::bootstrap;
-namespace S = hc::sys;
+
+using PathStorage = pcl::StaticVec<char, RT_MAX_PATH + 1>;
 
 #ifndef __XCRT__
 extern "C" {
@@ -34,22 +37,41 @@ extern char*** __imp___initenv;
 #endif // !__XCRT__
 
 namespace {
-  B::UnicodeString __get_program_path() {
-    auto* mods = boot::HcCurrentPEB()->getLDRModulesInMemOrder();
-    return mods->prev()->fullName();
-  }
 
-  // https://github.com/wine-mirror/wine/blob/master/dlls/ntdll/path.c#L886
-  B::UnicodeString __get_working_path() {
-    return boot::HcCurrentPEB()->process_params->getCurrDir();
-  }
+__imut ManualDrop<PathStorage> program_dir {};
+__imut ManualDrop<PathStorage> working_dir {};
 
-  template <typename T>
-  PtrRange<T*> __find_end(T** PP) {
-    T** E = PP;
-    while (*++E);
-    return {PP, E};
-  }
+boot::UnicodeString __get_program_path() {
+  auto* mods = boot::HcCurrentPEB()->getLDRModulesInMemOrder();
+  return mods->prev()->fullName();
+}
+
+// https://github.com/wine-mirror/wine/blob/master/dlls/ntdll/path.c#L886
+boot::UnicodeString __get_working_path() {
+  return boot::HcCurrentPEB()->process_params->getCurrDir();
+}
+
+template <typename T> PtrRange<T*> __find_end(T** PP) {
+  T** E = PP;
+  while (*++E);
+  return {PP, E};
+}
+
+[[gnu::noinline]]
+bool __init_filename(PathStorage& P, ImmPtrRange<wchar_t> str) {
+  const usize base_size = str.size();
+  if __expect_false(base_size + 1 >= P.Capacity())
+    return false;
+  
+  __hc_assertOrIdent(
+    P.resizeUninit(base_size + 1));
+  for (usize Ix = 0; Ix < base_size; ++Ix)
+    P[Ix] = static_cast<char>(str[Ix]);
+  P[base_size] = '\0';
+
+  return true;
+}
+
 } // namespace `anonymous`
 
 #ifdef __XCRT__
@@ -64,13 +86,38 @@ Args::ArgType<char*> Args::Envp() {
   return __find_end(*__imp___initenv);
 }
 
-Args::ArgType<wchar_t> Args::ProgramDir() {
-  static thread_local B::UnicodeString S = __get_program_path();
+Args::ArgType<char> Args::ProgramDir() {
+  return program_dir->intoImmRange();
+}
+
+Args::ArgType<char> Args::WorkingDir() {
+  return working_dir->intoImmRange();
+}
+
+Args::ArgType<wchar_t> Args::ProgramDirW() {
+  static boot::UnicodeString S = __get_program_path();
   return S.intoImmRange();
 }
 
-Args::ArgType<wchar_t> Args::WorkingDir() {
+Args::ArgType<wchar_t> Args::WorkingDirW() {
   // Unlike the program path, this may change, so we cant cache it :(
-  const B::UnicodeString S = __get_working_path();
+  const boot::UnicodeString S = __get_working_path();
   return S.intoImmRange();
 }
+
+//////////////////////////////////////////////////////////////////////////
+
+namespace hc::sys {
+
+void __init_paths(void) {
+  if (program_dir->isEmpty())
+    __init_filename(program_dir.unwrap(), Args::ProgramDirW());
+  if (working_dir->isEmpty())
+    __init_filename(working_dir.unwrap(), Args::WorkingDirW());
+}
+
+#ifndef __XCRT__
+  $Once { __init_paths(); };
+#endif // __XCRT__?
+
+} // namespace hc::sys
