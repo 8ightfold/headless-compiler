@@ -140,6 +140,18 @@ namespace hc::common {
       return this->__data[I];
     }
 
+    /// VERY UNSAFE!!! Only use when you know the size...
+    template <meta::is_same<T> U = T>
+    requires meta::is_trivially_destructible<U>
+    [[nodiscard]] T* release() __noexcept {
+      T* out = this->__data;
+      this->__data = nullptr;
+      this->__size = 0;
+      if constexpr (__is_trivial_alloc<T>)
+        this->__active = false;
+      return out;
+    }
+
     // Nodiscard lifters
 
     [[nodiscard, gnu::always_inline]]

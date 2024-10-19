@@ -17,12 +17,16 @@
 //===----------------------------------------------------------------===//
 
 #include <Phase1/Initialization.hpp>
+#include <Phase1/ArgParser.hpp>
+#include <Bootstrap/_NtModule.hpp>
 #include <Parcel/StaticVec.hpp>
 #include <Sys/Args.hpp>
 #include <xcrtDefs.hpp>
+#include <String/Utils.hpp>
 // TODO: Swap out
 #include <GlobalXtors.hpp>
 
+using namespace xcrt;
 using namespace hc;
 using namespace hc::bootstrap;
 
@@ -38,17 +42,50 @@ extern "C" {
 /// C++ Setup function, in Phase0/Xtors.cpp
 extern void __main(void);
 extern int main(int argc, char** argv, char** envp);
+
+constinit char* _acmdln = nullptr;
 } // extern "C"
 
-static int xcrtMainInvoker() {
+static void initArgv(PtrRange<char*> argv) {
+  __hc_assert(_acmdln != nullptr);
+
+  char* cmdln = _acmdln;
+  for (char*& arg : argv) {
+    const usize off = xcrt::stringlen(cmdln);
+    arg = cmdln;
+    cmdln += (off + 1);
+    if __expect_false(*cmdln == '\0')
+      break;
+  }
+}
+
+[[gnu::noinline]] static int xcrtMainInvoker() {
   // TODO: Setup main here!!
   __main();
   pcl::StaticVec<char, RT_MAX_PATH + 1> tmp {};
-  for (wchar_t C : sys::Args::WorkingDir())
-    tmp.push(static_cast<char>(C));
-  tmp.push('\0');
-  char* filler[] {tmp.data(), nullptr};
-  int ret = main(1, filler, filler);
+  PtrRange<char*> argv;
+  {
+    auto exedir = sys::Args::ProgramDir();
+    tmp.resizeUninit(exedir.size());
+    Mem::Copy(tmp.data(), exedir.data(), exedir.size());
+  }
+  {
+    auto wcmd = HcCurrentPEB()->process_params->commandline;
+    const usize base_size = wcmd.getSize();
+    DynAllocation<char> fullCommandline = $dynalloc(wcmd.getSize() + 2, char);
+
+    const usize argCount = __setup_cmdline(
+      fullCommandline.intoRange(), wcmd);
+    _acmdln = fullCommandline.release();
+
+    DynAllocation<char*> argvtmp = $zdynalloc(argCount + 2, char*);
+    argv = argvtmp.intoRange().takeFront(argCount + 1);
+    (void) argvtmp.release();
+    initArgv(argv);
+  }
+
+  char* filler[] {nullptr};
+  int ret = main(int(argv.size()), argv.data(), filler);
   // TODO: Swap out
   __do_global_dtors();
   return ret;
@@ -68,6 +105,8 @@ int __xcrtCRTStartupPhase1(void) {
   }
   // Set up CRT locks.
   __xcrt_locks_setup();
+  // Init ANSI program/working directories.
+  sys::__init_paths();
   // __xcrt_sysio_setup();
   // Set up thread_local backend after sysio, 
   // as that may print on error.
