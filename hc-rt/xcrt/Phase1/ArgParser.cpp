@@ -22,13 +22,12 @@
 using namespace hc;
 using namespace hc::bootstrap;
 
-#define TAIL_ARGS char C
 #define TAIL_CALL(...) $tail_return __VA_ARGS__(C)
 
 namespace {
 
 struct ArgParser;
-using TailFn = void(ArgParser::*)(TAIL_ARGS);
+using TailFn = void(ArgParser::*)(char C);
 
 struct ArgParser {
   char* I;
@@ -98,21 +97,21 @@ public:
   }
 
   template <TailFn Ret>
-  void parseEscaped(TAIL_ARGS);
+  void parseEscaped(char C);
 
-  void parseNormal(TAIL_ARGS);
-  void parseQuoted(TAIL_ARGS);
-  void parseWhitespace(TAIL_ARGS);
-  void parseHandle(TAIL_ARGS);
+  void parseNormal(char C);
+  void parseQuoted(char C);
+  void parseWhitespace(char C);
+  void parseHandle(char C);
 
   template <TailFn Ret = &ArgParser::parseHandle>
-  void parseDispatch(TAIL_ARGS);
+  void parseDispatch(char C);
 
   usize parse();
 };
 
 template <TailFn Ret>
-void ArgParser::parseEscaped(TAIL_ARGS) {
+void ArgParser::parseEscaped(char C) {
   const char N = peek(1);
   if (N == '\\') {
     // Handle the complex case.
@@ -129,7 +128,7 @@ void ArgParser::parseEscaped(TAIL_ARGS) {
 }
 
 template <TailFn Ret>
-void ArgParser::parseDispatch(TAIL_ARGS) {
+void ArgParser::parseDispatch(char C) {
   if __likely_false(C == '\0') {
     if (*(I - 1) != '\0')
       this->write('\0');
@@ -138,7 +137,7 @@ void ArgParser::parseDispatch(TAIL_ARGS) {
   TAIL_CALL((this->*Ret));
 }
 
-void ArgParser::parseNormal(TAIL_ARGS) {
+void ArgParser::parseNormal(char C) {
   if (C == '\\') {
     // We hit a [\] sequence, handle it.
     TAIL_CALL(parseEscaped<&ArgParser::parseNormal>);
@@ -149,7 +148,7 @@ void ArgParser::parseNormal(TAIL_ARGS) {
   $tail_return parseWhitespace(next());
 }
 
-void ArgParser::parseQuoted(TAIL_ARGS) {
+void ArgParser::parseQuoted(char C) {
   if (C == '"') {
     $tail_return parseDispatch(next());
   } else if (C != '\\') {
@@ -159,7 +158,7 @@ void ArgParser::parseQuoted(TAIL_ARGS) {
   TAIL_CALL(parseEscaped<&ArgParser::parseQuoted>);
 }
 
-void ArgParser::parseWhitespace(TAIL_ARGS) {
+void ArgParser::parseWhitespace(char C) {
   if (C != ' ') {
     // End the current sequence of characters.
     this->write('\0');
@@ -170,7 +169,7 @@ void ArgParser::parseWhitespace(TAIL_ARGS) {
   $tail_return parseDispatch<&ArgParser::parseWhitespace>(next());
 }
 
-void ArgParser::parseHandle(TAIL_ARGS) {
+void ArgParser::parseHandle(char C) {
   if (C == '"')
     $tail_return parseQuoted(next());
   else if (C != ' ')
@@ -195,18 +194,5 @@ usize ArgParser::parse() {
 
 usize xcrt::__setup_cmdline(
  PtrRange<char> cmd, UnicodeString US) {
-#if 0
-  const usize base_size = US.getSize();
-  usize Ix = 0;
-  // TODO: Implement SIMD scanner...
-  for (; Ix < base_size; ++Ix) {
-    const char C = static_cast<char>(US.buffer[Ix]);
-    cmd[Ix] = C;
-  }
-  cmd[Ix + 0] = '\0';
-  cmd[Ix + 1] = '\0';
-  return 1;
-#else
   return ArgParser(cmd, US.intoRange()).parse();
-#endif
 }
