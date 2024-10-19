@@ -25,13 +25,15 @@ namespace bootstrap {
   // Syscalls.cpp
   extern void force_syscall_reload();
   extern bool are_syscalls_loaded();
-}
+} // namespace bootstrap
 
 namespace sys {
   // Win/Nt/Except.cpp
   extern bool init_SEH_exceptions();
+  // {PLATFORM}/Args.cpp
+  extern void __init_paths();
   // {PLATFORM}/PFiles.cpp
   extern void __init_pfiles();
   extern void __fini_pfiles();
-}
+} // namespace sys
 } // namespace hc
