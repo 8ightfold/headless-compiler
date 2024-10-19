@@ -437,8 +437,8 @@ extern "C" {
 int main(int N, char* A[], char* Env[]) {
   volatile int ret = 0;
   __try_load_dbgprint();
-  // printPtrRange(sys::Args::ProgramDir(), "Executable");
-  // printPtrRange(sys::Args::WorkingDir(), "Working in");
+  // printPtrRange(sys::Args::ProgramDirW(), "Executable");
+  // printPtrRange(sys::Args::WorkingDirW(), "Working in");
 
   if (__native_startup_state == __initialized)
     TestPrintEx("Omg!\n");
@@ -491,7 +491,7 @@ int main(int N, char* A[], char* Env[]) {
   }
 
   printVolumeInfo("\\??\\C:\\");
-  printPtrRange(sys::Args::WorkingDir(), "\nCurrent directory");
+  printPtrRange(sys::Args::WorkingDirW(), "\nCurrent directory");
 
   {
     using enum sys::PathType;
