@@ -30,190 +30,191 @@
 #include <Parcel/BitSet.hpp>
 
 namespace xcrt {
-  // For if other platforms are ever supported...
-  inline constexpr bool do_unsafe_multibyte_ops = true;
+// For if other platforms are ever supported...
+inline constexpr bool do_unsafe_multibyte_ops = true;
 
-  template <typename Ch>
-  inline constexpr usize __make_mask() {
-    usize out = 0xFF;
-    for (int I = 0; I < sizeof(Ch); ++I)
-      out = (out << __bitcount) | 0xFF;
-    return out;
+template <typename Ch>
+inline constexpr usize __make_mask() {
+  usize out = 0xFF;
+  for (int I = 0; I < sizeof(Ch); ++I)
+    out = (out << __bitcount) | 0xFF;
+  return out;
+}
+
+template <typename Int, typename SpacingType = char>
+inline constexpr Int repeat_byte(Int byte) {
+  constexpr usize byteMask = __make_mask<SpacingType>();
+  constexpr usize byteOff  = __bitsizeof(SpacingType);
+  Int res = 0;
+  byte = byte & byteMask;
+  for (usize I = 0; I < sizeof(Int); ++I)
+    res = (res << byteOff) | byte;
+  return res;
+}
+
+template <typename Int, typename Char>
+inline constexpr bool has_zeros(Int block) {
+  static_assert(sizeof(Char) <= 2);
+  constexpr usize off = (__bitsizeof(Char) - 8);
+  constexpr Int loBits = repeat_byte<Int, Char>(0x01);
+  constexpr Int hiBits = repeat_byte<Int, Char>(0x80) << off;
+  Int subtracted = block - loBits;
+  return (subtracted & (~block) & hiBits) != 0;
+}
+
+//======================================================================//
+// [w]strlen:
+//======================================================================//
+
+template <typename Int, typename Char>
+inline usize xstringlen_wide_read(const Char* src) {
+  constexpr usize alignTo = sizeof(Int);
+  const Char* S = src;
+  // Align the pointer to Int.
+  for (; uptr(S) % alignTo != 0; ++S) {
+    if (*S == Char(L'\0'))
+      return usize(S - src);
   }
-
-  template <typename Int, typename SpacingType = char>
-  inline constexpr Int repeat_byte(Int byte) {
-    constexpr usize byteMask = __make_mask<SpacingType>();
-    constexpr usize byteOff  = __bitsizeof(SpacingType);
-    Int res = 0;
-    byte = byte & byteMask;
-    for (usize I = 0; I < sizeof(Int); ++I)
-      res = (res << byteOff) | byte;
-    return res;
+  // Read through blocks.
+  for (auto* SI = hc::ptr_cast<const Int>(S);
+   !has_zeros<Int, Char>(*SI); ++SI) {
+    S = hc::ptr_cast<const Char>(SI);
   }
+  // Find the null character.
+  for (; *S != Char(L'\0'); ++S);
+  return usize(S - src);
+}
 
-  template <typename Int, typename Char>
-  inline constexpr bool has_zeros(Int block) {
-    static_assert(sizeof(Char) <= 2);
-    constexpr usize off = (__bitsizeof(Char) - 8);
-    constexpr Int loBits = repeat_byte<Int, Char>(0x01);
-    constexpr Int hiBits = repeat_byte<Int, Char>(0x80) << off;
-    Int subtracted = block - loBits;
-    return (subtracted & (~block) & hiBits) != 0;
+template <typename Char>
+[[maybe_unused]] inline usize
+ xstringlen_byte_read(const Char* src) {
+  const Char* S = src;
+  for (; *S != Char(L'\0'); ++S);
+  return usize(S - src);
+}
+
+template <typename Char>
+inline usize xstringlen(const Char* src) {
+  static_assert(sizeof(Char) <= 2);
+  if constexpr (do_unsafe_multibyte_ops) {
+    using ReadType = hc::common::intn_t<4 * sizeof(Char)>;
+    return xstringlen_wide_read<ReadType, Char>(src);
+  } else {
+    return xstringlen_byte_read<Char>(src);
   }
+}
 
-  //====================================================================//
-  // [w]strlen:
-  //====================================================================//
+__always_inline usize stringlen(const char* src) {
+  return xstringlen<char>(src);
+}
+__always_inline usize wstringlen(const wchar_t* src) {
+  return xstringlen<wchar_t>(src);
+}
 
-  template <typename Int, typename Char>
-  inline usize xstringlen_wide_read(const Char* src) {
-    constexpr usize alignTo = sizeof(Int);
-    const Char* S = src;
-    // Align the pointer to Int.
-    for (; uptr(S) % alignTo != 0; ++S) {
-      if (*S == Char(L'\0'))
-        return usize(S - src);
-    }
-    // Read through blocks.
-    for (auto* SI = hc::ptr_cast<const Int>(S);
-     !has_zeros<Int, Char>(*SI); ++SI) {
-      S = hc::ptr_cast<const Char>(SI);
-    }
-    // Find the null character.
-    for (; *S != Char(L'\0'); ++S);
-    return usize(S - src);
+//======================================================================//
+// [w]strchr:
+//======================================================================//
+
+template <typename Int, typename Char>
+inline void* xFFC_wide_read(const Char* src, Char C, const usize n) {
+  using UChar = hc::common::uintty_t<Char>;
+  constexpr usize alignTo = sizeof(Int);
+  constexpr usize incOff  = sizeof(Int) / sizeof(Char);
+
+  const UChar* S = hc::ptr_cast<const UChar>(src);
+  usize cur = 0;
+  // Align the pointer to Int
+  for (; uptr(S) % alignTo != 0 && cur < n; ++S, ++cur) {
+    if (*S == C)
+      return hc::ptr_castex<UChar>(S);
   }
-
-  template <typename Char>
-  [[maybe_unused]] inline usize
-   xstringlen_byte_read(const Char* src) {
-    const Char* S = src;
-    for (; *S != Char(L'\0'); ++S);
-    return usize(S - src);
+  // Read through blocks.
+  const Int C_mask = repeat_byte<Int, Char>(C);
+  for (auto* SI = hc::ptr_cast<const Int>(S);
+   !has_zeros<Int, Char>((*SI) ^ C_mask) && cur < n;
+   ++SI, cur += incOff) {
+    S = hc::ptr_cast<const UChar>(SI);
   }
+  // Find match in block.
+  for (; *S != C && cur < n; ++S, ++cur);
 
-  template <typename Char>
-  inline usize xstringlen(const Char* src) {
-    static_assert(sizeof(Char) <= 2);
-    if constexpr (do_unsafe_multibyte_ops) {
-      using ReadType = hc::common::intn_t<4 * sizeof(Char)>;
-      return xstringlen_wide_read<ReadType, Char>(src);
-    } else {
-      return xstringlen_byte_read<Char>(src);
-    }
+  return (*S != C || cur >= n) 
+    ? nullptr : hc::ptr_castex<UChar>(S);
+}
+
+template <typename Char>
+[[maybe_unused]] inline void*
+ xFFC_byte_read(const Char* S, Char C, usize n) {
+  using UChar = hc::common::uintty_t<Char>;
+  for (; n && *S != C; --n, ++S);
+  return n ? hc::ptr_castex<UChar>(S) : nullptr;
+}
+
+template <typename Char>
+inline void* xfind_first_char(
+ const Char* S, Char C, usize max_read) {
+  static_assert(sizeof(Char) <= 2);
+  if constexpr (do_unsafe_multibyte_ops) {
+    using ReadType = hc::common::intn_t<4 * sizeof(Char)>;
+    // Check if the overhead of aligning and generating a mask
+    // is greater than the overlead of just doing a direct search.
+    if (max_read > (alignof(ReadType) * 4))
+      return xFFC_wide_read<ReadType, Char>(S, C, max_read);
   }
+  return xFFC_byte_read<Char>(S, C, max_read);
+}
 
-  __always_inline usize stringlen(const char* src) {
-    return xstringlen<char>(src);
+inline char* find_first_char(
+ const char* S, char C, usize max_read) {
+  void* const P = xfind_first_char<char>(S, C, max_read);
+  return static_cast<char*>(P);
+}
+
+inline wchar_t* wfind_first_char(
+ const wchar_t* S, wchar_t C, usize max_read) {
+  void* const P = xfind_first_char<wchar_t>(S, C, max_read);
+  return static_cast<wchar_t*>(P);
+}
+
+//======================================================================//
+// [w]str[n]cmp:
+//======================================================================//
+
+template <typename Char, typename Cmp>
+inline constexpr i32 xstrcmp(
+ const Char* lhs, const Char* rhs, Cmp&& cmp) {
+  using ConvType = const hc::common::uintty_t<Char>*;
+  for (; *lhs && !cmp(*lhs, *rhs); ++lhs, ++rhs);
+  return cmp(*ConvType(lhs), *ConvType(rhs));
+}
+
+template <typename Char, typename Cmp>
+inline constexpr i32 xstrncmp(
+ const Char* lhs, const Char* rhs, usize n, Cmp&& cmp) {
+  using ConvType = const hc::common::uintty_t<Char>*;
+  if __expect_false(n == 0)
+    return 0;
+  
+  for (; n > 1; --n, ++lhs, ++rhs) {
+    const Char C = *lhs;
+    if (!cmp(C, Char(0)) || cmp(C, *rhs))
+      break;
   }
-  __always_inline usize wstringlen(const wchar_t* src) {
-    return xstringlen<wchar_t>(src);
-  }
+  return cmp(*ConvType(lhs), *ConvType(rhs));
+}
 
-  //====================================================================//
-  // [w]strchr:
-  //====================================================================//
+//======================================================================//
+// Misc.
+//======================================================================//
 
-  template <typename Int, typename Char>
-  inline void* xFFC_wide_read(const Char* src, Char C, const usize n) {
-    using UChar = hc::common::uintty_t<Char>;
-    constexpr usize alignTo = sizeof(Int);
-    constexpr usize incOff  = sizeof(Int) / sizeof(Char);
+// Returns the maximum offset that contains characters not found in `seg`.
+inline usize compliment_span(const char* src, const char* seg) {
+  const u8* S = hc::ptr_cast<const u8>(src);
+  hc::parcel::BitSet<256> bitset;
+  for (; *seg; ++seg)
+    bitset.set(*hc::ptr_cast<const u8>(seg));
+  for (; *S && !bitset.test(*S); ++S);
+  return hc::ptr_cast<const char>(S) - src;
+}
 
-    const UChar* S = hc::ptr_cast<const UChar>(src);
-    usize cur = 0;
-    // Align the pointer to Int
-    for (; uptr(S) % alignTo != 0 && cur < n; ++S, ++cur) {
-      if (*S == C)
-        return hc::ptr_castex<UChar>(S);
-    }
-    // Read through blocks.
-    const Int C_mask = repeat_byte<Int, Char>(C);
-    for (auto* SI = hc::ptr_cast<const Int>(S);
-     !has_zeros<Int, Char>((*SI) ^ C_mask) && cur < n;
-     ++SI, cur += incOff) {
-      S = hc::ptr_cast<const UChar>(SI);
-    }
-    // Find match in block.
-    for (; *S != C && cur < n; ++S, ++cur);
-
-    return (*S != C || cur >= n) 
-      ? nullptr : hc::ptr_castex<UChar>(S);
-  }
-
-  template <typename Char>
-  [[maybe_unused]] inline void*
-   xFFC_byte_read(const Char* S, Char C, usize n) {
-    using UChar = hc::common::uintty_t<Char>;
-    for (; n && *S != C; --n, ++S);
-    return n ? hc::ptr_castex<UChar>(S) : nullptr;
-  }
-
-  template <typename Char>
-  inline void* xfind_first_char(
-   const Char* S, Char C, usize max_read) {
-    static_assert(sizeof(Char) <= 2);
-    if constexpr (do_unsafe_multibyte_ops) {
-      using ReadType = hc::common::intn_t<4 * sizeof(Char)>;
-      // Check if the overhead of aligning and generating a mask
-      // is greater than the overlead of just doing a direct search.
-      if (max_read > (alignof(ReadType) * 4))
-        return xFFC_wide_read<ReadType, Char>(S, C, max_read);
-    }
-    return xFFC_byte_read<Char>(S, C, max_read);
-  }
-
-  inline char* find_first_char(
-   const char* S, char C, usize max_read) {
-    void* const P = xfind_first_char<char>(S, C, max_read);
-    return static_cast<char*>(P);
-  }
-
-  inline wchar_t* wfind_first_char(
-   const wchar_t* S, wchar_t C, usize max_read) {
-    void* const P = xfind_first_char<wchar_t>(S, C, max_read);
-    return static_cast<wchar_t*>(P);
-  }
-
-  //====================================================================//
-  // [w]str[n]cmp:
-  //====================================================================//
-
-  template <typename Char, typename Cmp>
-  inline constexpr i32 xstrcmp(
-   const Char* lhs, const Char* rhs, Cmp&& cmp) {
-    using ConvType = const hc::common::uintty_t<Char>*;
-    for (; *lhs && !cmp(*lhs, *rhs); ++lhs, ++rhs);
-    return cmp(*ConvType(lhs), *ConvType(rhs));
-  }
-
-  template <typename Char, typename Cmp>
-  inline constexpr i32 xstrncmp(
-   const Char* lhs, const Char* rhs, usize n, Cmp&& cmp) {
-    using ConvType = const hc::common::uintty_t<Char>*;
-    if __expect_false(n == 0)
-      return 0;
-    
-    for (; n > 1; --n, ++lhs, ++rhs) {
-      const Char C = *lhs;
-      if (!cmp(C, Char(0)) || cmp(C, *rhs))
-        break;
-    }
-    return cmp(*ConvType(lhs), *ConvType(rhs));
-  }
-
-  //====================================================================//
-  // Misc.
-  //====================================================================//
-
-  // Returns the maximum offset that contains characters not found in `seg`.
-  inline usize compliment_span(const char* src, const char* seg) {
-    const u8* S = hc::ptr_cast<const u8>(src);
-    hc::parcel::BitSet<256> bitset;
-    for (; *seg; ++seg)
-      bitset.set(*hc::ptr_cast<const u8>(seg));
-    for (; *S && !bitset.test(*S); ++S);
-    return hc::ptr_cast<const char>(S) - src;
-  }
 } // namespace xcrt

@@ -23,18 +23,17 @@
 
 using namespace hc;
 using namespace hc::sys;
-namespace S = hc::sys;
 
 using LazyIIOFile = RawLazy<WinIOFile>;
 
 namespace {
-  constinit IIOFileArray<1024> pOut_buf {};
-  constinit IIOFileArray<0>    pErr_buf {};
-  constinit IIOFileArray<512>  pInp_buf {};
+constinit IIOFileArray<1024> pOut_buf {};
+constinit IIOFileArray<0>    pErr_buf {};
+constinit IIOFileArray<512>  pInp_buf {};
 
-  constinit LazyIIOFile pOut {};
-  constinit LazyIIOFile pErr {};
-  constinit LazyIIOFile pInp {};
+constinit LazyIIOFile pOut {};
+constinit LazyIIOFile pErr {};
+constinit LazyIIOFile pInp {};
 } // namespace `anonymous`
 
 namespace hc::sys {
