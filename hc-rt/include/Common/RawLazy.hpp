@@ -26,150 +26,152 @@
 #include "Lifetime.hpp"
 
 namespace hc::common {
-  template <typename T>
-  union [[clang::trivial_abi]] _RawLazyBase {
-    using Type = T;
-    using SelfType = _RawLazyBase<T>;
-    using BufType = ubyte[sizeof(T)];
-  public:
-    constexpr _RawLazyBase() : __buf() {}
-    constexpr ~_RawLazyBase() { }
-  public:
-    alignas(T) BufType __buf;
-    T __data;
-  };
 
-  template <typename T>
-  struct [[gsl::Owner]] RawLazy {
-    using Type = T;
-    using SelfType = RawLazy<T>;
-    using BaseType = _RawLazyBase<T>;
-    using BufType  = typename BaseType::BufType;
-  public:
-    constexpr RawLazy() = default;
-    constexpr ~RawLazy() = default;
+template <typename T>
+union [[clang::trivial_abi]] _RawLazyBase {
+  using Type = T;
+  using SelfType = _RawLazyBase<T>;
+  using BufType = ubyte[sizeof(T)];
+public:
+  constexpr _RawLazyBase() : __buf() {}
+  constexpr ~_RawLazyBase() { }
+public:
+  alignas(T) BufType __buf;
+  T __data;
+};
 
-    __always_inline constexpr 
-     T& ctor(auto&&...args) __noexcept {
-      T* P = common::construct_at(
-        &unwrap(), __hc_fwd(args)...);
-      return *P;
-    }
+template <typename T>
+struct [[gsl::Owner]] RawLazy {
+  using Type = T;
+  using SelfType = RawLazy<T>;
+  using BaseType = _RawLazyBase<T>;
+  using BufType  = typename BaseType::BufType;
+public:
+  constexpr RawLazy() = default;
+  constexpr ~RawLazy() = default;
 
-    __always_inline constexpr
-     void dtor() noexcept {
-      destroy_at_ref(this->unwrap());
-    }
+  __always_inline constexpr 
+   T& ctor(auto&&...args) __noexcept {
+    T* P = common::construct_at(
+      &unwrap(), __hc_fwd(args)...);
+    return *P;
+  }
 
-    [[nodiscard]] __ndbg_inline
-    constexpr T& unwrap() noexcept {
-      return __data.__data;
-    }
+  __always_inline constexpr
+   void dtor() noexcept {
+    destroy_at_ref(this->unwrap());
+  }
 
-    [[nodiscard]] __ndbg_inline
-    constexpr const T& unwrap() const noexcept {
-      return __data.__data;
-    }
+  [[nodiscard]] __ndbg_inline
+  constexpr T& unwrap() noexcept {
+    return __data.__data;
+  }
 
-    __ndbg_inline
-    constexpr T* data() noexcept {
-      return &__data.__data;
-    }
+  [[nodiscard]] __ndbg_inline
+  constexpr const T& unwrap() const noexcept {
+    return __data.__data;
+  }
 
-    __ndbg_inline 
-    constexpr const T* data() const noexcept {
-      return &__data.__data;
-    }
+  __ndbg_inline
+  constexpr T* data() noexcept {
+    return &__data.__data;
+  }
 
-    [[nodiscard]] __ndbg_inline
-    constexpr T take() __noexcept {
-      T V {__hc_move(this->unwrap())};
-      this->dtor();
-      return V;
-    }
+  __ndbg_inline 
+  constexpr const T* data() const noexcept {
+    return &__data.__data;
+  }
 
-    __ndbg_inline constexpr T*
-     operator->() noexcept {
-      return this->data();
-    }
+  [[nodiscard]] __ndbg_inline
+  constexpr T take() __noexcept {
+    T V {__hc_move(this->unwrap())};
+    this->dtor();
+    return V;
+  }
 
-    __ndbg_inline constexpr const T*
-     operator->() const noexcept {
-      return this->data();
-    }
+  __ndbg_inline constexpr T*
+   operator->() noexcept {
+    return this->data();
+  }
 
-    //==================================================================//
-    // Internals
-    //==================================================================//
+  __ndbg_inline constexpr const T*
+   operator->() const noexcept {
+    return this->data();
+  }
 
-    __ndbg_inline constexpr
-     BufType& __buf() noexcept {
-      return __data.__buf;
-    }
+  //==================================================================//
+  // Internals
+  //==================================================================//
 
-    __ndbg_inline constexpr
-     const BufType& __buf() const noexcept {
-      return __data.__buf;
-    }
+  __ndbg_inline constexpr
+   BufType& __buf() noexcept {
+    return __data.__buf;
+  }
 
-  public:
-    BaseType __data;
-  };
+  __ndbg_inline constexpr
+   const BufType& __buf() const noexcept {
+    return __data.__buf;
+  }
 
-  template <typename T>
-  requires(meta::is_trivial<T>)
-  struct [[clang::trivial_abi, gsl::Owner]] RawLazy<T> {
-    using Type = T;
-    using SelfType = RawLazy<T>;
-    using BaseType = T;
-    using BufType  = void;
-  public:
-    __always_inline constexpr 
-     T& ctor(auto&&...args) noexcept {
-      return (unwrap() = T{__hc_fwd(args)...});
-    }
+public:
+  BaseType __data;
+};
 
-    __always_inline constexpr
-     void dtor() const noexcept { }
+template <typename T>
+requires(meta::is_trivial<T>)
+struct [[clang::trivial_abi, gsl::Owner]] RawLazy<T> {
+  using Type = T;
+  using SelfType = RawLazy<T>;
+  using BaseType = T;
+  using BufType  = void;
+public:
+  __always_inline constexpr 
+   T& ctor(auto&&...args) noexcept {
+    return (unwrap() = T{__hc_fwd(args)...});
+  }
 
-    [[nodiscard]] __ndbg_inline
-    constexpr T& unwrap() noexcept {
-      return __data;
-    }
+  __always_inline constexpr
+   void dtor() const noexcept { }
 
-    [[nodiscard]] __ndbg_inline
-    constexpr const T& unwrap() const noexcept {
-      return __data;
-    }
+  [[nodiscard]] __ndbg_inline
+  constexpr T& unwrap() noexcept {
+    return __data;
+  }
 
-    __ndbg_inline
-    constexpr T* data() noexcept {
-      return &__data;
-    }
+  [[nodiscard]] __ndbg_inline
+  constexpr const T& unwrap() const noexcept {
+    return __data;
+  }
 
-    __ndbg_inline 
-    constexpr const T* data() const noexcept {
-      return &__data;
-    }
+  __ndbg_inline
+  constexpr T* data() noexcept {
+    return &__data;
+  }
 
-    [[nodiscard]] __ndbg_inline
-    constexpr T take() noexcept {
-      return __data;
-    }
+  __ndbg_inline 
+  constexpr const T* data() const noexcept {
+    return &__data;
+  }
 
-    __ndbg_inline constexpr T*
-     operator->() noexcept {
-      return &__data;
-    }
+  [[nodiscard]] __ndbg_inline
+  constexpr T take() noexcept {
+    return __data;
+  }
 
-    __ndbg_inline constexpr const T*
-     operator->() const noexcept {
-      return &__data;
-    }
+  __ndbg_inline constexpr T*
+   operator->() noexcept {
+    return &__data;
+  }
 
-  public:
-    BaseType __data;
-  };
+  __ndbg_inline constexpr const T*
+   operator->() const noexcept {
+    return &__data;
+  }
 
-  static_assert(meta::is_trivial<RawLazy<int>>);
+public:
+  BaseType __data;
+};
+
+static_assert(meta::is_trivial<RawLazy<int>>);
+
 } // namespace hc::common
