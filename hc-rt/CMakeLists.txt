@@ -2,7 +2,7 @@ include_guard(DIRECTORY)
 
 project(
   hcrt-xcrt
-  VERSION 0.1.22
+  VERSION 0.1.23
   LANGUAGES CXX
 )
 
@@ -161,6 +161,7 @@ add_library(hcrt-xcrt STATIC
   # Platform Specific
   ${HC_XSYS}/Phase0/Startup.cpp
   ${HC_XSYS}/Phase0/Xtors.cpp
+  ${HC_XSYS}/Phase1/ArgParser.cpp
   ${HC_XSYS}/Phase1/Initialization.cpp
   ${HC_XSYS}/Phase1/Locks.cpp
   ${HC_XSYS}/Phase1/StdIO.cpp

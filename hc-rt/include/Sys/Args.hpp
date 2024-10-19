@@ -25,13 +25,19 @@
 #include <Common/PtrRange.hpp>
 
 namespace hc::sys {
-  struct Args {
-    template <typename T>
-    using ArgType = com::ImmPtrRange<T>;
-  public:
-    static ArgType<char*>   Argv();
-    static ArgType<char*>   Envp();
-    static ArgType<wchar_t> ProgramDir();
-    static ArgType<wchar_t> WorkingDir();
-  };
+
+struct Args {
+  template <typename T>
+  using ArgType = com::ImmPtrRange<T>;
+public:
+  static ArgType<char*>   Argv();
+  static ArgType<char*>   Envp();
+  static ArgType<char>    ProgramDir();
+  static ArgType<char>    WorkingDir();
+#if HC_PLATFORM_WIN64
+  static ArgType<wchar_t> ProgramDirW();
+  static ArgType<wchar_t> WorkingDirW();
+#endif
+};
+
 } // namespace hc::sys
