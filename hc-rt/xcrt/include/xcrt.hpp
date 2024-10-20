@@ -1,4 +1,4 @@
-//===- Phase1/Initialization.hpp ------------------------------------===//
+//===- xcrt.hpp -----------------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -18,27 +18,5 @@
 
 #pragma once
 
-#include <xcrt.hpp>
-#include <Locks.hpp>
-
-extern "C" {
-
-using VVFunc = void(*)(void);
-using IVFunc = int(*)(void);
-using VIFunc = void(*)(int);
-
-extern i32  __xcrt_atexit(AtexitHandler* handler);
-extern void __xcrt_invoke_atexit(void);
-
-extern void __xcrt_setup(void);
-extern void __xcrt_shutdown(void);
-
-extern u64  __xcrt_locks_setup(void);
-extern void __xcrt_sysio_setup(void);
-extern void __xcrt_emutils_setup(void);
-
-extern void __xcrt_locks_shutdown(void);
-extern void __xcrt_sysio_shutdown(void);
-extern void __xcrt_emutils_shutdown(void);
-
-} // extern "C"
+#include <xcrt/Stdlib.hpp>
+#include <xcrt/String.hpp>
