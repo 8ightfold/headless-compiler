@@ -21,43 +21,51 @@
 #include <Common/Features.hpp>
 
 namespace hc::sys {
-  template <typename MutexType>
-  struct ScopedLock {
-    using MtxType = MutexType;
-  public:
-    __always_inline 
-     ScopedLock(MutexType& mtx) : 
-     __mtx(mtx) {
-      __mtx.lock();
-    }
 
-    ScopedLock(const ScopedLock&) = delete;
-    ScopedLock(ScopedLock&&) = delete;
-    ScopedLock& operator=(const ScopedLock&) = delete;
-    ScopedLock& operator=(ScopedLock&&) = delete;
+template <typename MutexType>
+struct ScopedLock {
+  using MtxType = MutexType;
+public:
+  __always_inline 
+   ScopedLock(MutexType& mtx) : 
+   __mtx(mtx) {
+    __mtx.lock();
+  }
 
-    __always_inline
-     ~ScopedLock() {
-      __mtx.unlock();
-    }
+  ScopedLock(const ScopedLock&) = delete;
+  ScopedLock(ScopedLock&&) = delete;
+  ScopedLock& operator=(const ScopedLock&) = delete;
+  ScopedLock& operator=(ScopedLock&&) = delete;
 
-  private:
-    MutexType& __mtx;
-  };
+  __always_inline
+   ~ScopedLock() {
+    __mtx.unlock();
+  }
 
-  template <typename MutexType>
-  struct ScopedPtrLock : ScopedLock<MutexType> {
-    using BaseType = ScopedLock<MutexType>;
-    using Selftype = ScopedPtrLock;
-    using MtxType  = MutexType;
-  public:
-    ScopedPtrLock(MutexType* P) :
-     BaseType(CheckMutex(P)) { }
-  private:
-    __always_inline static
-     MutexType& CheckMutex(MutexType* P) {
-      __hc_assert(P != nullptr);
-      return *P;
-    }
-  };
+private:
+  MutexType& __mtx;
+};
+
+template <typename MutexType>
+struct ScopedPtrLock : ScopedLock<MutexType> {
+  using BaseType = ScopedLock<MutexType>;
+  using Selftype = ScopedPtrLock;
+  using MtxType  = MutexType;
+public:
+  ScopedPtrLock(MutexType* P) :
+   BaseType(CheckMutex(P)) { }
+private:
+  __always_inline static
+   MutexType& CheckMutex(MutexType* P) {
+    __hc_assert(P != nullptr);
+    return *P;
+  }
+};
+
+template <typename MutexType>
+ScopedLock(MutexType&) -> ScopedLock<MutexType>;
+
+template <typename MutexType>
+ScopedPtrLock(MutexType*) -> ScopedPtrLock<MutexType>;
+
 } // namespace hc::sys
