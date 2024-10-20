@@ -68,7 +68,7 @@ valued_option(RT_MAX_THREADS "Maximum amount of threads that can be created." 8)
 valued_option(RT_MAX_FILES "Maximum amount of files to be opened at once." 16)
 valued_option(RT_MAX_PATH "Maximum length a filepath can be." 512)
 valued_option(RT_STRICT_MAX_PATH "Maximum length an internal filepath can be." 260)
-valued_option(RT_MAX_ATEXIT "Maximum amount of atexit functions." 16)
+valued_option(RT_MAX_ATEXIT "Maximum amount of atexit functions." 32)
 
 if(NOT RT_MAX_THREADS)
   set(HC_MULTITHREADED OFF CACHE BOOL "" FORCE)
@@ -90,6 +90,7 @@ message(STATUS "Emulated TLS: ${HC_EMUTLS}")
 
 message(STATUS "Max files: ${RT_MAX_FILES}")
 message(STATUS "Max path: ${RT_MAX_PATH}")
+message(STATUS "Max atexit: ${RT_MAX_ATEXIT}")
 
 add_subdirectory(hc-rt)
 

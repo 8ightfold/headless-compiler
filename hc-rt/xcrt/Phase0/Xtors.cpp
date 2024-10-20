@@ -18,14 +18,20 @@
 
 #include <GlobalXtors.hpp>
 #include <Common/Fundamental.hpp>
+#include <xcrt/Stdlib.hpp>
 
 extern "C" {
-static constinit bool __did_init_ctors_ = false;
+__imut bool __did_init_ctors_ = false;
+__imut bool __did_fini = false;
 
 [[gnu::used]] void __do_global_ctors(void) {
   if __expect_true(__did_init_ctors_)
     return;
   __did_init_ctors_ = true;
+
+  // Initialize the atexit handler first.
+  // This means globals will always be destroyed after scoped statics.
+  (void) xcrt::atexit(&__do_global_dtors);
 
   auto N = reinterpret_cast<usize>(__CTOR_LIST__[0]);
   if (N == static_cast<usize>(-1)) {
@@ -33,11 +39,9 @@ static constinit bool __did_init_ctors_ = false;
   }
   for (usize I = N; I >= 1; --I)
     __CTOR_LIST__[I]();
-  // TODO: Set atexit(__do_global_dtors)
 }
 
 [[gnu::used]] void __do_global_dtors(void) {
-  static bool __did_fini = false;
   if __expect_false(__did_fini)
     return;
   __did_fini = true;

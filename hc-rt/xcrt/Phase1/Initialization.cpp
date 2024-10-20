@@ -85,28 +85,31 @@ static void initArgv(PtrRange<char*> argv) {
 
   char* filler[] {nullptr};
   int ret = main(int(argv.size()), argv.data(), filler);
-  // TODO: Swap out
-  __do_global_dtors();
+  // Destroy scoped statics, then destroy globals.
+  __xcrt_invoke_atexit();
   return ret;
 }
 
 extern "C" {
-/// At this point, constructors still have not been called.
-/// We need to get everything initialized, especially the syscalls.
-/// Assume this is pure C++ (not C++/CLI), so no `__native_startup_state`.
-[[gnu::used, gnu::noinline]]
-int __xcrtCRTStartupPhase1(void) {
+
+
+void __xcrt_setup(void) {
   // Make sure syscalls are bootstrapped.
   force_syscall_reload();
   if (!are_syscalls_loaded()) {
     // TODO: Abort with message.
     __hc_unreachable("Fuck!");
   }
+
   // Set up CRT locks.
   __xcrt_locks_setup();
+
   // Init ANSI program/working directories.
   sys::__init_paths();
+
+  // Set up standard IO.
   // __xcrt_sysio_setup();
+
   // Set up thread_local backend after sysio, 
   // as that may print on error.
   EMUTLS_STARTUP();
@@ -114,13 +117,23 @@ int __xcrtCRTStartupPhase1(void) {
   // TODO: Set up TLS fr
   // TODO: Autorelocation >> _pei386_runtime_relocator
   // TODO: Set up SEH exception filter
-  int ret = xcrtMainInvoker();
+}
 
+void __xcrt_shutdown(void) {
   // Run shutdown functions in reverse order.
   EMUTLS_SHUTDOWN();
   // __xcrt_sysio_shutdown();
-  // __xcrt_locks_shutdown();
+  __xcrt_locks_shutdown();
+}
 
+/// At this point, constructors still have not been called.
+/// We need to get everything initialized, especially the syscalls.
+/// Assume this is pure C++ (not C++/CLI), so no `__native_startup_state`.
+[[gnu::used, gnu::noinline]]
+int __xcrtCRTStartupPhase1(void) {
+  __xcrt_setup();
+  int ret = xcrtMainInvoker();
+  __xcrt_shutdown();
   return ret;
 }
 
