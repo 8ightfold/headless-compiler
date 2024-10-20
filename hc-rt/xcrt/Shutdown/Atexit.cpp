@@ -29,6 +29,7 @@ constexpr usize atexitCount = (RT_MAX_ATEXIT >= 16) ? RT_MAX_ATEXIT : 16;
 constexpr usize atexitTrueCount = atexitCount + 2;
 
 struct AtexitTable {
+  using ValueType = AtexitHandler*;
   constexpr AtexitTable() : pos(tbl) {}
 
   int push(AtexitHandler* handler) {
@@ -49,13 +50,13 @@ struct AtexitTable {
   }
 
 public:
-  const AtexitHandler** begin() const { return tbl; }
-  const AtexitHandler** end() const { return tbl + atexitTrueCount; }
+  const ValueType* begin() const { return tbl; }
+  const ValueType* end() const { return tbl + atexitTrueCount; }
   usize size() const { return (end() - pos); }
   bool isEmpty() const { return (pos == begin()); }
 public:
-  AtexitHandler** pos = nullptr;
-  AtexitHandler* tbl[atexitTrueCount] {};
+  ValueType* pos = nullptr;
+  ValueType  tbl[atexitTrueCount] {};
 };
 
 constinit AtexitTable atexitTbl {};
