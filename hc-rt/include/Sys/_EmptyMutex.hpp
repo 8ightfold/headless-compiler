@@ -1,4 +1,4 @@
-//===- Sys/AtomicMutex.hpp ------------------------------------------===//
+//===- Sys/_EmptyMutex.hpp ------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -16,8 +16,7 @@
 //
 //===----------------------------------------------------------------===//
 //
-//  Uses atomic operations + busy waiting to achieve mutual exclusion
-//  without OS support. May perform horribly under high contention.
+//  A mutex that does nothing.
 //
 //===----------------------------------------------------------------===//
 
@@ -27,26 +26,12 @@
 
 namespace hc::sys {
 
-struct AtomicMtx {
+struct _EmptyMtx {
   using ValueType = bool;
 public:
-  __always_inline bool tryLock() noexcept {
-    return __sync_bool_compare_and_swap(&__locked, false, true);
-  }
-
-  void lock() noexcept {
-    while (!this->tryLock()) {
-      while (__locked)
-        __builtin_ia32_pause();
-    }
-  }
-
-  void unlock() noexcept {
-    __sync_lock_release(&__locked);
-  }
-
-public:
-  ValueType __locked {};
+  bool tryLock() noexcept { return true; }
+  void lock() noexcept { }
+  void unlock() noexcept { }
 };
   
 } // namespace hc::sys
