@@ -29,6 +29,7 @@ using VIFunc = void(*)(int);
 
 extern i32  __xcrt_atexit(AtexitHandler* handler);
 extern void __xcrt_invoke_atexit(void);
+extern void __xcrt_invoke_quickexit(void);
 
 extern void __xcrt_setup(void);
 extern void __xcrt_shutdown(void);

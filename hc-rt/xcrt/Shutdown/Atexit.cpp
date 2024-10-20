@@ -27,11 +27,55 @@ namespace {
 
 constexpr usize atexitCount = (RT_MAX_ATEXIT >= 16) ? RT_MAX_ATEXIT : 16;
 constexpr usize atexitTrueCount = atexitCount + 2;
-constinit AtexitHandler* atexitTbl[atexitTrueCount] {};
 
-constexpr AtexitHandler** atexit_begin = atexitTbl;
-constinit AtexitHandler** atexit_pos = atexitTbl;
-constexpr AtexitHandler** atexit_end = atexitTbl + atexitTrueCount;
+struct AtexitTable {
+  constexpr AtexitTable() : pos(tbl) {}
+
+  int push(AtexitHandler* handler) {
+    if __expect_false(size() == 0)
+      return -1;
+    *pos++ = handler;
+    return 0;
+  }
+
+  void runAllAndClear() {
+    for (auto**& I = this->pos; I > begin(); --I) {
+      AtexitHandler* const handler = *(I - 1);
+      if (handler) {
+        // TODO: Add try catch.
+        handler();
+      }
+    }
+  }
+
+public:
+  const AtexitHandler** begin() const { return tbl; }
+  const AtexitHandler** end() const { return tbl + atexitTrueCount; }
+  usize size() const { return (end() - pos); }
+  bool isEmpty() const { return (pos == begin()); }
+public:
+  AtexitHandler** pos = nullptr;
+  AtexitHandler* tbl[atexitTrueCount] {};
+};
+
+constinit AtexitTable atexitTbl {};
+constinit AtexitTable quickexitTbl {};
+
+static int addHandler(AtexitTable& tbl, AtexitHandler* handler) {
+  if __expect_false(handler == nullptr)
+    return 0;
+  $XCRTLock(Atexit);
+  return tbl.push(handler);
+}
+
+static void runHandlers(AtexitTable& tbl) {
+  $XCRTLock(Atexit);
+  // Table was either never initialized? or has already been cleared.
+  // Either way, no point doing anything.
+  if __likely_false(tbl.isEmpty())
+    return;
+  tbl.runAllAndClear();
+}
 
 } // namespace `anonymous`
 
@@ -40,46 +84,31 @@ usize xcrt::atexit_total() noexcept {
 }
 
 usize xcrt::atexit_slots() noexcept {
-  return static_cast<usize>(atexit_end - atexit_pos);
+  return atexitTbl.size();
 }
 
 extern "C" {
 
 int atexit(AtexitHandler* handler) noexcept {
-  return __xcrt_atexit(handler);
+  return addHandler(atexitTbl, handler);
 }
 
 int at_quick_exit(AtexitHandler* handler) noexcept {
-  return -1;
+  return addHandler(quickexitTbl, handler);
 }
 
 //////////////////////////////////////////////////////////////////////////
 
 i32 __xcrt_atexit(AtexitHandler* handler) {
-  if __expect_false(handler == nullptr)
-    return 0;
-  
-  $XCRTLock(Atexit);
-  if __likely_false(atexit_pos == atexit_end)
-    return -1;
-  *atexit_pos++ = handler;
-  return 0;
+  return addHandler(atexitTbl, handler);
 }
 
 void __xcrt_invoke_atexit(void) {
-  $XCRTLock(Atexit);
-  // Table was either never initialized? or has already been cleared.
-  // Either way, no point doing anything.
-  if __likely_false(atexit_pos == atexit_begin)
-    return;
+  runHandlers(atexitTbl);
+}
 
-  for (auto**& I = atexit_pos; I > atexit_begin; --I) {
-    AtexitHandler* const handler = *(I - 1);
-    if (handler) {
-      // TODO: Add try catch.
-      handler();
-    }
-  }
+void __xcrt_invoke_quickexit(void) {
+  runHandlers(quickexitTbl);
 }
 
 } // extern "C"
