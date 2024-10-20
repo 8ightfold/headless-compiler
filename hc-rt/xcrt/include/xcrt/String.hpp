@@ -38,7 +38,7 @@ int wcscmp(const wchar_t* lhs, const wchar_t* rhs);
 char* strcpy(char* lhs, const char* rhs);
 wchar_t* wcscpy(wchar_t* lhs, const wchar_t* rhs);
 usize strlen(const char* lhs);
-usize wcslen(const char_t* lhs);
+usize wcslen(const wchar_t* lhs);
 int strncmp(const char* lhs, const char* rhs, usize len);
 int wcsncmp(const wchar_t* lhs, const wchar_t* rhs, usize len);
 
