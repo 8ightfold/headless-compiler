@@ -22,25 +22,41 @@
 
 #pragma once
 
-#include <Sys/OSMutex.hpp>
+#define _XCRT_BASIC_LOCK 1
+
+#if _XCRT_BASIC_LOCK
+# include <Sys/Mutex.hpp>
+#else
+# include <Sys/OSMutex.hpp>
+#endif
 #include <Sys/Locks.hpp>
 
 #define $XCRTLock(value) \
- ::hc::sys::ScopedPtrLock $var(xcrt_lock) \
-  {::__xcrt_get_lock(::xcrt::Locks::value)}
+ ::hc::sys::ScopedLock $var(xcrt_lock) \
+  {::xcrt::get_lock(::xcrt::Locks::value)}
 
 #if defined(RT_MAX_THREADS) && (RT_MAX_THREADS != 0)
 # error Multithreading temporarily disabled.
 #endif
 
 namespace xcrt {
-  enum class Locks : u64 {
-    ProcessInfoBlock,
-    ThreadLocalStorage,
-    AtExit,
-    MaxValue
-  };
+
+enum class Locks : u64 {
+  ProcessInfoBlock,
+  ThreadLocalStorage,
+  Atexit,
+  MaxValue
+};
+
+#if _XCRT_BASIC_LOCK
+using LockType = hc::sys::Mtx;
+#else
+using LockType = hc::sys::OSMtx;
+#endif
+
+LockType& get_lock(Locks V);
+
 } // namespace xcrt
 
-extern "C" hc::sys::OSMtx*
+extern "C" xcrt::LockType*
   __xcrt_get_lock(xcrt::Locks V);

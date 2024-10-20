@@ -21,36 +21,63 @@
 #include <Common/RawLazy.hpp>
 
 using namespace hc;
-namespace C = hc::common;
+using namespace xcrt;
 
 namespace {
-  /// TODO: Convert to critical section?
-  using LazyMtx = C::RawLazy<sys::OSMtx>;
-  constinit C::EnumArray<LazyMtx, xcrt::Locks> __lock_tbl_;
-  constinit u64 __locks_initialized_ = 0;
+#if _XCRT_BASIC_LOCK
+constinit EnumArray<LockType, Locks> __lock_tbl_ {};
+#else
+/// TODO: Convert to critical section?
+using LazyMtx = RawLazy<LockType>;
+constinit EnumArray<LazyMtx, Locks> __lock_tbl_ {};
+#endif
+
+constinit u64 __locks_initialized_ = 0;
+
+LockType& getLockCommon(Locks V) {
+  __hc_invariant(u64(V) < u64(Locks::MaxValue));
+#if _XCRT_BASIC_LOCK
+  return __lock_tbl_[V];
+#else
+  return __lock_tbl_[V].unwrap();
+#endif
+}
+
 } // namespace `anonymous`
 
 extern "C" {
-  u64 __xcrt_locks_setup(void) {
-    for (LazyMtx& mtx : __lock_tbl_) {
-      mtx.ctor();
-      mtx->initialize();
-      ++__locks_initialized_;
-    }
-    return __locks_initialized_;
-  }
 
-  void __xcrt_locks_shutdown(void) {
-    for (u64 I = __locks_initialized_; I > 0; --I) {
-      const xcrt::Locks E = xcrt::Locks(I - 1);
-      __lock_tbl_[E].dtor();
-      --__locks_initialized_;
-    }
+u64 __xcrt_locks_setup(void) {
+#if !_XCRT_BASIC_LOCK
+  for (LazyMtx& mtx : __lock_tbl_) {
+    mtx.ctor();
+    mtx->initialize();
+    ++__locks_initialized_;
   }
+#else
+  __locks_initialized_ = u64(Locks::MaxValue);
+#endif
+  return __locks_initialized_;
+}
 
-  sys::OSMtx* __xcrt_get_lock(xcrt::Locks V) {
-    using xcrt::Locks;
-    __hc_invariant(u64(V) < u64(Locks::MaxValue));
-    return __lock_tbl_[V].data();
+void __xcrt_locks_shutdown(void) {
+#if !_XCRT_BASIC_LOCK
+  for (u64 I = __locks_initialized_; I > 0; --I) {
+    const Locks E = Locks(I - 1);
+    __lock_tbl_[E].dtor();
+    --__locks_initialized_;
   }
+#else
+  __locks_initialized_ = 0;
+#endif
+}
+
+LockType* __xcrt_get_lock(Locks V) {
+  return &getLockCommon(V);
+}
+
 } // extern "C"
+
+LockType& xcrt::get_lock(Locks V) {
+  return getLockCommon(V);
+}
