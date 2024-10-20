@@ -48,7 +48,6 @@ constinit char* _acmdln = nullptr;
 
 static void initArgv(PtrRange<char*> argv) {
   __hc_assert(_acmdln != nullptr);
-
   char* cmdln = _acmdln;
   for (char*& arg : argv) {
     const usize off = xcrt::stringlen(cmdln);
@@ -124,4 +123,5 @@ int __xcrtCRTStartupPhase1(void) {
 
   return ret;
 }
+
 } // extern "C"
