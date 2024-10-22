@@ -17,6 +17,8 @@
 //===----------------------------------------------------------------===//
 
 #include "Except.hpp"
+#include <Sys/Win/Except.hpp>
+
 #include <Common/Casting.hpp>
 #include <Common/DefaultFuncPtr.hpp>
 #include <Bootstrap/_NtModule.hpp>

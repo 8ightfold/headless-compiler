@@ -21,7 +21,7 @@
 #include <Common/InlineMemcpy.hpp>
 #include <Common/StrRef.hpp>
 #include <Meta/Once.hpp>
-#include <Sys/Win/Nt/Except.hpp>
+#include <Sys/Win/Except.hpp>
 
 using namespace hc;
 using namespace hc::bootstrap;
@@ -40,23 +40,22 @@ static void UnsetInDbgPrint() {
 }
 
 static NtStatus TestPrintI(const char* Str, usize N) {
+  static constexpr usize PrintException = 0x40010006; // DBG_PRINTEXCEPTION_C
+  static constexpr usize LoopSize = 512;
+
   if (!ExceptionRecord::CheckDbgStatus())
     return -1;
   if (SetInDbgPrint())
     return 0;
   
-  static constexpr usize LoopSize = 512;
   char OutBuf[LoopSize + 2];
   OutBuf[LoopSize + 0] = '\n';
   OutBuf[LoopSize + 1] = '\0';
 
-  ExceptionRecord Record {};
-  Record.code    = 0x40010006; // DBG_PRINTEXCEPTION_C
-  Record.record  = nullptr;
-  Record.address = ptr_cast<void>(&TestPrintI);
-  Record.nparams = 2;
-  Record.info[0] = LoopSize + 2;
-  Record.info[1] = reinterpret_cast<uptr>(OutBuf);
+  auto Record = ExceptionRecord::New(
+    PrintException, &TestPrintI,
+    LoopSize + 2, OutBuf
+  );
 
   while (N >= LoopSize) {
     inline_memcpy(OutBuf, Str, LoopSize);
@@ -65,7 +64,7 @@ static NtStatus TestPrintI(const char* Str, usize N) {
     N -= LoopSize;
   }
 
-  Record.info[0] = N + 2;
+  Record.setArgs(N + 2, OutBuf);
   inline_memcpy(OutBuf, Str, N);
   OutBuf[N + 0] = '\n';
   OutBuf[N + 1] = '\0';

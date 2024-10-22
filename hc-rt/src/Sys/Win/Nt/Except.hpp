@@ -51,10 +51,41 @@ namespace hc::sys::win {
   struct ExceptionRecord {
     static bool CheckDbgStatus();
     static void Raise(ExceptionRecord& record);
+
+    static ExceptionRecord New(
+     i32 code, __nonnull auto* address, auto...args) {
+      constexpr usize count = sizeof...(args);
+      static_assert(count < 16, "Too many arguments!");
+      static_assert((... && (sizeof(args) <= sizeof(uptr))));
+      return ExceptionRecord {
+        .code = code,
+        .address = reinterpret_cast<void*>(address),
+        .nparams = count,
+        .info = { reinterpret_cast<uptr>(args)... }
+      };
+    }
+
+    ExceptionRecord& setArgs(auto...args) {
+      constexpr usize count = sizeof...(args);
+      static_assert(count < 16, "Too many arguments!");
+      static_assert((... && (sizeof(args) <= sizeof(uptr))));
+
+      if constexpr (count > 0) {
+        const uptr arg_array[count] {
+          reinterpret_cast<uptr>(args)...
+        };
+        for (usize Ix = 0; Ix < count; ++Ix)
+          this->info[Ix] = arg_array[Ix];
+      }
+
+      this->nparams = count;
+      return *this;
+    }
+
   public:
     i32               code;
-    u32               flags;
-    ExceptionRecord*  record;
+    u32               flags = 0;
+    ExceptionRecord*  next = nullptr;
     void*             address;
     u32               nparams;
     u64               info[15];
@@ -87,17 +118,3 @@ namespace hc::sys::win {
     u32 unwind_info_addr;
   };
 } // namespace hc::sys::win
-
-namespace hc::sys {
-inline namespace __nt {
-  __nt_attrs win::NtStatus raise_exception(
-    win::ExceptionRecord& record,
-    __nonnull win::ContextSave* ctx,
-    bool first_chance = false
-  ) {
-    return isyscall<NtSyscall::RaiseException>(
-      &record, ctx, win::Boolean(first_chance)
-    );
-  }
-} // namespace __nt
-} // namespace hc::sys
