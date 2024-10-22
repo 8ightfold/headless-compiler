@@ -24,6 +24,8 @@
 
 #include <Common/Fundamental.hpp>
 
+#error This header will be removed soon...
+
 extern "C" void* __xcrt_load_ntdll_func(const char* sym);
 
 namespace xcrt {

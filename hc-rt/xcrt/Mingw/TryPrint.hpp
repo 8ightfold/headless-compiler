@@ -24,6 +24,8 @@
 
 #include "NtdllLdr.hpp"
 
+#error This header will be removed soon...
+
 #define _XCRT_TRYPRINT(fmt, args...) ((void) xcrt::__try_dbgprint(fmt, ##args))
 #if _HC_DEBUG
 # define _XCRT_DBGPRINT(fmt, args...) _XCRT_TRYPRINT(fmt, ##args)
