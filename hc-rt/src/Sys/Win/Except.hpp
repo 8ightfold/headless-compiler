@@ -40,17 +40,13 @@ inline namespace __nt {
 
   /// Creates and raises a first-chance SEH exception.
   /// @param code The status code to raise.
-  /// @param address An address (obviously).
   /// @param args
   ///   Arguments to be passed.
   ///   Each must be `<= sizeof(void*)`.
-  inline void raise_exception(
-   i32 code,
-   __nonnull auto* address,
-   auto...args
-  ) {
+  __nt_attrs void raise_exception(i32 code, auto...args) {
     using ExType = win::ExceptionRecord;
-    auto record = ExType::New(code, address, args...); 
+    const void* const addr = __builtin_return_address(0);
+    auto record = ExType::New(code, addr, args...); 
     ExType::Raise(record);
   }
 } // namespace __nt

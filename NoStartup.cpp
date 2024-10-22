@@ -22,6 +22,7 @@
 #include <Common/StrRef.hpp>
 #include <Meta/Once.hpp>
 #include <Sys/Win/Except.hpp>
+#include <xcrt.hpp>
 
 using namespace hc;
 using namespace hc::bootstrap;
@@ -94,9 +95,6 @@ struct Static {
   ~Static() { TestPrint("Static"); }
 };
 
-void static_() { static Static S {}; }
-Global global {};
-
 static constinit int X = 1;
 static constinit int Y = 1;
 static constinit int Z = 1;
@@ -104,6 +102,12 @@ static constinit int Z = 1;
 $Once { ::X = 2; };
 $Once { ::Y = 4; };
 $Once { ::Z = 8; };
+
+void static_() {
+  static Static S {};
+  xcrt::exit(X + Y);
+}
+Global global {};
 
 int main(int V, char** Args) {
   if (V == 0)

@@ -27,12 +27,25 @@ using AtexitHandler = void(void);
 int atexit(AtexitHandler* handler) noexcept;
 int at_quick_exit(AtexitHandler* handler) noexcept;
 
+[[noreturn, gnu::always_inline]]
+inline void quick_abort() noexcept { __builtin_trap(); $unreachable; }
+[[noreturn]] void abort() noexcept;
+[[noreturn]] void _Exit(int status) noexcept;
+[[noreturn]] void exit(int status) noexcept;
+[[noreturn]] void quick_exit(int status) noexcept;
+
 } // extern "C"
 
 namespace xcrt {
 
 using ::atexit;
 using ::at_quick_exit;
+
+using ::abort;
+using ::quick_abort;
+using ::_Exit;
+using ::exit;
+using ::quick_exit;
 
 /// Returns the size of the atexit array.
 usize atexit_total() noexcept;

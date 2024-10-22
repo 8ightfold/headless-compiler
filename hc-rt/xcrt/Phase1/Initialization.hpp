@@ -21,6 +21,14 @@
 #include <xcrt.hpp>
 #include <Locks.hpp>
 
+#if _HC_EMUTLS
+# define EMUTLS_STARTUP()   __xcrt_emutils_setup()
+# define EMUTLS_SHUTDOWN()  __xcrt_emutils_shutdown()
+#else
+# define EMUTLS_STARTUP()   (void(0))
+# define EMUTLS_SHUTDOWN()  (void(0))
+#endif
+
 extern "C" {
 
 using VVFunc = void(*)(void);

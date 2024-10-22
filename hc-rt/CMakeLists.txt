@@ -89,6 +89,7 @@ target_sources(hcrt-src INTERFACE
   ${HC_RSYS}/OSMutex.cpp
   ${HC_RSYS}/PlatformStatus.cpp
   ${HC_RSYS}/PFiles.cpp
+  ${HC_RSYS}/Shutdown.cpp
 )
 add_library(hcrt::src ALIAS hcrt-src)
 target_link_libraries(hcrt-src INTERFACE hcrt::inc)
@@ -166,6 +167,7 @@ add_library(hcrt-xcrt STATIC
   ${HC_XSYS}/Phase1/Locks.cpp
   ${HC_XSYS}/Phase1/StdIO.cpp
   ${HC_XSYS}/Shutdown/Atexit.cpp
+  ${HC_XSYS}/Shutdown/Exit.cpp
 )
 if(HC_EMUTLS)
   target_sources(hcrt-xcrt PRIVATE
@@ -191,7 +193,6 @@ if(WIN32)
   target_sources(hcrt-xcrt PUBLIC
     xcrt/Phase0/Chkstk.cpp
     xcrt/Phase0/InitCookie.cpp
-    xcrt/Mingw/NtdllLdr.cpp
   )
 else()
   message(FATAL_ERROR "The hc runtime is not supported on your platform.")

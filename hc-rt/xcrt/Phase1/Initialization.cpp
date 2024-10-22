@@ -30,14 +30,6 @@ using namespace xcrt;
 using namespace hc;
 using namespace hc::bootstrap;
 
-#if _HC_EMUTLS
-# define EMUTLS_STARTUP()   __xcrt_emutils_setup()
-# define EMUTLS_SHUTDOWN()  __xcrt_emutils_shutdown()
-#else
-# define EMUTLS_STARTUP()   (void(0))
-# define EMUTLS_SHUTDOWN()  (void(0))
-#endif
-
 extern "C" {
 /// C++ Setup function, in Phase0/Xtors.cpp
 extern void __main(void);
@@ -108,7 +100,7 @@ void __xcrt_setup(void) {
   sys::__init_paths();
 
   // Set up standard IO.
-  // __xcrt_sysio_setup();
+  // TODO: __xcrt_sysio_setup();
 
   // Set up thread_local backend after sysio, 
   // as that may print on error.
@@ -122,7 +114,7 @@ void __xcrt_setup(void) {
 void __xcrt_shutdown(void) {
   // Run shutdown functions in reverse order.
   EMUTLS_SHUTDOWN();
-  // __xcrt_sysio_shutdown();
+  // TODO: __xcrt_sysio_shutdown();
   __xcrt_locks_shutdown();
 }
 

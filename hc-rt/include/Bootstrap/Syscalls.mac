@@ -74,6 +74,8 @@ $NtGen(ReplyWaitReplyPort)
 $NtGen(RequestPort)
 $NtGen(RequestWaitReplyPort)
 $NtGen(WriteRequestData)
+// Process
+$NtGen(TerminateProcess)
 // Profile
 $NtGen(CreateProfile)               // NtStatus(...)
 $NtGen(QueryIntervalProfile)        // NtStatus(...)

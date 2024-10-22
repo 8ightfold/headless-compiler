@@ -59,7 +59,7 @@ namespace hc::sys::win {
       static_assert((... && (sizeof(args) <= sizeof(uptr))));
       return ExceptionRecord {
         .code = code,
-        .address = reinterpret_cast<void*>(address),
+        .address = (void*)(address),
         .nparams = count,
         .info = { reinterpret_cast<uptr>(args)... }
       };
