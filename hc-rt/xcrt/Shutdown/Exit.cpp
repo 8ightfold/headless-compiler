@@ -59,6 +59,7 @@ namespace {
 extern "C" {
 
 [[noreturn]] void abort() noexcept {
+  // TODO: Split off dbgMsg/feature checks
 #if _HC_DEBUG
   printDbgMsg("abort() has been called.");
 #else
