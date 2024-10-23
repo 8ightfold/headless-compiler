@@ -22,6 +22,8 @@
 
 #include "Info.hpp"
 
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+
 using namespace hc::sys;
 using namespace hc::sys::win;
 
