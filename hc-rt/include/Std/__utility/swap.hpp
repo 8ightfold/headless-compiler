@@ -1,4 +1,4 @@
-//===- Std/utility --------------------------------------------------===//
+//===- Std/__utility/swap.hpp ---------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -17,9 +17,32 @@
 //===----------------------------------------------------------------===//
 
 #pragma once
-#pragma clang system_header
 
-#include <Meta/Objects.hpp>
-#include "__tuple/tuple_element.hpp"
-#include "__tuple/tuple_size.hpp"
-#include "__utility/swap.hpp"
+#include <Common/Features.hpp>
+#include <Std/__type_traits/enable_if.hpp>
+#include <Meta/Traits.hpp>
+
+namespace std {
+
+template <typename T>
+using _SwapResult = std::enable_if_t<
+  hc::meta::is_move_constructible<T> &&
+  hc::meta::is_move_assignable<T>
+>;
+
+template <typename T>
+inline __abi_hidden constexpr
+_SwapResult<T> swap(T& a, T& b) __noexcept {
+  T tmp(__hc_move_(a));
+  a = __hc_move_(b);
+  b = __hc_move_(tmp);
+}
+
+template <typename T, usize N>
+inline __abi_hidden constexpr
+void swap(T(&a)[N], T(&b)[N]) __noexcept {
+  for (usize Ix = 0; Ix < N; ++Ix)
+    swap(a[Ix], b[Ix]);
+}
+
+} // namespace std

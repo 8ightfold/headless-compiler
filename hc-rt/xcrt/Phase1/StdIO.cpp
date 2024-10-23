@@ -23,6 +23,7 @@
 
 #include <xcrtDefs.hpp>
 #include <Bootstrap/Win64KernelDefs.hpp>
+#include <Std/utility>
 #include <Sys/File.hpp>
 #include "Initialization.hpp"
 
@@ -47,12 +48,9 @@ extern "C" {
     sys::__init_pfiles();
     {
       $XCRTLock(ProcessInfoBlock);
-      __old_pout = PP->std_out;
-      __old_perr = PP->std_err;
-      __old_pinp = PP->std_in;
-      PP->std_out = pout;
-      PP->std_err = perr;
-      PP->std_in  = pin;
+      std::swap(__old_pout, PP->std_out);
+      std::swap(__old_perr, PP->std_err);
+      std::swap(__old_pinp, PP->std_in);
     }
   }
 
