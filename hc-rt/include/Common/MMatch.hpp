@@ -29,15 +29,28 @@ namespace hc {
     constexpr MMatch(T V) : V(V) { }
   public:
     constexpr bool is(auto&& R) {
-      const auto I = static_cast<Type>(__hc_fwd(R));
-      return (V == I);
+      return (V == __hc_fwd(R));
     }
+
     [[gnu::flatten]] constexpr bool 
       is(auto&& R, auto&&...RR)
      requires(sizeof...(RR) > 0) {
       return (is(__hc_fwd(R)) || 
         ... || is(__hc_fwd(RR)));
     }
+
+    inline constexpr bool isnt(auto&& R, auto&&...RR) const {
+      return !is(__hc_fwd(R), __hc_fwd(RR)...);
+    }
+
+    constexpr bool in(auto&& low, auto&& high) const {
+      return (__hc_fwd(low) <= V) && (V < __hc_fwd(high));
+    }
+
+    constexpr bool iin(auto&& low, auto&& high) const {
+      return (__hc_fwd(low) <= V) && (V <= __hc_fwd(high));
+    }
+
   public:
     T V;
   };
