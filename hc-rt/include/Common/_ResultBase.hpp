@@ -22,13 +22,13 @@
 #include "Lifetime.hpp"
 
 namespace hc {
-  struct Nullopt { };
-  struct Unexpect { };
-  struct InPlace { };
+struct Nullopt { };
+struct Unexpect { };
+struct InPlace { };
 
-  __global Nullopt nullopt { };
-  __global Unexpect unexpect { };
-  __global InPlace in_place { };
+__global Nullopt nullopt { };
+__global Unexpect unexpect { };
+__global InPlace in_place { };
 } // namespace hc
 
 //======================================================================//
@@ -36,106 +36,117 @@ namespace hc {
 //======================================================================//
 
 namespace hc::common {
-  struct _Eater {
-    constexpr _Eater() = default;
-    constexpr _Eater(auto&&...) {}
-  };
 
-  template <typename T>
-  struct _ResultVoid {
-    using Type = T;
-  };
+struct _Eater {
+  constexpr _Eater() = default;
+  constexpr _Eater(auto&&...) {}
+};
 
-  template <>
-  struct _ResultVoid<void> {
-    using Type = _Eater;
-  };
+template <typename T>
+struct _ResultVoid {
+  using Type = T;
+};
 
-  template <typename T>
-  using __result_void_t = typename
-    _ResultVoid<__remove_const(T)>::Type;
+template <>
+struct _ResultVoid<void> {
+  using Type = _Eater;
+};
 
-  template <typename T, typename E>
-  union _ResultBase {
-    constexpr _ResultBase() : __value() { }
+template <typename T>
+using __result_void_t = typename
+  _ResultVoid<__remove_const(T)>::Type;
 
-    constexpr _ResultBase(InPlace, auto&&...args) : 
-     __value(__hc_fwd(args)...) { }
-    
-    constexpr _ResultBase(Unexpect, auto&&...args) : 
-     __error(__hc_fwd(args)...) { }
-    
-    constexpr ~_ResultBase() { }
-  public:
-    T __value;
-    E __error;
-  };
+template <typename T, typename E>
+union _ResultBase {
+  constexpr _ResultBase() : __value() { }
 
-  template <typename T, typename E>
-  struct _ResultStorage {
-    using Type = T;
-    using Error = E;
-    using _BaseType = _ResultBase<T, E>;
-  public:
-    constexpr _ResultStorage() = default;
+  constexpr _ResultBase(InPlace, auto&&...args) : 
+   __value(__hc_fwd(args)...) { }
+  
+  constexpr _ResultBase(Unexpect, auto&&...args) : 
+   __error(__hc_fwd(args)...) { }
+  
+  constexpr ~_ResultBase() { }
+public:
+  T __value;
+  E __error;
+};
 
-    constexpr _ResultStorage(InPlace ip, auto&&...args) : 
-     __base(ip, __hc_fwd(args)...), __is_value(true) { }
-    
-    constexpr _ResultStorage(Unexpect ux, auto&&...args) : 
-     __base(ux, __hc_fwd(args)...), __is_value(false) { }
-    
-    constexpr ~_ResultStorage() {
-      this->__destroy();
-    }
+template <typename T, typename E>
+struct _ResultStorage {
+  using Type = T;
+  using Error = E;
+  using _BaseType = _ResultBase<T, E>;
+public:
+  constexpr _ResultStorage() = default;
 
-  public:
-    constexpr bool isOk() const noexcept {
-      return this->__is_value;
-    }
+  constexpr _ResultStorage(InPlace ip, auto&&...args) : 
+   __base(ip, __hc_fwd(args)...), __is_value(true) { }
+  
+  constexpr _ResultStorage(Unexpect ux, auto&&...args) : 
+   __base(ux, __hc_fwd(args)...), __is_value(false) { }
+  
+  constexpr ~_ResultStorage() {
+    this->__destroy();
+  }
 
-    constexpr bool isErr() const noexcept {
-      return !this->__is_value;
-    }
+public:
+  constexpr bool isOk() const noexcept {
+    return this->__is_value;
+  }
 
-    __always_inline constexpr T& ok()& { return __base.__value; }
-    __always_inline constexpr const T& ok() const& { return __base.__value; }
-    __always_inline constexpr T&& ok()&& { return static_cast<T&&>(__base.__value); }
+  constexpr bool isErr() const noexcept {
+    return !this->__is_value;
+  }
 
-    __always_inline constexpr E& err()& { return __base.__error; }
-    __always_inline constexpr const E& err() const& { return __base.__error; }
-    __always_inline constexpr E&& err()&& { return static_cast<E&&>(__base.__error); }
+#if _HC_DEDUCING_THIS
+  __always_inline constexpr auto&& ok(this auto&& self) {
+    return __hc_fwd(self).__base.__value;
+  }
 
-  protected:
-    constexpr void __destroy() noexcept {
-      if (this->__is_value)
-        common::destroy_at(__pok());
-      else
-        common::destroy_at(__perr());
-    }
+  __always_inline constexpr auto&& err(this auto&& self) {
+    return __hc_fwd(self).__base.__error;
+  }
+#else
+  __always_inline constexpr T& ok()& { return __base.__value; }
+  __always_inline constexpr const T& ok() const& { return __base.__value; }
+  __always_inline constexpr T&& ok()&& { return static_cast<T&&>(__base.__value); }
 
-    __always_inline constexpr T* __pok() noexcept {
-      return common::__addressof(__base.__value);
-    }
+  __always_inline constexpr E& err()& { return __base.__error; }
+  __always_inline constexpr const E& err() const& { return __base.__error; }
+  __always_inline constexpr E&& err()&& { return static_cast<E&&>(__base.__error); }
+#endif
+protected:
+  constexpr void __destroy() noexcept {
+    if (this->__is_value)
+      common::destroy_at(__pok());
+    else
+      common::destroy_at(__perr());
+  }
 
-    __always_inline constexpr const T* __pok() const noexcept {
-      return common::__addressof(__base.__value);
-    }
+  __always_inline constexpr T* __pok() noexcept {
+    return common::__addressof(__base.__value);
+  }
 
-    __always_inline constexpr E* __perr() noexcept {
-      return common::__addressof(__base.__error);
-    }
+  __always_inline constexpr const T* __pok() const noexcept {
+    return common::__addressof(__base.__value);
+  }
 
-    __always_inline constexpr const E* __perr() const noexcept {
-      return common::__addressof(__base.__error);
-    }
+  __always_inline constexpr E* __perr() noexcept {
+    return common::__addressof(__base.__error);
+  }
 
-  protected:
-    _BaseType __base;
-    bool __is_value = true;
-  };
+  __always_inline constexpr const E* __perr() const noexcept {
+    return common::__addressof(__base.__error);
+  }
 
-  template <typename T, typename E>
-  using __result_t = _ResultStorage<
-    __result_void_t<T>, __result_void_t<E>>;
+protected:
+  _BaseType __base;
+  bool __is_value = true;
+};
+
+template <typename T, typename E>
+using __result_t = _ResultStorage<
+  __result_void_t<T>, __result_void_t<E>>;
+
 } // namespace hc::common
