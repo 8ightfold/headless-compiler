@@ -96,6 +96,14 @@
 #define __visibility(ty) __attribute__((__visibility__(#ty)))
 #define __hidden __visibility(hidden)
 
+#if _MSC_VER
+# define __hc_declspec(...) __declspec(__VA_ARGS__)
+#else
+# define __hc_declspec(...)
+#endif
+
+#define __empty_bases __hc_declspec(empty_bases)
+
 #if __has_attribute(preferred_type)
 # define __prefer_type(name) __attribute__((preferred_type(name)))
 #else

@@ -24,12 +24,14 @@
 // TODO: Add tests
 
 namespace hc::common {
-  template <typename T, usize PadN>
-  struct PadStruct : public T {
-    ubyte __pad[PadN - sizeof(T)];
-  };
 
-  template <typename T, usize PadN>
-  requires (sizeof(T) >= PadN)
-  struct PadStruct<T, PadN> : public T {};
+template <typename T, usize PadN>
+struct __empty_bases PadStruct : public T {
+  ubyte __pad[PadN - sizeof(T)];
+};
+
+template <typename T, usize PadN>
+requires (sizeof(T) >= PadN)
+struct __empty_bases PadStruct<T, PadN> : public T {};
+
 } // namespace hc::common

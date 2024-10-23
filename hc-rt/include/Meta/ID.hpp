@@ -46,7 +46,7 @@ namespace hc::meta {
   };
 
   template <usize N>
-  struct [[gnu::packed]] IDName : UID {
+  struct [[gnu::packed]] __empty_bases IDName : UID {
     static_assert(N > 0);
   public:
     usize size;

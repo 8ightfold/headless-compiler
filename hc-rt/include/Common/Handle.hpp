@@ -158,7 +158,7 @@ namespace hc {
   /// @tparam T The underlying type of the handle.
   /// @tparam ID The unique identifier for the type.
   template <typename T, typename ID = struct _HandleGID, typename...AA>
-  struct Handle : _HandleAttr<Handle<T, ID, AA...>, AA>... {
+  struct __empty_bases Handle : _HandleAttr<Handle<T, ID, AA...>, AA>... {
     using SelfType = Handle;
     using Type = T;
     using IDType = ID;

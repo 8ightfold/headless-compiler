@@ -60,7 +60,8 @@ template <typename, typename...>
 struct _TupleBranch;
 
 template <usize...II, typename...TT>
-struct _TupleBranch<IdxSeq<II...>, TT...> : _TupleLeaf<II, TT>... {
+struct __empty_bases _TupleBranch<
+ IdxSeq<II...>, TT...> : _TupleLeaf<II, TT>... {
   static constexpr bool __isArray = false;
 };
 

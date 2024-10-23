@@ -62,7 +62,7 @@ PACKING_TEST(Volume);
 #define GP_TEST(offset, member) \
  PACKING_TEST(ContextGPReg, offset, member)
 #define XMM_TEST(offset, member) \
- PACKING_TEST(ContextXMMReg, offset, member)
+ PACKING_TEST(_ContextXMMReg, offset, member)
 #define CTX_TEST(offset, member) \
  PACKING_TEST(ContextSave, offset, member)
 

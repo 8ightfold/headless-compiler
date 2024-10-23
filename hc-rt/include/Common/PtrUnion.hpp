@@ -42,7 +42,8 @@ namespace hc::common {
   struct _PtrUnion;
 
   template <usize...II, typename...TT>
-  struct _PtrUnion<meta::IdxSeq<II...>, TT...> : _PtrUNode<TT, II>... {
+  struct __empty_bases _PtrUnion<
+   meta::IdxSeq<II...>, TT...> : _PtrUNode<TT, II>... {
   private: 
     using _PtrUNode<TT, II>::__GetI...;
   public:
