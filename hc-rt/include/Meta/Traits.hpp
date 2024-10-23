@@ -163,6 +163,17 @@ template <typename T>
 concept is_move_constructible = 
   is_constructible<T, __add_rvalue_reference(T)>;
 
+template <typename T, typename U>
+concept is_assignable = __is_assignable(T, U);
+
+template <typename T>
+concept is_copy_assignable = is_assignable<
+  __add_lvalue_reference(T), __add_lvalue_reference(const T)>;
+
+template <typename T>
+concept is_move_assignable = is_assignable<
+  __add_lvalue_reference(T), __add_rvalue_reference(T)>;
+
 // Misc.
 
 template <typename T>
