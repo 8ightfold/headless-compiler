@@ -104,7 +104,7 @@ namespace hc::common {
      const Type&, const Type&) = default;
 
   private:
-    __prefer_type(void*) TrueType __data = nullptr;
+    TrueType __data = nullptr;
   };
 
   template <typename T>
@@ -132,16 +132,13 @@ namespace hc::common {
       return { begin, end };
     }
 
-    template <>
     [[gnu::always_inline, gnu::const]]
-    static PtrRange<void> New<void>(void* begin, void* end) {
+    static PtrRange<void> New(void* begin, void* end) {
       return {_VoidPtrProxy(begin), _VoidPtrProxy(end)};
     }
 
-    template <>
     [[gnu::always_inline, gnu::const]]
-    static PtrRange<const void>
-     New<const void>(const void* begin, const void* end) {
+    static PtrRange<const void> New(const void* begin, const void* end) {
       return {_VoidPtrProxy(begin), _VoidPtrProxy(end)};
     }
 
