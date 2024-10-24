@@ -22,50 +22,52 @@
 
 namespace hc::sys {
 inline namespace __nt {
-  __nt_attrs win::MutexHandle create_mutant(
-    win::NtStatus& S,
-    NtAccessMask mask = win::MutantAllAccess,
-    const wchar_t* name = nullptr,
-    bool owner = false
-  ) {
-    win::MutexHandle hout;
-    auto ustr = make_unicode_string(name);
-    win::ObjectAttributes attr { .object_name = &ustr };
-    S = isyscall<NtSyscall::CreateMutant>(
-      &hout, mask, 
-      name ? &attr : nullptr, 
-      win::Boolean(owner)
-    );
-    return hout;
-  }
 
-  __nt_attrs win::NtStatus query_mutant(
-    win::MutexHandle handle,
-    win::MutantInfoClass type,
-    win::BasicMutantInfo& info,
-    win::ULong* result_len = nullptr
-  ) {
-    return isyscall<NtSyscall::QueryMutant>(
-      $unwrap_handle(handle), type,
-      &info, win::ULong(sizeof(info)),
-      result_len
-    );
-  }
+__nt_attrs win::MutexHandle create_mutant(
+  win::NtStatus& S,
+  NtAccessMask mask = win::MutantAllAccess,
+  const wchar_t* name = nullptr,
+  bool owner = false
+) {
+  win::MutexHandle hout;
+  auto ustr = make_unicode_string(name);
+  win::ObjectAttributes attr { .object_name = &ustr };
+  S = isyscall<NtSyscall::CreateMutant>(
+    &hout, mask, 
+    name ? &attr : nullptr, 
+    win::Boolean(owner)
+  );
+  return hout;
+}
 
-  __nt_attrs win::NtStatus release_mutant(
-    win::MutexHandle handle,
-    i32* prev_count = nullptr
-  ) {
-    return isyscall<NtSyscall::ReleaseMutant>(
-      $unwrap_handle(handle), prev_count
-    );
-  }
+__nt_attrs win::NtStatus query_mutant(
+  win::MutexHandle handle,
+  win::MutantInfoClass type,
+  win::BasicMutantInfo& info,
+  win::ULong* result_len = nullptr
+) {
+  return isyscall<NtSyscall::QueryMutant>(
+    $unwrap_handle(handle), type,
+    &info, win::ULong(sizeof(info)),
+    result_len
+  );
+}
 
-  __always_inline win::NtStatus close_mutant(
-    win::MutexHandle handle
-  ) {
-    return isyscall<NtSyscall::Close>(
-      $unwrap_handle(handle));
-  }
+__nt_attrs win::NtStatus release_mutant(
+  win::MutexHandle handle,
+  i32* prev_count = nullptr
+) {
+  return isyscall<NtSyscall::ReleaseMutant>(
+    $unwrap_handle(handle), prev_count
+  );
+}
+
+__always_inline win::NtStatus close_mutant(
+  win::MutexHandle handle
+) {
+  return isyscall<NtSyscall::Close>(
+    $unwrap_handle(handle));
+}
+
 } // inline namespace __nt
 } // namespace hc::sys

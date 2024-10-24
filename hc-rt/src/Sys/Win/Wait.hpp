@@ -22,25 +22,27 @@
 
 namespace hc::sys {
 inline namespace __nt {
-  __nt_attrs win::NtStatus wait_single(
-    win::WaitHandle handle,
-    win::LargeInt* timeout,
-    bool alertable
-  ) {
-    return isyscall<NtSyscall::WaitForSingleObject>(
-      $unwrap_handle(handle), timeout, 
-      win::Boolean(alertable)
-    );
-  }
 
-  __nt_attrs win::NtStatus wait_single(
-    win::WaitHandle handle
-  ) {
-    return isyscall<NtSyscall::WaitForSingleObject>(
-      $unwrap_handle(handle), 
-      (win::LargeInt*)nullptr, 
-      win::Boolean(false)
-    );
-  }
+__nt_attrs win::NtStatus wait_single(
+  win::WaitHandle handle,
+  win::LargeInt* timeout,
+  bool alertable
+) {
+  return isyscall<NtSyscall::WaitForSingleObject>(
+    $unwrap_handle(handle), timeout, 
+    win::Boolean(alertable)
+  );
+}
+
+__nt_attrs win::NtStatus wait_single(
+  win::WaitHandle handle
+) {
+  return isyscall<NtSyscall::WaitForSingleObject>(
+    $unwrap_handle(handle), 
+    (win::LargeInt*)nullptr, 
+    win::Boolean(false)
+  );
+}
+
 } // inline namespace __nt
 } // namespace hc::sys

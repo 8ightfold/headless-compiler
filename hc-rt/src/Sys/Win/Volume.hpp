@@ -23,81 +23,83 @@
 
 namespace hc::sys {
 inline namespace __nt {
-  template <win::is_fsinfo FSType, usize ExBytes = 0U>
-  using NtQueryWrapper = win::FSInfoClassWrapper<FSType, ExBytes>;
 
-  template <win::is_fsinfo FSType>
-  __global usize __fsinf_exbytes = (FSType::isDynamic ? 16U : 0U);
+template <win::is_fsinfo FSType, usize ExBytes = 0U>
+using NtQueryWrapper = win::FSInfoClassWrapper<FSType, ExBytes>;
 
-  template <win::is_fsinfo FSType, 
-    usize ExBytes = __fsinf_exbytes<FSType>>
-  __nt_attrs auto query_volume_info(
-    win::FileObjHandle handle,
-    win::IoStatusBlock& io) 
-   -> NtQueryWrapper<FSType, ExBytes> {
-    using RetType = NtQueryWrapper<FSType, ExBytes>;
-    constexpr win::ULong ICWlen = sizeof(RetType);
-    if (!handle) {
-      // STATUS_INVALID_HANDLE
-      io.status = 0xC0000008;
-      return RetType{};
-    }
-    RetType ICW {};
-    if constexpr (_HC_CHECK_INVARIANTS
-     && win::__fsi_hasFAM<FSType>) {
-      RetType* pICW = &ICW;
-      __hc_invariant((*pICW)->FAM_len 
-        == RetType::famSizeBytes);
-    }
-    io.status = isyscall<
-     NtSyscall::QueryVolumeInformationFile>(
-      handle.get(), &io,
-      &ICW, ICWlen, ICW.GetInfoClass()
-    );
-    return ICW;
+template <win::is_fsinfo FSType>
+__global usize __fsinf_exbytes = (FSType::isDynamic ? 16U : 0U);
+
+template <win::is_fsinfo FSType, 
+  usize ExBytes = __fsinf_exbytes<FSType>>
+__nt_attrs auto query_volume_info(
+  win::FileObjHandle handle,
+  win::IoStatusBlock& io) 
+ -> NtQueryWrapper<FSType, ExBytes> {
+  using RetType = NtQueryWrapper<FSType, ExBytes>;
+  constexpr win::ULong ICWlen = sizeof(RetType);
+  if (!handle) {
+    // STATUS_INVALID_HANDLE
+    io.status = 0xC0000008;
+    return RetType{};
   }
-
-  __nt_attrs win::FileObjHandle get_volume_handle(
-   win::UnicodeString& name,
-   win::IoStatusBlock& io
-  ) {
-    // Check if we have a name, and if it ends in a backslash.
-    if (name.backSafe() != L'\\') {
-      // STATUS_OBJECT_NAME_INVALID
-      io.status = 0xC0000033;
-      return nullptr;
-    }
-    // See ReactOS's `kernel32/*/volume.c` for all opts.
-    win::ObjectAttributes attr { .object_name = &name };
-    auto mask   = NtAccessMask::Sync;
-    auto fattr  = NtFileAttribMask::None;
-    auto share  = NtFileShareMask::None;
-    auto dispo  = NtCreateDisposition::Open;
-    auto opts   = 
-      NtCreateOptsMask::IsDirectory   |
-      NtCreateOptsMask::SyncIONoAlert |
-      NtCreateOptsMask::OpenForBackup;
-    // Return a handle to the volume.
-    return open_file(
-      mask, attr, io, nullptr, 
-      fattr, share, dispo, opts);
+  RetType ICW {};
+  if constexpr (_HC_CHECK_INVARIANTS
+   && win::__fsi_hasFAM<FSType>) {
+    RetType* pICW = &ICW;
+    __hc_invariant((*pICW)->FAM_len 
+      == RetType::famSizeBytes);
   }
+  io.status = isyscall<
+   NtSyscall::QueryVolumeInformationFile>(
+    handle.get(), &io,
+    &ICW, ICWlen, ICW.GetInfoClass()
+  );
+  return ICW;
+}
 
-  template <win::is_fsinfo FSType, 
-    usize ExBytes = __fsinf_exbytes<FSType>>
-  __nt_attrs auto query_create_volume_info(
-    win::UnicodeString& name,
-    win::IoStatusBlock& io)
-   -> NtQueryWrapper<FSType, ExBytes> {
-    using RetType = NtQueryWrapper<FSType, ExBytes>;
-    auto handle = get_volume_handle(name, io);
-    if (!handle || $NtFail(io.status))
-      return RetType{};
-    // Now forward the handle.
-    RetType ICW = query_volume_info<
-      FSType, ExBytes>(handle, io);
-    close_file(handle);
-    return ICW;
+__nt_attrs win::FileObjHandle get_volume_handle(
+ win::UnicodeString& name,
+ win::IoStatusBlock& io
+) {
+  // Check if we have a name, and if it ends in a backslash.
+  if (name.backSafe() != L'\\') {
+    // STATUS_OBJECT_NAME_INVALID
+    io.status = 0xC0000033;
+    return nullptr;
   }
+  // See ReactOS's `kernel32/*/volume.c` for all opts.
+  win::ObjectAttributes attr { .object_name = &name };
+  auto mask   = NtAccessMask::Sync;
+  auto fattr  = NtFileAttribMask::None;
+  auto share  = NtFileShareMask::None;
+  auto dispo  = NtCreateDisposition::Open;
+  auto opts   = 
+    NtCreateOptsMask::IsDirectory   |
+    NtCreateOptsMask::SyncIONoAlert |
+    NtCreateOptsMask::OpenForBackup;
+  // Return a handle to the volume.
+  return open_file(
+    mask, attr, io, nullptr, 
+    fattr, share, dispo, opts);
+}
+
+template <win::is_fsinfo FSType, 
+  usize ExBytes = __fsinf_exbytes<FSType>>
+__nt_attrs auto query_create_volume_info(
+  win::UnicodeString& name,
+  win::IoStatusBlock& io)
+ -> NtQueryWrapper<FSType, ExBytes> {
+  using RetType = NtQueryWrapper<FSType, ExBytes>;
+  auto handle = get_volume_handle(name, io);
+  if (!handle || $NtFail(io.status))
+    return RetType{};
+  // Now forward the handle.
+  RetType ICW = query_volume_info<
+    FSType, ExBytes>(handle, io);
+  close_file(handle);
+  return ICW;
+}
+
 } // inline namespace __nt
 } // namespace hc::sys

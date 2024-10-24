@@ -22,50 +22,52 @@
 
 namespace hc::sys {
 inline namespace __nt {
-  __nt_attrs win::FileObjHandle open_file(
-   NtAccessMask mask,
-   win::ObjectAttributes& attr,
-   win::IoStatusBlock& io, 
-   win::LargeInt* alloc_size,
-   NtFileAttribMask file_attr, 
-   NtFileShareMask share_access,
-   NtCreateDisposition disposition, 
-   NtCreateOptsMask create_opts 
-    = NtCreateOptsMask::IsFile
-  ) {
-    win::FileObjHandle hout;
-    io.status = isyscall<NtSyscall::CreateFile>(
-      &hout, mask, &attr, &io, alloc_size, 
-      file_attr, share_access, 
-      disposition, create_opts,
-      nullptr, win::ULong(0UL)
-    );
-    return hout;
-  }
 
-  __nt_attrs win::NtStatus read_file(
-   win::FileHandle handle,
-   win::IoStatusBlock& io, 
-   com::PtrRange<char> buf, 
-   win::LargeInt* poffset = nullptr,
-   win::ULong* key = nullptr
-  ) {
-    const usize buf_size = buf.size();
-    win::LargeInt offset {};
-    if (!poffset) poffset = &offset;
-    return isyscall<NtSyscall::ReadFile>(
-      $unwrap_handle(handle), win::EventHandle::New(nullptr),
-      win::IOAPCRoutinePtr(nullptr), nullptr,
-      &io, buf.data(), win::ULong(!buf_size ? 0 : (buf_size - 1)),
-      poffset, key
-    );
-  }
+__nt_attrs win::FileObjHandle open_file(
+ NtAccessMask mask,
+ win::ObjectAttributes& attr,
+ win::IoStatusBlock& io, 
+ win::LargeInt* alloc_size,
+ NtFileAttribMask file_attr, 
+ NtFileShareMask share_access,
+ NtCreateDisposition disposition, 
+ NtCreateOptsMask create_opts 
+  = NtCreateOptsMask::IsFile
+) {
+  win::FileObjHandle hout;
+  io.status = isyscall<NtSyscall::CreateFile>(
+    &hout, mask, &attr, &io, alloc_size, 
+    file_attr, share_access, 
+    disposition, create_opts,
+    nullptr, win::ULong(0UL)
+  );
+  return hout;
+}
 
-  __always_inline win::NtStatus close_file(
-   win::FileObjHandle handle
-  ) {
-    return isyscall<NtSyscall::Close>(
-      $unwrap_handle(handle));
-  }
+__nt_attrs win::NtStatus read_file(
+ win::FileHandle handle,
+ win::IoStatusBlock& io, 
+ com::PtrRange<char> buf, 
+ win::LargeInt* poffset = nullptr,
+ win::ULong* key = nullptr
+) {
+  const usize buf_size = buf.size();
+  win::LargeInt offset {};
+  if (!poffset) poffset = &offset;
+  return isyscall<NtSyscall::ReadFile>(
+    $unwrap_handle(handle), win::EventHandle::New(nullptr),
+    win::IOAPCRoutinePtr(nullptr), nullptr,
+    &io, buf.data(), win::ULong(!buf_size ? 0 : (buf_size - 1)),
+    poffset, key
+  );
+}
+
+__always_inline win::NtStatus close_file(
+ win::FileObjHandle handle
+) {
+  return isyscall<NtSyscall::Close>(
+    $unwrap_handle(handle));
+}
+
 } // inline namespace __nt
 } // namespace hc::sys
