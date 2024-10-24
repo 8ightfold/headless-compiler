@@ -114,6 +114,8 @@ namespace hc::common {
     // Accessors
     //==================================================================//
 
+    // TODO: Make these deduce self
+
     constexpr T& some()& {
       __hc_invariant(isSome());
       return BaseType::ok(); 

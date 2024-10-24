@@ -93,9 +93,7 @@ using __hc_tyident_ = T;
 // Compiler Macros
 //======================================================================//
 
-#define _HC_CLANG_MIN(ver) (__clang_major__ >= (ver))
-
-#if _HC_CLANG_MIN(18)
+#if __clang_major__ >= 18
 # define _HC_DEDUCING_THIS 1
 #endif
 
