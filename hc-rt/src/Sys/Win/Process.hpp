@@ -23,40 +23,42 @@
 
 namespace hc::sys {
 inline namespace __nt {
-  /// Gets a handle to the current process.
-  inline win::ProcessHandle current_process() {
-    static constexpr uptr curr = iptr(-1);
-    void* const P = ptr_cast<>(curr);
-    return win::ProcessHandle::New(P);
-  }
 
-  __nt_attrs win::NtStatus __terminate_process(
-   const void* process_raw, win::Long exit_status) {
-    return isyscall<NtSyscall::TerminateProcess>(
-      process_raw,
-      exit_status
-    );
-  }
+/// Gets a handle to the current process.
+inline win::ProcessHandle current_process() {
+  static constexpr uptr curr = iptr(-1);
+  void* const P = ptr_cast<>(curr);
+  return win::ProcessHandle::New(P);
+}
 
-  /// Terminates a process from a handle.
-  inline win::NtStatus terminate_process(
-   win::ProcessHandle handle,
-   win::NtStatus exit_status
-  ) {
-    return __terminate_process(
-      $unwrap_handle(handle),
-      win::Long(exit_status)
-    );
-  }
+__nt_attrs win::NtStatus __terminate_process(
+ const void* process_raw, win::Long exit_status) {
+  return isyscall<NtSyscall::TerminateProcess>(
+    process_raw,
+    exit_status
+  );
+}
 
-  /// Terminates the current process.
-  inline win::NtStatus terminate_process(win::NtStatus exit_status) {
-    return terminate_process(current_process(), exit_status);
-  }
+/// Terminates a process from a handle.
+inline win::NtStatus terminate_process(
+ win::ProcessHandle handle,
+ win::NtStatus exit_status
+) {
+  return __terminate_process(
+    $unwrap_handle(handle),
+    win::Long(exit_status)
+  );
+}
 
-  /// Terminates the current process' threads.
-  inline win::NtStatus terminate_process_threads(win::NtStatus exit_status) {
-    return __terminate_process(nullptr, win::Long(exit_status));
-  }
+/// Terminates the current process.
+inline win::NtStatus terminate_process(win::NtStatus exit_status) {
+  return terminate_process(current_process(), exit_status);
+}
+
+/// Terminates the current process' threads.
+inline win::NtStatus terminate_process_threads(win::NtStatus exit_status) {
+  return __terminate_process(nullptr, win::Long(exit_status));
+}
+
 } // inline namespace __nt
 } // namespace hc::sys
