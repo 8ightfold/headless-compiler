@@ -44,72 +44,74 @@ static_assert(sizeof(name##Handle) == sizeof(void*))
 })
 
 namespace hc::sys::win {
-  $HandleGroup(HANDLE);
-  $HandleGroup(FILE_HANDLE);
-  $HandleGroup(IO_HANDLE);
-  $HandleGroup(IPC_HANDLE);
-  $HandleGroup(SYNC_HANDLE);
-  $HandleGroup(WAIT_HANDLE);
 
-  $DefHANDLE(AccessTok);
-  $DefHANDLE(Console,     IO_HANDLE);
-  $DefHANDLE(ConsoleBuf,  IO_HANDLE);
-  $DefHANDLE(Device);
-  $DefHANDLE(Directory,   FILE_HANDLE);
-  $DefHANDLE(Event);
-  $DefHANDLE(File,        FILE_HANDLE, IO_HANDLE);
-  $DefHANDLE(FileMap,     FILE_HANDLE);
-  $DefHANDLE(Job);
-  $DefHANDLE(Mailslot);
-  $DefHANDLE(Mutex,       SYNC_HANDLE);
-  $DefHANDLE(Pipe,        IPC_HANDLE, IO_HANDLE);
-  $DefHANDLE(Process,     IPC_HANDLE);
-  $DefHANDLE(Semaphore,   SYNC_HANDLE);
-  $DefHANDLE(Thread,      IPC_HANDLE);
+$HandleGroup(HANDLE);
+$HandleGroup(FILE_HANDLE);
+$HandleGroup(IO_HANDLE);
+$HandleGroup(IPC_HANDLE);
+$HandleGroup(SYNC_HANDLE);
+$HandleGroup(WAIT_HANDLE);
+
+$DefHANDLE(AccessTok);
+$DefHANDLE(Console,     IO_HANDLE);
+$DefHANDLE(ConsoleBuf,  IO_HANDLE);
+$DefHANDLE(Device);
+$DefHANDLE(Directory,   FILE_HANDLE);
+$DefHANDLE(Event);
+$DefHANDLE(File,        FILE_HANDLE, IO_HANDLE);
+$DefHANDLE(FileMap,     FILE_HANDLE);
+$DefHANDLE(Job);
+$DefHANDLE(Mailslot);
+$DefHANDLE(Mutex,       SYNC_HANDLE);
+$DefHANDLE(Pipe,        IPC_HANDLE, IO_HANDLE);
+$DefHANDLE(Process,     IPC_HANDLE);
+$DefHANDLE(Semaphore,   SYNC_HANDLE);
+$DefHANDLE(Thread,      IPC_HANDLE);
+
+template <typename H>
+concept __is_HANDLE = handle_in_group<H, HANDLE>;
+
+struct [[gsl::Pointer]] GenericHandle {
+  GenericHandle() = default;
+
+  template <__is_HANDLE H> 
+  __always_inline GenericHandle(H h) : __data(h.__data) { }
+
+  template <__is_HANDLE H>
+  explicit operator H() const { return H::New(__data); }
+
+  explicit operator bool() const { return !!__data; }
+  void* get() const { return this->__data; }
+public:
+  void* __data = nullptr;
+};
+
+template <typename...GroupRestrictions>
+struct [[gsl::Pointer]] SelectiveHandle {
+  SelectiveHandle() = default;
+  SelectiveHandle(nullptr_t) : SelectiveHandle() { }
+  explicit SelectiveHandle(GenericHandle h) : __data(h.__data) { }
 
   template <typename H>
-  concept __is_HANDLE = handle_in_group<H, HANDLE>;
+  requires handle_in_group<H, GroupRestrictions...>
+  SelectiveHandle(H h) : __data(h.__data) { }
 
-  struct [[gsl::Pointer]] GenericHandle {
-    GenericHandle() = default;
+  template <typename H>
+  requires handle_in_group<H, GroupRestrictions...>
+  operator H() const { return H::New(__data); }
 
-    template <__is_HANDLE H> 
-    __always_inline GenericHandle(H h) : __data(h.__data) { }
+  explicit operator bool() const { return !!__data; }
+  void* get() const { return this->__data; }
+public:
+  void* __data = nullptr;
+};
 
-    template <__is_HANDLE H>
-    explicit operator H() const { return H::New(__data); }
+using FileObjHandle = SelectiveHandle<FILE_HANDLE>;
+using IOHandle      = SelectiveHandle<IO_HANDLE>;
+using IPCHandle     = SelectiveHandle<IPC_HANDLE>;
+using SyncHandle    = SelectiveHandle<SYNC_HANDLE>;
+using WaitHandle    = SelectiveHandle<SYNC_HANDLE, IPC_HANDLE>;
 
-    explicit operator bool() const { return !!__data; }
-    void* get() const { return this->__data; }
-  public:
-    void* __data = nullptr;
-  };
-
-  template <typename...GroupRestrictions>
-  struct [[gsl::Pointer]] SelectiveHandle {
-    SelectiveHandle() = default;
-    SelectiveHandle(nullptr_t) : SelectiveHandle() { }
-    explicit SelectiveHandle(GenericHandle h) : __data(h.__data) { }
-
-    template <typename H>
-    requires handle_in_group<H, GroupRestrictions...>
-    SelectiveHandle(H h) : __data(h.__data) { }
-
-    template <typename H>
-    requires handle_in_group<H, GroupRestrictions...>
-    operator H() const { return H::New(__data); }
-
-    explicit operator bool() const { return !!__data; }
-    void* get() const { return this->__data; }
-  public:
-    void* __data = nullptr;
-  };
-
-  using FileObjHandle = SelectiveHandle<FILE_HANDLE>;
-  using IOHandle      = SelectiveHandle<IO_HANDLE>;
-  using IPCHandle     = SelectiveHandle<IPC_HANDLE>;
-  using SyncHandle    = SelectiveHandle<SYNC_HANDLE>;
-  using WaitHandle    = SelectiveHandle<SYNC_HANDLE, IPC_HANDLE>;
 } // namespace hc::sys::win
 
 #undef _HC_NTHANDLE_GROUP
