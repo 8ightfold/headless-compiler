@@ -126,6 +126,11 @@ namespace hc::common {
     using SelfType = PtrRange<T>;
     using PtrType  = __ptr_range_base_t<T>;
   public:
+    [[gnu::always_inline, gnu::const]]
+    constexpr static SelfType New() {
+      return { nullptr, 0 };
+    }
+
     template <typename U = T>
     [[gnu::always_inline, gnu::const]]
     constexpr static PtrRange<U> New(U* begin, U* end) {
