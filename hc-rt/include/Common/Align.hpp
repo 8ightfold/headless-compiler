@@ -21,43 +21,45 @@
 #include <Meta/Traits.hpp>
 
 namespace hc::common {
-  struct Align {
-    template <usize BitMax>
-    __always_inline static constexpr usize
-     __Up(usize i) __noexcept {
-      usize n = i;
-      n |= n >> 1;
-      n |= n >> 2;
-      n |= n >> 4;
-      if constexpr (BitMax > 8)
-        n |= n >> 8;
-      if constexpr (BitMax > 16)
-        n |= n >> 16;
-      if constexpr (BitMax > 32)
-        n |= n >> 32;
-      return n + 1;
-    }
 
-    template <meta::is_integral T>
-    __always_inline static constexpr bool IsPow2(T i) __noexcept {
-      return __expect_false(i == T(0))
-        ? bool((i & (i - 1)) == T(0))
-        : false;
-    }
+struct Align {
+  template <usize BitMax>
+  __always_inline static constexpr usize
+   __Up(usize i) __noexcept {
+    usize n = i;
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    if constexpr (BitMax > 8)
+      n |= n >> 8;
+    if constexpr (BitMax > 16)
+      n |= n >> 16;
+    if constexpr (BitMax > 32)
+      n |= n >> 32;
+    return n + 1;
+  }
 
-    /// Aligns `i` to the next power of 2, even when it is one already.
-    template <meta::is_integral T, typename CastType = __make_unsigned(T)>
-    static constexpr CastType Up(T i) __noexcept {
-      if __expect_false(i == T(0))
-        return CastType(1);
-      const usize n = __Up<__bitsizeof(T)>(usize(i));
-      return CastType(n);
-    }
+  template <meta::is_integral T>
+  __always_inline static constexpr bool IsPow2(T i) __noexcept {
+    return __expect_false(i == T(0))
+      ? bool((i & (i - 1)) == T(0))
+      : false;
+  }
 
-    /// Aligns `i` to the next power of 2, unless it is one already.
-    template <meta::is_integral T, typename CastType = __make_unsigned(T)>
-    __always_inline static constexpr CastType UpEq(T i) __noexcept {
-      return IsPow2(i) ? CastType(i) : Up<T, CastType>(i);
-    }
-  };
+  /// Aligns `i` to the next power of 2, even when it is one already.
+  template <meta::is_integral T, typename CastType = __make_unsigned(T)>
+  static constexpr CastType Up(T i) __noexcept {
+    if __expect_false(i == T(0))
+      return CastType(1);
+    const usize n = __Up<__bitsizeof(T)>(usize(i));
+    return CastType(n);
+  }
+
+  /// Aligns `i` to the next power of 2, unless it is one already.
+  template <meta::is_integral T, typename CastType = __make_unsigned(T)>
+  __always_inline static constexpr CastType UpEq(T i) __noexcept {
+    return IsPow2(i) ? CastType(i) : Up<T, CastType>(i);
+  }
+};
+
 } // namespace hc::common
