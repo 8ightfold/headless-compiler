@@ -28,6 +28,20 @@
 // https://learn.microsoft.com/en-us/windows/win32/devio/calling-deviceiocontrol
 // https://github.com/dlunch/NewConsole
 
+// CreateConsole-NtCreateFile
+// ACCESS:
+//  0b0000'0000'0001'0010'0000'0001'1001'1111
+//  Sync | ReadControl | WriteAttributes | ReadAttributes |
+//   WriteEA | ReadEA | AppendData | WriteData | Execute | ReadData
+// ATTRIBUTES:
+//  None
+// SHARE_ACCESS:
+//  All
+// DISPOSITION:
+//  Create
+// OPTIONS:
+//  SyncIONoAlert
+
 namespace hc::sys {
 inline namespace __nt {
 
@@ -185,117 +199,6 @@ inline win::NtStatus write_console(
     return 0xC0000008;
   return ret;
 }
-
-/*
-struct CCSG_Message {
-	win::ULong Length;
-	void* Buffer;
-};
-
-struct CCSG_ParamsBase {
-	win::ULong ControlCode;
-	win::ULong Length;
-};
- 
-win::NtStatus ConsoleCallServerGeneric(
-  win::FileHandle FileHandle,
-  win::FileHandle Handle,
-  CCSG_ParamsBase* Buffer,
-  win::ULong ControlCode,
-  win::ULong Length,
-  CCSG_Message* message, win::ULong nMessage,
-  CCSG_Message* a8, win::ULong a9
-) {
-	if (nMessage + a9 > 8)
-    // STATUS_NOT_SUPPORTED
-    return 0xC00000BB;
-	if (uptr(FileHandle) <= 0)
-    return 0xC0000008;
- 
-	struct {
-		win::FileHandle Handle;
-		win::ULong Count;
-		win::ULong Unk;
-		struct
-		{
-			win::ULong Length, Unk;
-			void* Buffer;
-		} msg[3];
-	} input;
- 
-	Buffer->ControlCode = ControlCode;
-	Buffer->Length = Length;
- 
-	input.Handle = Handle;
-	input.Count = nMessage + 1;
-	input.Unk = a9 + 1;
- 
-	input.msg[0].Length = Length + sizeof(CCSG_ParamsBase);
-	input.msg[0].Buffer = Buffer;
- 
-	input.msg[nMessage + 1].Length = Length;
-	input.msg[nMessage + 1].Buffer = Buffer + 1;
- 
-	for (ULONG i = 0; i < nMessage; ++i)
-	{
-		input.msg[i + 1].Buffer = message[i].Buffer;
-		input.msg[i + 1].Length = message[i].Length;
-	}
-	for (ULONG i = 0; i < a9; ++i)
-	{
-		input.msg[nMessage + i + 2].Length = a8[i].Length;
-		input.msg[nMessage + i + 2].Buffer = a8[i].Buffer;
-	}
- 
-	win::IoStatusBlock IoStatusBlock;
-	return NtDeviceIoControlFile(FileHandle, 0, 0, 0, &IoStatusBlock, 0x500016, &input, 16 * (nMessage + a9 + 3), 0, 0);
-}
-
-win::NtStatus ConsoleCallServerWithBuffers(
-  win::FileHandle Handle,
-  CCSG_ParamsBase* Buffer,
-  win::ULong ControlCode, win::ULong Length,
-  CCSG_Message* message, BOOL nMessage,
-  CCSG_Message* a7, win::ULong a8
-) {
-	return ConsoleCallServerGeneric(GetConsoleHandle(), Handle, Buffer, ControlCode, Length, message, nMessage, a7, a8);
-}
-
-win::NtStatus ConsoleCallServer(
-  win::FileHandle FileHandle,
-  CCSG_ParamsBase* Buffer,
-  win::ULong ControlCode, win::ULong Length
-) {
-	return ConsoleCallServerGeneric(GetConsoleHandle(), FileHandle, Buffer, ControlCode, Length, 0, 0, 0, 0);
-}
- 
-win::NtStatus WriteConsoleInternal(
-  win::FileHandle hConsoleOutput,
-  const void* lpBuffer, win::ULong nNumberOfCharsToWrite,
-  win::ULong* lpNumberOfCharsWritten,
-  bool bUnicode
-) {
-	struct Params : CCSG_ParamsBase {
-		ULONG Chars;
-		BOOLEAN bUnicode;
-	};
- 
-	CCSG_Message message;
-	message.Length = bUnicode ? nNumberOfCharsToWrite * 2 : nNumberOfCharsToWrite;
-	message.Buffer = lpBuffer;
- 
-	Params params;
-	params.bUnicode = bUnicode;
- 
-	NTSTATUS status = ConsoleCallServerGeneric(hConsoleOutput, NULL, &params, 16777222, 8, &message, TRUE, 0, 0);
-	if (NT_SUCCESS(status) && lpNumberOfCharsWritten)
-	{
-		if (bUnicode) *lpNumberOfCharsWritten = (params.Chars / 2);
-    else *lpNumberOfCharsWritten = params.Chars;
-	}
-	return (status == 0xC000000D) ? 0xC0000008 : status;
-}
-*/
 
 } // inline namespace __nt
 } // namespace hc::sys
