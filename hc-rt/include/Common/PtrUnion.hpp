@@ -155,6 +155,10 @@ public:
     return reinterpret_cast<RawType*>(this->__addr);
   }
 
+  void* getRawMut() const noexcept {
+    return const_cast<void*>(this->getRaw());
+  }
+
   void visit(auto&& f) const __noexcept {
     if (this->isEmpty()) return;
     $tail_return __visitVoid<TT...>(__hc_fwd(f));
