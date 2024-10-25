@@ -23,12 +23,12 @@
 namespace hc::sys::win {
 
 enum class CreateDisposition : ULong {
-  Supersede           = 0x00000,
-  Open                = 0x00001,
-  Create              = 0x00010,
-  OpenIf              = 0x00011,
-  Overwrite           = 0x00100,
-  OverwriteIf         = 0x00101,
+  Supersede           = 0x0,
+  Open                = 0x1,
+  Create              = 0x2,
+  OpenIf              = 0x3,
+  Overwrite           = 0x4,
+  OverwriteIf         = 0x5,
   MaxValue
 };
 
