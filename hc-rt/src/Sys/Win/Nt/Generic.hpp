@@ -55,6 +55,7 @@ using Boolean       = bool; // AKA. u8
 //====================================================================//
 
 enum class AccessMask : ULong {
+  Any               = 0x000000,
   ReadData          = 0x000001,
   ReadAttributes    = 0x000080,
   ReadEA            = 0x000008,

@@ -24,6 +24,8 @@
 #include <Sys/Win/Except.hpp>
 #include <xcrt.hpp>
 
+#include <Sys/Win/Console.hpp>
+
 using namespace hc;
 using namespace hc::bootstrap;
 using namespace hc::sys::win;
@@ -85,6 +87,16 @@ static Win64Addr GetConsoleHandle() {
     ->console_handle;
 }
 
+void TestPrintCon(StrRef Str) {
+  auto fd = FileHandle::New(GetConsoleHandle());
+  usize written = 0;
+  auto R = sys::write_console(fd, Str.data(), Str.size(), &written);
+  if (written != Str.size()) {
+    TestPrint("Failed to write string!");
+    TestPrint(Str);
+  }
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 struct Global {
@@ -114,9 +126,13 @@ int main(int V, char** Args) {
     return 55;
   if (!GetConsoleHandle()) {
     TestPrint("No console handle.");
+    return 1;
   }
-  for (int Ix = 0; Ix < V; ++Ix)
-    TestPrint(Args[Ix]);
+  for (int Ix = 0; Ix < V; ++Ix) {
+    StrRef S = Args[Ix];
+    TestPrintCon(S);
+    // TestPrint(S);
+  }
   static_();
   return X + Y + Z; // Returns 14!!
 }
