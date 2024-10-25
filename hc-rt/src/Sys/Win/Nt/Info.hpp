@@ -129,7 +129,8 @@ namespace hc::sys::win {
   //====================================================================//
 
   enum class DeviceType : ULong {
-    UTCPPort            = 0x0027,
+    // Normal
+    _8042Port           = 0x0027,
     ACPI                = 0x0032,
     Battery             = 0x0029,
     Beep                = 0x0001,
@@ -186,6 +187,39 @@ namespace hc::sys::win {
     VirtualDisk         = 0x0024,
     WaveIn              = 0x0025,
     WaveOut             = 0x0026,
+
+    // Extended
+    InfiniBand          = 0x003b,
+    VMBus               = 0x003e,
+    CryptProvider       = 0x003f,
+    WPD                 = 0x0040,
+    BlueTooth           = 0x0041,
+    MT_Composite        = 0x0042,
+    MT_Transport        = 0x0043,
+    Biometric           = 0x0044,
+    PMI                 = 0x0045,
+    EnhancedStorage     = 0x0046,
+    DevAPI              = 0x0047,
+    GPIO                = 0x0048,
+    USBEx               = 0x0049,
+    Console             = 0x0050,
+    NearFieldProximity  = 0x0051,
+    SystemEnv           = 0x0052,
+    VirtualBlock        = 0x0053,
+    PointOfService      = 0x0054,
+    StorageReplication  = 0x0055,
+    TrustedEnv          = 0x0056,
+    UCM                 = 0x0057,
+    UCM_TCPCI           = 0x0058,
+    PersistentMemory    = 0x0059,
+    NV_DIMM             = 0x005a,
+    Holographic         = 0x005b, // ?
+    SDFXHCI             = 0x005c,
+
+    // Old Names
+    EHSTOR              = 0x0046, // EnhancedStorage
+    USBEX               = 0x0049,
+    NFP                 = 0x0051,
   };
 
   struct [[gnu::packed]] GUID {
