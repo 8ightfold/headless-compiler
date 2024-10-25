@@ -91,6 +91,8 @@
 #define __always_inline __attribute__((always_inline, artificial)) inline
 #define __ndbg_inline   __attribute__((always_inline, nodebug))    inline
 #define __aligned(n) __attribute__((aligned(n)))
+#define __packed_align(val) __attribute__((packed, aligned(val)))
+#define __packed_alignas(ty) __packed_align(alignof(ty))
 #define __section(sect_str) __attribute__((section(sect_str), used))
 
 #define __visibility(ty) __attribute__((__visibility__(#ty)))
