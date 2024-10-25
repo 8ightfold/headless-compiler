@@ -67,6 +67,11 @@ enum class AccessMask : ULong {
   WriteDAC          = 0x040000,
   WriteOwner        = 0x080000,
 
+  AppendData        = 0x000004,
+
+  ListDirectory     = 0x000001,
+  Traverse          = 0x000020,
+
   Delete            = 0x010000,
   Execute           = 0x000020,
   Sync              = 0x100000,
