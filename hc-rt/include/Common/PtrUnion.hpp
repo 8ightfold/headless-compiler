@@ -73,15 +73,20 @@ template <typename...TT>
 struct [[gsl::Pointer]] PtrUnion {
   static_assert(sizeof...(TT) < __ptrunion_max);
   static_assert(meta::__all_unique<TT...>, "Types cannot repeat.");
+
   using SelfType = PtrUnion<TT...>;
   using BaseType = __ptrunion_base<TT...>;
+  using RawType = meta::__conditional_t<
+    meta::__any_const<TT...>, const void, void>;
+
   struct _SelfTag { };
 
   template <typename U>
   static constexpr usize _ID = BaseType::GetID((U*)nullptr);
 
   template <typename R, typename F>
-  using _RetType = meta::__conditional_t<meta::is_same<R, _SelfTag>,
+  using _RetType = meta::__conditional_t<
+    meta::is_same<R, _SelfTag>,
     meta::__common_return_t<F, meta::AddPointer<TT>...>, R>;
 
 public:
@@ -144,6 +149,10 @@ public:
   U* getUnchecked() const __noexcept {
     __hc_invariant(__isa<U>());
     return reinterpret_cast<U*>(__addr);
+  }
+
+  RawType* getRaw() const noexcept {
+    return reinterpret_cast<RawType*>(this->__addr);
   }
 
   void visit(auto&& f) const __noexcept {

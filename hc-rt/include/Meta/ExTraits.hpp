@@ -20,6 +20,7 @@
 
 #include <Common/Fundamental.hpp>
 #include "_FnTraits.hpp"
+#include "_PackTraits.hpp"
 #include "Objects.hpp"
 
 HC_HAS_REQUIRED(builtin, __type_pack_element);
@@ -39,14 +40,6 @@ HC_HAS_REQUIRED(builtin, __make_integer_seq);
 //======================================================================//
 
 namespace hc::meta {
-  template <typename T, typename...TT>
-  concept __all_same = (true && ... && is_same<T, TT>);
-
-  template <typename T, typename...TT>
-  concept __any_same = (false || ... || is_same<T, TT>);
-
-  // All Unique
-
   template <typename...TT>
   struct _TAllUnique {
     template <typename = void>
