@@ -21,88 +21,101 @@
 //===----------------------------------------------------------------===//
 
 #pragma once
+#pragma clang system_header
 
+#include <Common/Align.hpp>
 #include <Common/Fundamental.hpp>
 #include <Common/Memory.hpp>
 
 namespace hc {
 namespace common {
-  template <typename> struct PtrRange;
+template <typename> struct PtrRange;
 } // namespace common
 
 namespace bootstrap {
-  struct [[gsl::Pointer]] UnicodeString {
-    u16 __size = 0, __size_max = 0; // In bytes
-    wchar_t* buffer = nullptr;
-  public:
-    [[nodiscard]] static UnicodeString New(wchar_t* str);
-    [[nodiscard]] static UnicodeString New(wchar_t* str, usize max);
-    [[nodiscard]] static UnicodeString New(com::PtrRange<wchar_t> R);
-    usize getSize() const { return __size / sizeof(wchar_t); }
-    usize getMaxSize() const { return __size_max / sizeof(wchar_t); }
-    bool isEqual(const UnicodeString& rhs) const;
-    com::PtrRange<const wchar_t> intoImmRange() const;
-    com::PtrRange<wchar_t> intoRange() const;
-    const wchar_t& frontSafe() const;
-    const wchar_t& backSafe()  const;
-  };
 
-  template <usize N>
-  struct [[gsl::Owner]] StaticUnicodeString : UnicodeString {
-    static constexpr u16 sizeMax = u16(N);
-  public:
-    constexpr StaticUnicodeString(u16 init_len = 0U) :
-     UnicodeString(
-       init_len * sizeof(wchar_t), 
-       sizeMax  * sizeof(wchar_t), __buffer)
-    {
-      __hc_invariant(init_len <= N);
-    }
+struct [[gsl::Pointer]] UnicodeString {
+  u16 __size = 0, __size_max = 0; // In bytes
+  wchar_t* buffer = nullptr;
+public:
+  [[nodiscard]] static UnicodeString New(wchar_t* str);
+  [[nodiscard]] static UnicodeString New(wchar_t* str, usize max);
+  [[nodiscard]] static UnicodeString New(com::PtrRange<wchar_t> R);
+  usize getSize() const { return __size / sizeof(wchar_t); }
+  usize getMaxSize() const { return __size_max / sizeof(wchar_t); }
+  bool isEqual(const UnicodeString& rhs) const;
+  com::PtrRange<const wchar_t> intoImmRange() const;
+  com::PtrRange<wchar_t> intoRange() const;
+  const wchar_t& frontSafe() const;
+  const wchar_t& backSafe()  const;
+};
 
-    constexpr StaticUnicodeString(wchar_t C, auto...CC) :
-     StaticUnicodeString(u16(sizeof...(CC) + 1)), 
-     __buffer{C, static_cast<wchar_t>(CC)...} {
-      static_assert(sizeof...(CC) < N);
-      // UnicodeString::size = u16(sizeof...(CC) + 1);
-    }
+template <usize N>
+struct [[gsl::Owner]] StaticUnicodeString : UnicodeString {
+  static constexpr u16 sizeMax = u16(N);
+public:
+  constexpr StaticUnicodeString(u16 init_len = 0U) :
+   UnicodeString(
+     init_len * sizeof(wchar_t), 
+     sizeMax  * sizeof(wchar_t), __buffer)
+  {
+    __hc_invariant(init_len <= N);
+  }
 
-    constexpr StaticUnicodeString(char C, auto...CC) :
-     StaticUnicodeString(static_cast<wchar_t>(C), CC...) {
-      static_assert(sizeof...(CC) < N);
-    }
-    
-    template <usize M>
-    constexpr StaticUnicodeString(const wchar_t(&A)[M]) :
-     StaticUnicodeString((!A[M - 1]) ? (M - 1) : M) {
-      static_assert(M <= N);
-      common::__array_memcpy(__buffer, A);
-    }
+  constexpr StaticUnicodeString(wchar_t C, auto...CC) :
+   StaticUnicodeString(u16(sizeof...(CC) + 1)), 
+   __buffer{C, static_cast<wchar_t>(CC)...} {
+    static_assert(sizeof...(CC) < N);
+    // UnicodeString::size = u16(sizeof...(CC) + 1);
+  }
+
+  constexpr StaticUnicodeString(char C, auto...CC) :
+   StaticUnicodeString(static_cast<wchar_t>(C), CC...) {
+    static_assert(sizeof...(CC) < N);
+  }
   
-  public:
-    UnicodeString& asBase() {
-      return *static_cast<UnicodeString*>(this);
-    }
-    const UnicodeString& asBase() const {
-      return *static_cast<const UnicodeString*>(this);
-    }
+  template <usize M>
+  constexpr StaticUnicodeString(const wchar_t(&A)[M]) :
+   StaticUnicodeString((!A[M - 1]) ? (M - 1) : M) {
+    static_assert(M <= N);
+    common::__array_memcpy(__buffer, A);
+  }
 
-    UnicodeString* operator->() {
-      return static_cast<UnicodeString*>(this);
-    }
-    const UnicodeString* operator->() const {
-      return static_cast<const UnicodeString*>(this);
-    }
+public:
+  UnicodeString& asBase() {
+    return *static_cast<UnicodeString*>(this);
+  }
+  const UnicodeString& asBase() const {
+    return *static_cast<const UnicodeString*>(this);
+  }
 
-  public:
-    wchar_t __buffer[N] {};
-  };
+  UnicodeString* operator->() {
+    return static_cast<UnicodeString*>(this);
+  }
+  const UnicodeString* operator->() const {
+    return static_cast<const UnicodeString*>(this);
+  }
 
-  template <usize N>
-  StaticUnicodeString(const wchar_t(&)[N]) 
-    -> StaticUnicodeString<N + 1>;
+public:
+  wchar_t __buffer[N] {};
+};
 
-  template <typename T, typename...TT>
-  StaticUnicodeString(T, TT...) 
-    -> StaticUnicodeString<sizeof...(TT) + 2>;
+template <usize N>
+StaticUnicodeString(const wchar_t(&)[N]) 
+  -> StaticUnicodeString<N + 1>;
+
+template <typename T, typename...TT>
+StaticUnicodeString(T, TT...) 
+  -> StaticUnicodeString<sizeof...(TT) + 2>;
+
+//////////////////////////////////////////////////////////////////////////
+
+template <class Char, Char...CC>
+__ndbg_inline constexpr auto operator ""_UStr() noexcept {
+  constexpr usize N = sizeof...(CC) + 1;
+  using Type = StaticUnicodeString<Align::Up(N)>;
+  return Type::New(static_cast<wchar_t>(CC)..., L'\0');
+}
+
 } // namespace bootstrap
 } // namespace hc
