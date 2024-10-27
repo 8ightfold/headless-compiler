@@ -2,13 +2,12 @@ include_guard(DIRECTORY)
 
 project(
   hcrt-xcrt
-  VERSION 0.1.28
+  VERSION 0.1.29
   LANGUAGES CXX
 )
 
 set(HC_RSYS "src/Sys/${PLATFORM}")
-# set(HC_XSYS "xcrt/${PLATFORM}")
-set(HC_XSYS "xcrt")
+set(HC_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
 ##======================================================================##
 ## Inc - Public Interface
@@ -130,77 +129,10 @@ target_link_libraries(hcrt-dev
 )
 
 ##======================================================================##
-## xinc - CRT Interface
-##======================================================================##
-
-add_library(hcrt-xinc INTERFACE)
-add_library(hcrt::xinc ALIAS hcrt-xinc)
-target_include_directories(hcrt-xinc INTERFACE xcrt/include)
-target_forward_options(hcrt-xinc INTERFACE RT_MAX_ATEXIT)
-target_compile_definitions(hcrt-xinc INTERFACE __XCRT__=1)
-target_compile_options(hcrt-xinc INTERFACE -nostdinc++ -nostdinc -static)
-target_link_options(hcrt-xinc INTERFACE -nostdlib -nostartfiles)
-
-if(WIN32)
-  target_link_options(hcrt-xinc INTERFACE 
-    -Wl,-e,mainCRTStartup 
-    -mno-stack-arg-probe
-  )
-endif()
-
-##======================================================================##
-## xcrt - CRT Implementation
-##======================================================================##
-
-add_library(hcrt-xcrt STATIC
-  xcrt/String/Memcmp.cpp
-  xcrt/String/Memcpy.cpp
-  xcrt/String/Memset.cpp
-  xcrt/String/XStrcmp.cpp
-  xcrt/String/XStrlen.cpp
-  xcrt/String/XStrncmp.cpp
-  # Platform Specific
-  ${HC_XSYS}/Phase0/Startup.cpp
-  ${HC_XSYS}/Phase0/Xtors.cpp
-  ${HC_XSYS}/Phase1/ArgParser.cpp
-  ${HC_XSYS}/Phase1/Initialization.cpp
-  ${HC_XSYS}/Phase1/Locks.cpp
-  ${HC_XSYS}/Phase1/StdIO.cpp
-  ${HC_XSYS}/Shutdown/Atexit.cpp
-  ${HC_XSYS}/Shutdown/Exit.cpp
-)
-if(HC_EMUTLS)
-  target_sources(hcrt-xcrt PRIVATE
-    ${HC_XSYS}/Phase1/EmuTLS.cpp
-  )
-else()
-  target_sources(hcrt-xcrt PRIVATE
-    ${HC_XSYS}/Phase1/TLS.cpp
-  )
-endif()
-add_library(hcrt::xcrt ALIAS hcrt-xcrt)
-
-target_link_libraries(hcrt-xcrt 
-  PUBLIC hcrt::inc hcrt::xinc 
-  PRIVATE hcrt::src
-)
-target_include_directories(hcrt-xcrt 
-  PUBLIC xcrt # ${HC_XSYS}
-  PRIVATE src
-)
-
-if(WIN32)
-  target_sources(hcrt-xcrt PUBLIC
-    xcrt/Phase0/Chkstk.cpp
-    xcrt/Phase0/InitCookie.cpp
-  )
-else()
-  message(FATAL_ERROR "The hc runtime is not supported on your platform.")
-endif()
-
-##======================================================================##
 ## Rt - Full User Runtime
 ##======================================================================##
+
+add_subdirectory(xcrt) # hcrt::{xinc, xcrt}
 
 add_library(hc-rt STATIC xcrt/Stub.cpp)
 add_library(hc::rt ALIAS hc-rt)
