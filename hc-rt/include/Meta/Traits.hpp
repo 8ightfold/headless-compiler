@@ -212,6 +212,12 @@ using Decay = __decay(T);
 template <typename T>
 using UnderlyingType = __underlying_type(T);
 
+template <typename T>
+using MakeSigned = __make_signed(T);
+
+template <typename T>
+using MakeUnsigned = __make_unsigned(T);
+
 //////////////////////////////////////////////////////////////////////////
 // Add/Remove
 
