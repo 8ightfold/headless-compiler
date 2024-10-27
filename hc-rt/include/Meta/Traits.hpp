@@ -152,6 +152,14 @@ concept is_trivially_destructible = __is_trivially_destructible(T);
 template <typename T>
 concept is_trivially_relocatable = __is_trivially_relocatable(T);
 
+template <typename T>
+concept is_bitwise_cloneable
+#if __has_builtin(__is_bitwise_cloneable)
+  = __is_bitwise_cloneable(T);
+#else
+  = is_trivially_relocatable<T>;
+#endif
+
 template <typename T, typename...Args>
 concept is_constructible = __is_constructible(T, Args...);
 

@@ -180,7 +180,7 @@ struct Mem {
   static void* VSet(void* __restrict dst, int ch, usize len);
 
   template <typename T>
-  requires meta::is_trivially_copyable<T>
+  requires meta::is_bitwise_cloneable<T>
   __always_inline static T* 
    Copy(T* __restrict dst, const T* __restrict src, usize len) {
     static_assert(!__is_void(T), "Void pointers can only be used with VCopy!");
@@ -189,7 +189,7 @@ struct Mem {
   }
 
   template <typename T>
-  requires(!meta::is_trivially_copyable<T>)
+  requires(!meta::is_bitwise_cloneable<T>)
   static T* Copy(T* __restrict dst, const T* __restrict src, usize len) {
     static_assert(!__is_void(T), "Void pointers can only be used with VCopy!");
     for (usize I = 0; I < len; ++I)
@@ -228,13 +228,13 @@ struct Mem {
   }
 
   template <typename T>
-  requires meta::is_trivially_copyable<T>
+  requires meta::is_bitwise_cloneable<T>
   __always_inline static T& Clone(T& dst, const T& src) {
     return __clone(dst, src);
   }
 
   template <typename T>
-  requires(!meta::is_trivially_copyable<T>)
+  requires(!meta::is_bitwise_cloneable<T>)
   static T& Clone(T& dst, const T& src) {
     return dst = src;
   }
