@@ -115,6 +115,7 @@ __abi_hidden inline constexpr auto
 template <typename T>
 T* __addressof(T&&) = delete;
 
+//////////////////////////////////////////////////////////////////////////
 // bit_cast
 
 template <typename To, typename From>
@@ -137,6 +138,7 @@ __abi_hidden inline constexpr To
   }
 }
 
+//////////////////////////////////////////////////////////////////////////
 // launder
 
 template <typename T>
@@ -152,6 +154,7 @@ void* __launder(const void*) = delete;
 void* __launder(volatile void*) = delete;
 void* __launder(const volatile void*) = delete;
 
+//////////////////////////////////////////////////////////////////////////
 // assume_aligned
 
 template <usize Align, typename T>

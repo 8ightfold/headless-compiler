@@ -38,10 +38,13 @@ template <typename T>
 concept is_void = __is_void(T);
 
 template <typename T>
-concept not_void = !__is_void(T);
+concept not_void = !is_void<T>;
 
 template <typename T, typename U>
-concept is_same = __is_same(T, U) && __is_same(U, T);
+concept __iis_same = __is_same(T, U);
+
+template <typename T, typename U>
+concept is_same = __iis_same<T, U> && __iis_same<U, T>;
 
 template <typename T, typename U>
 concept not_same = !is_same<T, U>;
@@ -73,6 +76,7 @@ concept is_union = __is_union(T);
 template <typename T>
 concept is_struct = __is_class(T);
 
+//////////////////////////////////////////////////////////////////////////
 // Qualifiers
 
 template <typename T>
@@ -82,34 +86,34 @@ template <typename T>
 concept is_rvalue_ref = __is_rvalue_reference(T);
 
 template <typename T>
-concept not_lvalue_ref = !__is_lvalue_reference(T);
+concept not_lvalue_ref = !is_lvalue_ref<T>;
 
 template <typename T>
-concept not_rvalue_ref = !__is_rvalue_reference(T);
+concept not_rvalue_ref = !is_rvalue_ref<T>;
 
 template <typename T>
 concept is_ref = __is_reference(T);
 
 template <typename T>
-concept not_ref = !__is_reference(T);
+concept not_ref = !is_ref<T>;
 
 template <typename T>
 concept is_ptr = __is_pointer(T);
 
 template <typename T>
-concept not_ptr = !__is_pointer(T);
+concept not_ptr = !is_ptr<T>;
 
 template <typename T>
 concept is_const = __is_const(T);
 
 template <typename T>
-concept not_const = !__is_const(T);
+concept not_const = !not_const<T>;
 
 template <typename T>
 concept is_volatile = __is_volatile(T);
 
 template <typename T>
-concept not_volatile = !__is_volatile(T);
+concept not_volatile = !is_volatile<T>;
 
 template <typename T>
 concept is_cv = is_const<T> || is_volatile<T>;
@@ -123,6 +127,7 @@ concept only_const = is_const<T> && not_volatile<T>;
 template <typename T>
 concept only_volatile = not_const<T> && is_volatile<T>;
 
+//////////////////////////////////////////////////////////////////////////
 // Complex
 
 template <typename T>
@@ -182,6 +187,7 @@ template <typename T>
 concept is_move_assignable = is_assignable<
   __add_lvalue_reference(T), __add_rvalue_reference(T)>;
 
+//////////////////////////////////////////////////////////////////////////
 // Misc.
 
 template <typename T>
@@ -191,23 +197,23 @@ template <typename T>
 concept is_function = __is_function(T);
 
 template <typename T, typename U>
-concept is_same_size = 
-  (__sizeof(T) == __sizeof(U)) &&
-  (__sizeof(U) == __sizeof(T));
+concept __is_same_size = (__sizeof(T) == __sizeof(U));
 
-} // namespace hc::meta
+template <typename T, typename U>
+concept is_same_size = __is_same_size<T, U> && __is_same_size<U, T>;
 
 //======================================================================//
 // Types
 //======================================================================//
-
-namespace hc::meta {
 
 template <typename T>
 using Decay = __decay(T);
 
 template <typename T>
 using UnderlyingType = __underlying_type(T);
+
+//////////////////////////////////////////////////////////////////////////
+// Add/Remove
 
 template <typename T>
 using AddPointer = __add_pointer(T);
@@ -229,6 +235,9 @@ using RemoveCVRef = __remove_cvref(T);
 
 template <typename T>
 using RemovePtr = __remove_pointer(T);
+
+//////////////////////////////////////////////////////////////////////////
+// Misc.
 
 template <bool B, typename T, typename F>
 using __conditional_t = typename std::conditional<B, T, F>::type;  
