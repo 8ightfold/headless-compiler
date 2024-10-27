@@ -80,15 +80,15 @@ $MarkBitwise(CreateOptsMask)
 $MarkBitwise(FileAttribMask)
 $MarkBitwise(FileShareMask)
 
-inline constexpr AccessMask GenericReadAccess =
+__global AccessMask GenericReadAccess =
   AccessMask::StdRightsRead | AccessMask::ReadData 
  | AccessMask::ReadAttributes | AccessMask::ReadEA | AccessMask::Sync;
 
-inline constexpr AccessMask GenericWriteAccess =
+__global AccessMask GenericWriteAccess =
   AccessMask::StdRightsWrite | AccessMask::WriteData 
  | AccessMask::WriteAttributes | AccessMask::WriteEA | AccessMask::Sync;
 
-inline constexpr AccessMask GenericExecAccess =
+__global AccessMask GenericExecAccess =
   AccessMask::StdRightsExec | AccessMask::Execute
  | AccessMask::ReadAttributes | AccessMask::Sync;
 

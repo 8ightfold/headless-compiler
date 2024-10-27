@@ -37,7 +37,8 @@
 
 #define __nt_attrs __attribute__((noinline)) inline
 
-namespace hc::sys::win {
+namespace hc::sys {
+namespace win {
 
 using bootstrap::LargeInt;
 using bootstrap::ULargeInt;
@@ -128,9 +129,7 @@ struct ObjectAttributes {
   void*           security_QOS = nullptr;
 };
 
-} // namespace hc::sys::win
-
-namespace hc::sys {
+} // namespace win
 
 using NtSyscall = bootstrap::Syscall;
 using win::NtStatus;

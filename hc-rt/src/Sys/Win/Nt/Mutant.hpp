@@ -21,17 +21,19 @@
 #include "Structs.hpp"
 
 namespace hc::sys::win {
-  enum class MutantInfoClass {
-    Basic, Owner
-  };
 
-  struct BasicMutantInfo {
-    i32 current_count = 0;
-    Boolean owned_by_caller = true;
-    Boolean abandoned_state = false;
-  };
+enum class MutantInfoClass {
+  Basic, Owner
+};
 
-  inline constexpr AccessMask MutantQueryState = AccessMask::ReadData;
-  inline constexpr AccessMask MutantAllAccess = 
-    MutantQueryState | AccessMask::StdRightsRequired | AccessMask::Sync;
+struct BasicMutantInfo {
+  i32 current_count = 0;
+  Boolean owned_by_caller = true;
+  Boolean abandoned_state = false;
+};
+
+__global AccessMask MutantQueryState = AccessMask::ReadData;
+__global AccessMask MutantAllAccess  = 
+  MutantQueryState | AccessMask::StdRightsRequired | AccessMask::Sync;
+
 } // namespace hc::sys::win
