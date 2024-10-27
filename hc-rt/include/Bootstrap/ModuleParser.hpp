@@ -33,126 +33,128 @@
 #define $COFFEntry(name) COFFDirectoryEntry<COFF::name>
 
 namespace hc::binfmt {
-  struct Consumer;
-  namespace COFF {
-    struct DosHeader;
-    struct FileHeader;
-    struct OptPE32Header;
-    struct OptPE64Header;
-    struct DataDirectoryHeader; 
-    struct SectionHeader;
-    struct SymbolRecord;
+struct Consumer;
+namespace COFF {
+  struct DosHeader;
+  struct FileHeader;
+  struct OptPE32Header;
+  struct OptPE64Header;
+  struct DataDirectoryHeader; 
+  struct SectionHeader;
+  struct SymbolRecord;
 
-    template <usize> 
-    struct OptPEWindowsHeader;
+  template <usize> 
+  struct OptPEWindowsHeader;
 
-    enum DataDirectories : u32;
-    struct ExportDirectoryTable;
-    struct ImportDirectoryTable;
+  enum DataDirectories : u32;
+  struct ExportDirectoryTable;
+  struct ImportDirectoryTable;
 
-    template <usize I> 
-    using WinHeader           = OptPEWindowsHeader<I>;
+  template <usize I> 
+  using WinHeader           = OptPEWindowsHeader<I>;
 
-    using OptPEHeader         = $PUnion(OptPE64Header, OptPE32Header);
-    using PEWindowsHeader     = $PUnion(WinHeader<8>, WinHeader<4>);
-    using DataDirectoryTable  = $PRange(DataDirectoryHeader);
-    using SectionTable        = $PRange(SectionHeader);
-    using SymbolTable         = $PRange(SymbolRecord);
-  } // namespace COFF
+  using OptPEHeader         = $PUnion(OptPE64Header, OptPE32Header);
+  using PEWindowsHeader     = $PUnion(WinHeader<8>, WinHeader<4>);
+  using DataDirectoryTable  = $PRange(DataDirectoryHeader);
+  using SectionTable        = $PRange(SectionHeader);
+  using SymbolTable         = $PRange(SymbolRecord);
+} // namespace COFF
 } // namespace hc::binfmt
 
 namespace hc::bootstrap {
-  struct Win64LDRDataTableEntry;
-  using ModuleHandle = Win64LDRDataTableEntry*;
-  using ImageConsumer = binfmt::Consumer;
-  using common::DualString;
-  namespace COFF = hc::binfmt::COFF;
 
-  struct COFFHeader {
-    COFF::DosHeader*      dos  = nullptr;
-    COFF::FileHeader*     file = nullptr;
-    COFF::OptPEHeader     opt;
-    COFF::PEWindowsHeader win;
-  };
+struct Win64LDRDataTableEntry;
+using ModuleHandle = Win64LDRDataTableEntry*;
+using ImageConsumer = binfmt::Consumer;
+using common::DualString;
+namespace COFF = hc::binfmt::COFF;
 
-  struct COFFTables {
-    COFF::DataDirectoryTable data_dirs;
-    COFF::SectionTable sections;
-    COFF::SymbolTable  symbols;
-  };
+struct COFFHeader {
+  COFF::DosHeader*      dos  = nullptr;
+  COFF::FileHeader*     file = nullptr;
+  COFF::OptPEHeader     opt;
+  COFF::PEWindowsHeader win;
+};
 
-  template <typename TableType>
-  struct COFFDirectoryEntry {
-    using Type = TableType;
-    TableType* entry = nullptr;
-  public:
-    bool isEmpty() const { return !this->entry; }
-    explicit operator bool() const { return !isEmpty(); }
-  };
+struct COFFTables {
+  COFF::DataDirectoryTable data_dirs;
+  COFF::SectionTable sections;
+  COFF::SymbolTable  symbols;
+};
 
-  using COFFExports = $COFFEntry(ExportDirectoryTable);
-  using COFFImports = $COFFEntry(ImportDirectoryTable);
+template <typename TableType>
+struct COFFDirectoryEntry {
+  using Type = TableType;
+  TableType* entry = nullptr;
+public:
+  bool isEmpty() const { return !this->entry; }
+  explicit operator bool() const { return !isEmpty(); }
+};
 
-  class COFFModule {
-    friend class ModuleParser;
-    COFFModule() = default;
-    COFFModule(ModuleHandle H) : __image(H) { }
-  public:
-    COFFModule(const COFFModule&) = default;
-    COFFModule(COFFModule&&) = default;
-    COFFModule& operator=(const COFFModule&) = default;
-    COFFModule& operator=(COFFModule&&) = default;
-  public:
-    template <typename F>
-    auto resolveExport(common::StrRef S) const {
-      static_assert(__is_function(F));
-      using Opt = common::Option<F&>;
-      if (auto addr = resolveExportRaw(S)) {
-        auto* f = reinterpret_cast<F*>(addr);
-        return Opt::Some(*f);
-      }
-      return Opt::None();
+using COFFExports = $COFFEntry(ExportDirectoryTable);
+using COFFImports = $COFFEntry(ImportDirectoryTable);
+
+class COFFModule {
+  friend class ModuleParser;
+  COFFModule() = default;
+  COFFModule(ModuleHandle H) : __image(H) { }
+public:
+  COFFModule(const COFFModule&) = default;
+  COFFModule(COFFModule&&) = default;
+  COFFModule& operator=(const COFFModule&) = default;
+  COFFModule& operator=(COFFModule&&) = default;
+public:
+  template <typename F>
+  auto resolveExport(common::StrRef S) const {
+    static_assert(__is_function(F));
+    using Opt = common::Option<F&>;
+    if (auto addr = resolveExportRaw(S)) {
+      auto* f = reinterpret_cast<F*>(addr);
+      return Opt::Some(*f);
     }
+    return Opt::None();
+  }
 
-    // Resolvers
-    void* resolveExportRaw(common::StrRef S) const;
-    void* resolveImportRaw(common::StrRef S) const;
-    // Getters
-    [[gnu::always_inline, gnu::nodebug, gnu::const]]
-    inline const COFFModule& self() const { return *this; }
-    const COFFHeader& getHeader() const& { return __header; }
-    const COFFTables& getTables() const& { return __tables; }
-    common::AddrRange getImageRange() const;
-    DualString getName() const;
-    ModuleHandle operator->() const;
-    // Observers
-    bool hasSymbols() const;
-  private:
-    COFFHeader   __header;
-    COFFTables   __tables;
-    ModuleHandle __image = nullptr;
-  };
+  // Resolvers
+  void* resolveExportRaw(common::StrRef S) const;
+  void* resolveImportRaw(common::StrRef S) const;
+  // Getters
+  [[gnu::always_inline, gnu::nodebug, gnu::const]]
+  inline const COFFModule& self() const { return *this; }
+  const COFFHeader& getHeader() const& { return __header; }
+  const COFFTables& getTables() const& { return __tables; }
+  common::AddrRange getImageRange() const;
+  DualString getName() const;
+  ModuleHandle operator->() const;
+  // Observers
+  bool hasSymbols() const;
+private:
+  COFFHeader   __header;
+  COFFTables   __tables;
+  ModuleHandle __image = nullptr;
+};
 
-  using OptCOFFModule = common::Option<COFFModule>;
+using OptCOFFModule = common::Option<COFFModule>;
 
-  class ModuleParser {
-    ModuleParser(COFFModule& M, ImageConsumer& C) : mod(M), IC(C) { }
-  public:
-    /// Don't assume these will always be valid.
-    /// If a module is unloaded, it'll no longer work.
-    /// This is ok for stuff like ntdll, but not for user dlls.
-    static ModuleHandle  GetModuleHandle(DualString name);
-    static OptCOFFModule Parse(ModuleHandle handle); 
-    static OptCOFFModule GetParsedModule(DualString name);
-  private:
-    [[nodiscard]] bool runParser();
-    COFF::FileHeader* parseHeader();
-    COFF::PEWindowsHeader& parseOpt(u32& size);
-    void parseTables(u32 RVAs, COFF::FileHeader* fh);
-  private:
-    COFFModule&    mod;
-    ImageConsumer& IC;
-  };
+class ModuleParser {
+  ModuleParser(COFFModule& M, ImageConsumer& C) : mod(M), IC(C) { }
+public:
+  /// Don't assume these will always be valid.
+  /// If a module is unloaded, it'll no longer work.
+  /// This is ok for stuff like ntdll, but not for user dlls.
+  static ModuleHandle  GetModuleHandle(DualString name);
+  static OptCOFFModule Parse(ModuleHandle handle); 
+  static OptCOFFModule GetParsedModule(DualString name);
+private:
+  [[nodiscard]] bool runParser();
+  COFF::FileHeader* parseHeader();
+  COFF::PEWindowsHeader& parseOpt(u32& size);
+  void parseTables(u32 RVAs, COFF::FileHeader* fh);
+private:
+  COFFModule&    mod;
+  ImageConsumer& IC;
+};
+
 } // namespace hc::bootstrap
 
 #undef $COFFEntry
