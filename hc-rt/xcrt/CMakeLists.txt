@@ -8,6 +8,13 @@ target_compile_definitions(hcrt-xinc INTERFACE __XCRT__=1)
 target_compile_options(hcrt-xinc INTERFACE -nostdinc++ -nostdinc -static)
 target_link_options(hcrt-xinc INTERFACE -nostdlib -nostartfiles)
 
+if(WIN32)
+  target_link_options(hcrt-xinc INTERFACE 
+    -Wl,-e,mainCRTStartup 
+    -mno-stack-arg-probe
+  )
+endif()
+
 ##########################################################################
 
 add_library(hcrt-xcrt STATIC
@@ -33,12 +40,8 @@ target_include_directories(hcrt-xcrt
     ${HC_SRC_DIR}
 )
 
-if(WIN32)
-  target_link_options(hcrt-xinc INTERFACE 
-    -Wl,-e,mainCRTStartup 
-    -mno-stack-arg-probe
-  )
-  add_subdirectory(Win)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${PLATFORM})
+  add_subdirectory(${PLATFORM})
 else()
   message(FATAL_ERROR "The HC runtime is not supported on your platform.")
 endif()
