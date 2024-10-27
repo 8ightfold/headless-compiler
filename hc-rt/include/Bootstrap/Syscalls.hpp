@@ -31,69 +31,71 @@
 // https://www.geoffchappell.com/studies/windows/win32/ntdll/api/native.htm
 
 namespace hc::bootstrap {
-  using NtReturn = long;
-  using ULong = unsigned long;
 
-  template <typename Ret, typename...Args>
-  using StdCall = Ret(&)(Args...);
+using NtReturn = long;
+using ULong = unsigned long;
 
-  template <typename...Args>
-  using NtCall = StdCall<NtReturn, Args...>;
+template <typename Ret, typename...Args>
+using StdCall = Ret(&)(Args...);
 
-  enum class Syscall : u32 {
-#  define $NtGen(name) name,
+template <typename...Args>
+using NtCall = StdCall<NtReturn, Args...>;
+
+enum class Syscall : u32 {
+#define $NtGen(name) name,
+#include "Syscalls.mac"
+  MaxValue
+};
+$MarkName(Syscall);
+
+constexpr const char* __refl_fieldname(Syscall E) {
+  switch (E) {
+#  define $NtGen(name) \
+    case Syscall::name: return $stringify(name);
 #  include "Syscalls.mac"
-    MaxValue
+    default: return nullptr;
+  }
+}
+
+inline constexpr auto& __refl_fieldarray(Syscall) { \
+  static constexpr Syscall A[] {
+#  define $NtGen(name) Syscall::name,
+#  include "Syscalls.mac"
+    Syscall::MaxValue
   };
-  $MarkName(Syscall);
+  return A;
+}
 
-  constexpr const char* __refl_fieldname(Syscall E) {
-    switch (E) {
-#    define $NtGen(name) \
-      case Syscall::name: return $stringify(name);
-#    include "Syscalls.mac"
-      default: return nullptr;
-    }
-  }
+enum : u32 { __invalid_syscall_ = ~0UL };
+extern constinit common::EnumArray<u32, Syscall> __syscalls_;
 
-  inline constexpr auto& __refl_fieldarray(Syscall) { \
-    static constexpr Syscall A[] {
-#    define $NtGen(name) Syscall::name,
-#    include "Syscalls.mac"
-      Syscall::MaxValue
-    };
-    return A;
-  }
+/// Ensure `__syscalls_` has been initialized, otherwise you'll
+/// just have random nigh-undebuggable errors.
+template <Syscall C, typename Ret = NtReturn, typename...Args>
+[[gnu::noinline, gnu::naked]]
+inline Ret __stdcall __syscall(Args...args) {
+  __asm__ volatile ("movq %%rcx, %%r10;\n"::);
+  __asm__ volatile (
+    "mov %[val], %%eax;\n"
+    "syscall;\n"
+    "retn;\n"
+    :: [val] "r"(__syscalls_.__data[u32(C)])
+  );
+}
 
-  enum : u32 { __invalid_syscall_ = ~0UL };
-  extern constinit common::EnumArray<u32, Syscall> __syscalls_;
+template <Syscall C, typename Ret = NtReturn, typename...Args>
+__always_inline Ret __stdcall __checked_syscall(Args...args) {
+  __hc_assert(__syscalls_[C] != __invalid_syscall_);
+  $tail_return __syscall<C, Ret>(args...);
+}
 
-  /// Ensure `__syscalls_` has been initialized, otherwise you'll
-  /// just have random nigh-undebuggable errors.
-  template <Syscall C, typename Ret = NtReturn, typename...Args>
-  [[gnu::noinline, gnu::naked]]
-  inline Ret __stdcall __syscall(Args...args) {
-    __asm__ volatile ("movq %%rcx, %%r10;\n"::);
-    __asm__ volatile (
-      "mov %[val], %%eax;\n"
-      "syscall;\n"
-      "retn;\n"
-      :: [val] "r"(__syscalls_.__data[u32(C)])
-    );
-  }
+#ifndef __XCRT__
+static struct _SyscallLoader {
+  _SyscallLoader();
+} __sys_loader_ {};
+#endif // __XCRT__?
 
-  template <Syscall C, typename Ret = NtReturn, typename...Args>
-  __always_inline Ret __stdcall __checked_syscall(Args...args) {
-    __hc_assert(__syscalls_[C] != __invalid_syscall_);
-    $tail_return __syscall<C, Ret>(args...);
-  }
+extern void force_syscall_reload();
+extern bool are_syscalls_loaded();
 
- #ifndef __XCRT__
-  static struct _SyscallLoader {
-    _SyscallLoader();
-  } __sys_loader_ {};
- #endif // __XCRT__?
-
-  extern void force_syscall_reload();
-  extern bool are_syscalls_loaded();
 } // namespace hc::bootstrap

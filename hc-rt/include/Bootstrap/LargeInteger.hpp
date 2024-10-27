@@ -25,44 +25,46 @@
 #include <Common/Fundamental.hpp>
 
 namespace hc::bootstrap {
-  union LargeInt {
-    __ndbg_inline operator i64() const {
-      return this->quad;
-    }
-    __ndbg_inline operator i64() const volatile {
-      return this->quad;
-    }
-    __ndbg_inline LargeInt& operator=(i64 I) {
-      this->quad = I;
-      return *this;
-    }
-  public:
-    i64 quad = 0L;
-    struct {
-      u32 low;
-      i32 high;
-    };
-  };
 
-  union ULargeInt {
-    __ndbg_inline operator u64() const {
-      return this->quad;
-    }
-    __ndbg_inline operator u64() const volatile {
-      return this->quad;
-    }
-    __ndbg_inline ULargeInt& operator=(u64 I) {
-      this->quad = I;
-      return *this;
-    }
-  public:
-    u64 quad = 0UL;
-    struct {
-      u32 low;
-      u32 high;
-    };
+union LargeInt {
+  __ndbg_inline operator i64() const {
+    return this->quad;
+  }
+  __ndbg_inline operator i64() const volatile {
+    return this->quad;
+  }
+  __ndbg_inline LargeInt& operator=(i64 I) {
+    this->quad = I;
+    return *this;
+  }
+public:
+  i64 quad = 0L;
+  struct {
+    u32 low;
+    i32 high;
   };
+};
 
-  using LargeInteger  = LargeInt;
-  using ULargeInteger = ULargeInt;
+union ULargeInt {
+  __ndbg_inline operator u64() const {
+    return this->quad;
+  }
+  __ndbg_inline operator u64() const volatile {
+    return this->quad;
+  }
+  __ndbg_inline ULargeInt& operator=(u64 I) {
+    this->quad = I;
+    return *this;
+  }
+public:
+  u64 quad = 0UL;
+  struct {
+    u32 low;
+    u32 high;
+  };
+};
+
+using LargeInteger  = LargeInt;
+using ULargeInteger = ULargeInt;
+
 } // namespace hc::bootstrap

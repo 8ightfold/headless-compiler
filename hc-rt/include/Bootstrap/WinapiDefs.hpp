@@ -33,30 +33,32 @@
 //======================================================================//
 
 namespace hc {
+
 namespace common {
-  template <typename> struct PtrRange;
-  using AddrRange = PtrRange<void>;
+template <typename> struct PtrRange;
+using AddrRange = PtrRange<void>;
 } // namespace common
 
 namespace sys {
-  struct IIOFile;
-  struct RawOSSemaphore;
+struct IIOFile;
+struct RawOSSemaphore;
 } // namespace sys
 
 using RawIOFile = sys::IIOFile;
 using IOFile    = RawIOFile*;
 
 namespace bootstrap {
-  using Win64Addr       = void*;
-  using Win64AddrRange  = common::AddrRange;
-  using Win64Handle     = hc::__void*;
-  using Win64Lock       = sys::RawOSSemaphore;
-  using Win64Bool       = ubyte;
+using Win64Addr       = void*;
+using Win64AddrRange  = common::AddrRange;
+using Win64Handle     = hc::__void*;
+using Win64Lock       = sys::RawOSSemaphore;
+using Win64Bool       = ubyte;
 
-  using Win64LargeInt       = LargeInt;
-  using Win64ULargeInt      = ULargeInt;
-  using Win64UnicodeString  = UnicodeString;
+using Win64LargeInt       = LargeInt;
+using Win64ULargeInt      = ULargeInt;
+using Win64UnicodeString  = UnicodeString;
 } // namespace bootstrap
+
 } // namespace hc
 
 //======================================================================//
@@ -64,25 +66,27 @@ namespace bootstrap {
 //======================================================================//
 
 namespace hc::bootstrap {
-  struct KSystemTime {
-    u32 low;
-    i32 high;
-    i32 high_alt;
-  };
 
-  struct ClientID {
-    Win64Handle unique_process;
-    Win64Handle unique_thread;
-  };
+struct KSystemTime {
+  u32 low;
+  i32 high;
+  i32 high_alt;
+};
 
-  struct ListEntry {
-    ListEntry* prev;
-    ListEntry* next;
-  };
+struct ClientID {
+  Win64Handle unique_process;
+  Win64Handle unique_thread;
+};
 
-  struct alignas(u32) ProcessorNumber {
-    u16   group;
-    ubyte number;
-    ubyte __reserved;
-  };
+struct ListEntry {
+  ListEntry* prev;
+  ListEntry* next;
+};
+
+struct alignas(u32) ProcessorNumber {
+  u16   group;
+  ubyte number;
+  ubyte __reserved;
+};
+
 } // namespace hc::bootstrap
