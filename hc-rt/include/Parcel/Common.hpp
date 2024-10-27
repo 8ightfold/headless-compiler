@@ -15,24 +15,9 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
-//
-//  This file includes core utilities from hc::common, and provides a
-//  simple alias for usage.
-//
-//===----------------------------------------------------------------===//
 
 #pragma once
 
-#include <Common/Fundamental.hpp>
 #include <Common/Align.hpp>
-
-namespace hc::parcel {
-  template <meta::is_integral Int>
-  __always_inline constexpr
-   Int popcnt(Int I) noexcept {
-    if constexpr (sizeof(I) == 8)
-      return __builtin_popcountll(I);
-    else
-      return __builtin_popcount(I);
-  }
-} // namespace hc::parcel
+#include <Common/FastMath.hpp>
+#include <Common/Fundamental.hpp>

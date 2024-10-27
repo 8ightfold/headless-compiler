@@ -75,7 +75,7 @@ namespace hc::parcel {
     constexpr usize countActive() const {
       usize total = 0;
       for (BitListType I : __data)
-        total += popcnt(I);
+        total += com::popcnt(I);
       return total;
     }
 
