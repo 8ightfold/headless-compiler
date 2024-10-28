@@ -76,6 +76,33 @@ concept is_union = __is_union(T);
 template <typename T>
 concept is_struct = __is_class(T);
 
+template <typename T>
+concept is_object = __is_object(T);
+
+template <typename T>
+concept is_function = __is_function(T);
+
+/// Checks if type is an integral or enum.
+template <typename T>
+concept is_integral_ex = is_integral<T> || is_enum<T>;
+
+template <typename T, typename U>
+concept __both_signed =
+  (is_signed<T> && is_signed<U>) &&
+  (is_signed<U> && is_signed<T>);
+
+template <typename T, typename U>
+concept __both_unsigned =
+  (is_unsigned<T> && is_unsigned<U>) &&
+  (is_unsigned<U> && is_unsigned<T>);
+
+template <typename T, typename U>
+concept __is_same_sign = __both_signed<T, U> || __both_unsigned<T, U>;
+
+/// Checks if signs are the same.
+template <typename T, typename U>
+concept is_same_sign = __is_same_sign<T, U> && __is_same_sign<U, T>;
+
 //////////////////////////////////////////////////////////////////////////
 // Qualifiers
 
@@ -107,7 +134,7 @@ template <typename T>
 concept is_const = __is_const(T);
 
 template <typename T>
-concept not_const = !not_const<T>;
+concept not_const = !is_const<T>;
 
 template <typename T>
 concept is_volatile = __is_volatile(T);
@@ -190,12 +217,6 @@ concept is_move_assignable = is_assignable<
 //////////////////////////////////////////////////////////////////////////
 // Misc.
 
-template <typename T>
-concept is_object = __is_object(T);
-
-template <typename T>
-concept is_function = __is_function(T);
-
 template <typename T, typename U>
 concept __is_same_size = (__sizeof(T) == __sizeof(U));
 
@@ -210,13 +231,25 @@ template <typename T>
 using Decay = __decay(T);
 
 template <typename T>
-using UnderlyingType = __underlying_type(T);
-
-template <typename T>
 using MakeSigned = __make_signed(T);
 
 template <typename T>
 using MakeUnsigned = __make_unsigned(T);
+
+//////////////////////////////////////////////////////////////////////////
+// Enum
+
+template <typename T, bool = false>
+struct _IUnderlyingType { using Type = T; };
+
+template <typename T>
+struct _IUnderlyingType<T, true> {
+  using Type = __underlying_type(T);
+};
+
+template <typename T>
+using UnderlyingType = typename
+  _IUnderlyingType<T, is_enum<T>>::Type;
 
 //////////////////////////////////////////////////////////////////////////
 // Add/Remove

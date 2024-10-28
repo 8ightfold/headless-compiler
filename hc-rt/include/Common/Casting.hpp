@@ -19,114 +19,145 @@
 #pragma once
 
 #include <Meta/Traits.hpp>
+#include <Std/__type_traits/conditional.hpp>
+
+namespace hc {
 
 //======================================================================//
 // Basic Casts
 //======================================================================//
 
-namespace hc {
-  template <typename U = void, typename T>
-  __ndbg_inline U* ptr_cast(T* t) __noexcept {
-    if constexpr (meta::not_void<meta::RemoveConst<T>>) {
-      return reinterpret_cast<U*>(t);
-    } else {
-      return static_cast<U*>(t);
-    }
-  }
+template <typename From, typename To>
+using _IntCastType = std::conditional_t<
+  meta::is_void<To>,
+  From,
+  meta::UnderlyingType<meta::RemoveCVRef<To>>
+>;
 
-  template <typename U = void>
-  __ndbg_inline U* ptr_cast(uptr i) __noexcept {
-    return reinterpret_cast<U*>(i);
-  }
+template <typename To, meta::is_integral_ex From>
+__abi_hidden constexpr To __int_cast(From V) {
+  using CastType = std::conditional_t<
+    meta::is_signed<To>,
+    meta::MakeSigned<From>,
+    meta::MakeUnsigned<From>
+  >;
+  const auto I = static_cast<CastType>(V);
+  return static_cast<To>(V);
+}
 
-  template <typename U = void, typename T>
-  __ndbg_inline U* ptr_castex(T* t) __noexcept {
-    if constexpr (meta::not_void<meta::RemoveConst<T>>) {
-      return (U*)(t);
-    } else {
-      return static_cast<U*>(t);
-    }
-  }
+/// Will either cast from `From` to `To`, or to the underlying integral type.
+template <typename To = void, meta::is_integral_ex From>
+__ndbg_inline constexpr auto int_cast(From V) {
+  using UndType = meta::UnderlyingType<From>;
+  using Type = _IntCastType<UndType, To>;
 
-  template <typename U = void>
-  __ndbg_inline U* ptr_castex(uptr i) __noexcept {
-    return (U*)(i);
+  static_assert(meta::is_integral<Type>, "Invalid cast type!");
+  const UndType cleaned = static_cast<UndType>(V);
+
+  if constexpr (meta::is_same_sign<UndType, Type>)
+    return static_cast<Type>(cleaned);
+  else
+    return __int_cast<Type>(cleaned);
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Pointers
+
+template <typename U = void, typename T>
+__ndbg_inline U* ptr_cast(T* t) __noexcept {
+  if constexpr (meta::not_void<meta::RemoveConst<T>>) {
+    return reinterpret_cast<U*>(t);
+  } else {
+    return static_cast<U*>(t);
   }
-} // namespace hc
+}
+
+template <typename U = void>
+__ndbg_inline U* ptr_cast(uptr i) __noexcept {
+  return reinterpret_cast<U*>(i);
+}
+
+template <typename U = void, typename T>
+__ndbg_inline U* ptr_castex(T* t) __noexcept {
+  if constexpr (meta::not_void<meta::RemoveConst<T>>) {
+    return (U*)(t);
+  } else {
+    return static_cast<U*>(t);
+  }
+}
+
+template <typename U = void>
+__ndbg_inline U* ptr_castex(uptr i) __noexcept {
+  return reinterpret_cast<U*>(i);
+}
 
 //======================================================================//
 // isa/dyn_cast
 //======================================================================//
 
-namespace hc {
-  template <typename Base, typename To>
-  concept __has__isa = 
-    requires(Base B) { B.template __isa<To>(); };
+template <typename Base, typename To>
+concept __has__isa = 
+  requires(Base B) { B.template __isa<To>(); };
 
-  template <typename Base, typename To>
-  concept __has__dyn_cast = 
-    requires(Base B) { B.template __dyn_cast<To>(); };
-  
-  template <typename To, typename Base>
-  requires __has__isa<Base, To>
-  __ndbg_inline constexpr bool isa(Base&& B) __noexcept {
-    return static_cast<bool>(
-      __hc_fwd(B).template __isa<To>());
-  }
+template <typename Base, typename To>
+concept __has__dyn_cast = 
+  requires(Base B) { B.template __dyn_cast<To>(); };
 
-  template <typename To, typename Base>
-  requires __has__dyn_cast<Base, To>
-  __ndbg_inline decltype(auto) dyn_cast(Base&& B) __noexcept {
-    return __hc_fwd(B).template __dyn_cast<To>();
-  }
-} // namespace hc
+template <typename To, typename Base>
+requires __has__isa<Base, To>
+__ndbg_inline constexpr bool isa(Base&& B) __noexcept {
+  return static_cast<bool>(
+    __hc_fwd(B).template __isa<To>());
+}
+
+template <typename To, typename Base>
+requires __has__dyn_cast<Base, To>
+__ndbg_inline decltype(auto) dyn_cast(Base&& B) __noexcept {
+  return __hc_fwd(B).template __dyn_cast<To>();
+}
 
 //======================================================================//
 // Handles
 //======================================================================//
 
-namespace hc {
-  // TODO: Move into Handle.hpp?
-  template <typename T, 
-    typename ID, typename...AA>
-  struct Handle;
+// TODO: Move into Handle.hpp?
+template <typename T, 
+  typename ID, typename...AA>
+struct Handle;
 
-  template <typename To, typename From,
-    typename ID, typename...AA>
-  __ndbg_inline constexpr To
-   handle_cast(const Handle<From, ID, AA...>& from) {
-    static_assert(__is_convertible(From, To),
-      "Underlying type is not convertible.");
-    return static_cast<To>(from.__data);
-  }
-} // namespace hc
+template <typename To, typename From,
+  typename ID, typename...AA>
+__ndbg_inline constexpr To
+ handle_cast(const Handle<From, ID, AA...>& from) {
+  static_assert(__is_convertible(From, To),
+    "Underlying type is not convertible.");
+  return static_cast<To>(from.__data);
+}
 
 //======================================================================//
 // Underlying
 //======================================================================//
 
-namespace hc {
-  template <meta::is_enum E>
-  __ndbg_inline constexpr auto underlying_cast(E e) {
-    return static_cast<meta::UnderlyingType<E>>(e);
-  }
+template <meta::is_enum E>
+__ndbg_inline constexpr auto underlying_cast(E e) {
+  return static_cast<meta::UnderlyingType<E>>(e);
+}
 
-  template <typename T>
-  __ndbg_inline constexpr T underlying_cast(T&& t) {
-    return __hc_fwd(t);
-  }
-} // namespace hc
+template <typename T>
+__ndbg_inline constexpr T underlying_cast(T&& t) {
+  return __hc_fwd(t);
+}
 
 //======================================================================//
 // Reinterpreting
 //======================================================================//
 
-namespace hc {
-  template <typename U, typename T>
-  requires meta::is_same_size<T, U>
-  U pun_cast(const T& V) __noexcept {
-    U u;
-    __builtin_memcpy_inline(&u, &V, sizeof(U));
-    return u;
-  }
+template <typename U, typename T>
+requires meta::is_same_size<T, U>
+U pun_cast(const T& V) __noexcept {
+  U u;
+  __builtin_memcpy_inline(&u, &V, sizeof(U));
+  return u;
+}
+
 } // namespace hc
