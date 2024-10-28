@@ -88,7 +88,7 @@ static_assert(sizeof(CSRParams) == 8);
 //////////////////////////////////////////////////////////////////////////
 
 __nt_attrs win::NtStatus control_device_file(
- win::FileHandle handle,
+ win::ConsoleHandle handle,
  win::IoStatusBlock& io,
  win::CtlCode code,
  com::AddrRange in,
@@ -105,7 +105,7 @@ __nt_attrs win::NtStatus control_device_file(
 
 /// Handles CSR messaging.
 inline win::NtStatus write_generic(
- win::FileHandle handle,
+ win::ConsoleHandle handle,
  win::GenericHandle input_handle,
  CSRParams& params,
  CSRMessage* msg = nullptr,
@@ -166,7 +166,7 @@ inline win::NtStatus write_generic(
 }
 
 inline win::NtStatus write_console(
- win::FileHandle handle, // TODO: Change type
+ win::ConsoleHandle handle,
  com::DualString str, usize count,
  usize* chars_written = nullptr
 ) {

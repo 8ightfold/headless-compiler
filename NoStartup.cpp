@@ -81,14 +81,18 @@ NtStatus TestPrint(StrRef Str) {
   return TestPrintI(Str.data(), Str.size());
 }
 
-static Win64Addr GetConsoleHandle() {
+static Win64Addr GetConsoleHandleRaw() {
   return boot::HcCurrentPEB()
     ->process_params
     ->console_handle;
 }
 
+static ConsoleHandle GetConsoleHandle() {
+  return ConsoleHandle::New(GetConsoleHandleRaw());
+}
+
 void TestPrintCon(StrRef Str) {
-  auto fd = FileHandle::New(GetConsoleHandle());
+  auto fd = GetConsoleHandle();
   usize written = 0;
   auto R = sys::write_console(fd, Str.data(), Str.size(), &written);
   if (written != Str.size()) {
