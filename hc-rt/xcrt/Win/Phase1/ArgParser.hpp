@@ -21,11 +21,11 @@
 #include <Bootstrap/UnicodeString.hpp>
 #include <Common/PtrRange.hpp>
 
-namespace xcrt {
+namespace XCRT_NAMESPACE {
 
-usize __setup_cmdline(
+usize setup_cmdline(
   hc::com::PtrRange<char> cmd,
   hc::boot::UnicodeString US
 );
 
-} // namespace xcrt
+} // namespace XCRT_NAMESPACE

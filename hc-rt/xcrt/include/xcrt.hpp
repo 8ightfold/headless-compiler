@@ -18,5 +18,6 @@
 
 #pragma once
 
+#include <__config.inc>
 #include <xcrt/Stdlib.hpp>
 #include <xcrt/String.hpp>

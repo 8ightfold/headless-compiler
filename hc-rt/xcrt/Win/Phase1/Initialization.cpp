@@ -65,7 +65,7 @@ static void initArgv(PtrRange<char*> argv) {
     const usize base_size = wcmd.getSize();
     DynAllocation<char> fullCommandline = $dynalloc(wcmd.getSize() + 2, char);
 
-    const usize argCount = __setup_cmdline(
+    const usize argCount = XCRT_NAMESPACE::setup_cmdline(
       fullCommandline.intoRange(), wcmd);
     _acmdln = fullCommandline.release();
 

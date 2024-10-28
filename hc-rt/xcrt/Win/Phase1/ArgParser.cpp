@@ -192,7 +192,7 @@ usize ArgParser::parse() {
 
 } // namespace `anonymous`
 
-usize xcrt::__setup_cmdline(
+usize XCRT_NAMESPACE::setup_cmdline(
  PtrRange<char> cmd, UnicodeString US) {
   return ArgParser(cmd, US.intoRange()).parse();
 }
