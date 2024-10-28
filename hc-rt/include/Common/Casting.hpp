@@ -117,24 +117,6 @@ __ndbg_inline decltype(auto) dyn_cast(Base&& B) __noexcept {
 }
 
 //======================================================================//
-// Handles
-//======================================================================//
-
-// TODO: Move into Handle.hpp?
-template <typename T, 
-  typename ID, typename...AA>
-struct Handle;
-
-template <typename To, typename From,
-  typename ID, typename...AA>
-__ndbg_inline constexpr To
- handle_cast(const Handle<From, ID, AA...>& from) {
-  static_assert(__is_convertible(From, To),
-    "Underlying type is not convertible.");
-  return static_cast<To>(from.__data);
-}
-
-//======================================================================//
 // Underlying
 //======================================================================//
 
