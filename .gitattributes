@@ -5,3 +5,4 @@
 *.h     linguist-language=cpp
 *.mac   linguist-language=cpp
 *.impl  linguist-language=cpp
+*.inc   linguist-language=cpp

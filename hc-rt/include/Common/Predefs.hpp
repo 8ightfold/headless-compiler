@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include <__config.inc>
+
 #if defined(__clang__) && (__clang_major__ >= 10)
 // All good!
 #else
@@ -58,9 +60,9 @@
 #endif
 
 #undef  _ASM_DEFAULT
-#undef  _ASM_NOPREFIX
+#define _ASM_DEFAULT 0
 
-#define _ASM_DEFAULT  0
+#undef  _ASM_NOPREFIX
 #define _ASM_NOPREFIX 1
 
 #pragma clang final(_ASM_DEFAULT)
