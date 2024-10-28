@@ -37,28 +37,29 @@ extern char*** __imp___initenv;
 #endif // !__XCRT__
 
 namespace {
-
 __imut ManualDrop<PathStorage> program_dir {};
 __imut ManualDrop<PathStorage> working_dir {};
+} // namespace `anonymous`
 
-boot::UnicodeString __get_program_path() {
+static boot::UnicodeString __get_program_path() {
   auto* mods = boot::HcCurrentPEB()->getLDRModulesInMemOrder();
   return mods->prev()->fullName();
 }
 
 // https://github.com/wine-mirror/wine/blob/master/dlls/ntdll/path.c#L886
-boot::UnicodeString __get_working_path() {
+static boot::UnicodeString __get_working_path() {
   return boot::HcCurrentPEB()->process_params->getCurrDir();
 }
 
-template <typename T> PtrRange<T*> __find_end(T** PP) {
+template <typename T>
+static PtrRange<T*> __find_end(T** PP) {
   T** E = PP;
   while (*++E);
   return {PP, E};
 }
 
 [[gnu::noinline]]
-bool __init_filename(PathStorage& P, ImmPtrRange<wchar_t> str) {
+static bool __init_filename(PathStorage& P, ImmPtrRange<wchar_t> str) {
   const usize base_size = str.size();
   if __expect_false(base_size + 1 >= P.Capacity())
     return false;
@@ -71,8 +72,6 @@ bool __init_filename(PathStorage& P, ImmPtrRange<wchar_t> str) {
 
   return true;
 }
-
-} // namespace `anonymous`
 
 #ifdef __XCRT__
 # define __find_end(...) {}
