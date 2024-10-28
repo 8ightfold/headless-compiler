@@ -26,30 +26,32 @@
 
 using namespace hc::bootstrap;
 
-static constexpr uptr __hc_dsec_cookie_ = 0x00002B992DDFA232ll;
+__intrnl uptr __hc_dsec_cookie_ = 0x00002B992DDFA232ll;
 
 extern "C" {
-  __attribute__((selectany))
-  constinit uptr __security_cookie = __hc_dsec_cookie_;
 
-  __attribute__((selectany))
-  constinit uptr __security_cookie_complement = ~__hc_dsec_cookie_;
+__attribute__((selectany))
+constinit uptr __security_cookie = __hc_dsec_cookie_;
 
-  [[gnu::used]] void __security_init_cookie(void) {
-    if (__security_cookie != __hc_dsec_cookie_) {
-      __security_cookie_complement = ~__security_cookie;
-      return;
-    }
+__attribute__((selectany))
+constinit uptr __security_cookie_complement = ~__hc_dsec_cookie_;
 
-    auto* TEB = Win64TEB::LoadTEBFromGS();
-    uptr cookie = __builtin_ia32_rdtsc();
-    cookie ^= TEB->getProcessId();
-    cookie ^= TEB->getThreadId();
-
-    cookie &= 0x0000FFFFFFFFFFFFLL;
-    if (cookie == __hc_dsec_cookie_)
-      cookie = __hc_dsec_cookie_ + 1;
-    __security_cookie = cookie;
-    __security_cookie_complement = ~cookie;
+[[gnu::used]] void __security_init_cookie(void) {
+  if (__security_cookie != __hc_dsec_cookie_) {
+    __security_cookie_complement = ~__security_cookie;
+    return;
   }
+
+  auto* TEB = Win64TEB::LoadTEBFromGS();
+  uptr cookie = __builtin_ia32_rdtsc();
+  cookie ^= TEB->getProcessId();
+  cookie ^= TEB->getThreadId();
+
+  cookie &= 0x0000FFFFFFFFFFFFLL;
+  if (cookie == __hc_dsec_cookie_)
+    cookie = __hc_dsec_cookie_ + 1;
+  __security_cookie = cookie;
+  __security_cookie_complement = ~cookie;
 }
+
+} // extern "C"
