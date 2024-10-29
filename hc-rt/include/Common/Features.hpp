@@ -180,8 +180,8 @@
 # define _HC_THREADING_SIG n
 #endif
 
-#define _HC_ODR_SIG $3cat( \
-  _HC_HARDENING_SIG, _HC_EXCEPTION_SIG, _HC_THREADING_SIG)
+#define _HC_ODR_SIG $4cat( \
+  _HC_HARDENING_SIG, _HC_EXCEPTION_SIG, _HC_THREADING_SIG, HCRT_VERSION_POSTFIX)
 
 #define __abi __attribute__((__abi_tag__($stringify(_HC_ODR_SIG))))
 #define __abi_hidden __hidden __exclude_from_explicit_instantiation __abi
