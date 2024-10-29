@@ -73,7 +73,7 @@
 //======================================================================//
 
 #define __hc_4cat(w, x, y, z) w ## x ## y ## z
-#define $4cat(x, y, z) __hc_4cat(w, x, y, z)
+#define $4cat(w, x, y, z) __hc_4cat(w, x, y, z)
 
 #define __hc_3cat(x, y, z) x ## y ## z
 #define $3cat(x, y, z) __hc_3cat(x, y, z)
