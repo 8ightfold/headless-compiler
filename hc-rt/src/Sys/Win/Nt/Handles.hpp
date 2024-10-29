@@ -23,6 +23,7 @@
 #pragma once
 
 #include <Common/Handle.hpp>
+#include <Common/Casting.hpp>
 
 #define _HC_NTHANDLE_GROUP(name) InGroup<name>
 
@@ -72,6 +73,15 @@ $DefHANDLE(Thread,      IPC_HANDLE);
 template <typename H>
 concept __is_HANDLE = handle_in_group<H, HANDLE>;
 
+template <typename H, typename...Groups>
+concept __is_HANDLE_of = __is_HANDLE<H> && handle_in_group<H, Groups...>;
+
+__always_inline constexpr bool
+ __is_valid_HANDLE(const void* data) noexcept {
+  static constexpr uptr invalid = uptr(-1LL);
+  return data && (data != ptr_cast<>(invalid));
+}
+
 struct [[gsl::Pointer]] GenericHandle {
   GenericHandle() = default;
 
@@ -81,8 +91,11 @@ struct [[gsl::Pointer]] GenericHandle {
   template <__is_HANDLE H>
   explicit operator H() const { return H::New(__data); }
 
-  explicit operator bool() const { return !!__data; }
   void* get() const { return this->__data; }
+  explicit operator bool() const {
+    return __is_valid_HANDLE(__data);
+  }
+
 public:
   void* __data = nullptr;
 };
@@ -93,16 +106,17 @@ struct [[gsl::Pointer]] SelectiveHandle {
   SelectiveHandle(nullptr_t) : SelectiveHandle() { }
   explicit SelectiveHandle(GenericHandle h) : __data(h.__data) { }
 
-  template <typename H>
-  requires handle_in_group<H, GroupRestrictions...>
+  template <__is_HANDLE_of<GroupRestrictions...> H>
   SelectiveHandle(H h) : __data(h.__data) { }
 
-  template <typename H>
-  requires handle_in_group<H, GroupRestrictions...>
+  template <__is_HANDLE_of<GroupRestrictions...> H>
   operator H() const { return H::New(__data); }
 
-  explicit operator bool() const { return !!__data; }
   void* get() const { return this->__data; }
+  explicit operator bool() const {
+    return __is_valid_HANDLE(__data);
+  }
+
 public:
   void* __data = nullptr;
 };
@@ -113,7 +127,47 @@ using IPCHandle     = SelectiveHandle<IPC_HANDLE>;
 using SyncHandle    = SelectiveHandle<SYNC_HANDLE>;
 using WaitHandle    = SelectiveHandle<SYNC_HANDLE, IPC_HANDLE>;
 
+//======================================================================//
+// Predefined Handles
+//======================================================================//
+
+#define $DefProxy(name, value, restrictions...) \
+  __global HandleProxy<value, ##restrictions> name {}
+
+template <auto Value, typename...GroupRestrictions>
+struct HandleProxy {
+  using SelfType = HandleProxy;
+  using Selective = SelectiveHandle<GroupRestrictions...>;
+  static constexpr uptr rawValue = static_cast<uptr>(Value);
+public:
+  static void* GetRaw() { return ptr_cast<>(rawValue); }
+
+  template <__is_HANDLE_of<GroupRestrictions...> H>
+  static H Get() { return H::New(SelfType::GetRaw()); }
+
+  template <__is_HANDLE_of<GroupRestrictions...> H>
+  operator H() const { return SelfType::Get<H>(); }
+
+  inline Selective operator()() const  {
+    Selective out {};
+    out.__data = SelfType::GetRaw();
+    return out;
+  }
+};
+
+template <__is_HANDLE H, auto Value, typename...Groups>
+requires __is_HANDLE_of<H, Groups...>
+constexpr bool operator==(
+ const H& lhs, const HandleProxy<Value, Groups...>& rhs) noexcept {
+  return (lhs == static_cast<H>(rhs));
+}
+
+$DefProxy(InvalidHandle,    -1);
+$DefProxy(CreateNewConsole, -2, CONSOLE_HANDLE, FILE_HANDLE);
+$DefProxy(CreateNoWindow,   -3, CONSOLE_HANDLE, FILE_HANDLE);
+
 } // namespace hc::sys::win
 
 #undef _HC_NTHANDLE_GROUP
 #undef $DefHANDLE
+#undef $DefProxy
