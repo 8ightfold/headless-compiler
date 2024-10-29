@@ -27,14 +27,12 @@ using namespace hc;
 using namespace hc::sys;
 namespace S = hc::sys;
 
-namespace {
-  template <typename T, typename U>
-  inline void copy_range(PtrRange<T> to, PtrRange<U> from) {
-    static_assert(meta::is_same_size<T, U>);
-    __hc_invariant(to.size() >= from.size());
-    inline_memcpy(to.data(), from.data(), from.sizeInBytes());
-  }
-} // namespace `anonymous`
+template <typename T, typename U>
+static inline void copy_range(PtrRange<T> to, PtrRange<U> from) {
+  static_assert(meta::is_same_size<T, U>);
+  __hc_invariant(to.size() >= from.size());
+  inline_memcpy(to.data(), from.data(), from.sizeInBytes());
+}
 
 IIOMode IIOFile::ParseModeFlags(StrRef S) {
   S = S.dropNull();
