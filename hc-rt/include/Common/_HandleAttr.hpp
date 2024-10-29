@@ -28,13 +28,15 @@
 #include <Meta/Preproc.hpp>
 
 #define _HC_HANDLE_ATTRIB(name) ::hc::HandleAttr::$PP_rm_parens(name)
+#define _HC_HANDLE_DECLARE(name, type, attrs...) \
+::hc::Handle<$PP_rm_parens(type), struct name \
+  __VA_OPT__(,) $PP_mapCL(_HC_HANDLE_ATTRIB, attrs) >
 
 /// Defines a new handle `name`.
 /// Single attributes are: `Boolean`, `Equality`, `Indexed`, `Invokable`, and `Pointer`.
 /// Template attributes are: `InGroup<...>`.
-#define $Handle(name, type, attrs...) using name = \
- ::hc::Handle<$PP_rm_parens(type), struct _hnd_##name##U__ \
-__VA_OPT__(,) $PP_mapCL(_HC_HANDLE_ATTRIB, attrs) >
+#define $Handle(name, type, attrs...) \
+  struct name : public _HC_HANDLE_DECLARE(name, type, ##attrs) {}
 
 /// Defines a new handle group `name`.
 #define $HandleGroup(name) using name = \

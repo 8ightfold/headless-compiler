@@ -30,7 +30,7 @@ namespace hc {
 /// A wrapper type used to differentiate objects for type safety.
 /// @tparam T The underlying type of the handle.
 /// @tparam ID The unique identifier for the type.
-template <typename T, typename ID = struct _HandleGID, typename...AA>
+template <typename T, typename ID, typename...AA>
 struct __empty_bases Handle
 #if _HC_DEDUCING_THIS
   : _HandleAttr<AA>...
@@ -50,14 +50,14 @@ struct __empty_bases Handle
 #endif
 
 public:
-  __ndbg_inline static constexpr SelfType New(auto&&...args) __noexcept {
+  __ndbg_inline static constexpr IDType New(auto&&...args) __noexcept {
     if constexpr(requires { T::New(__hc_fwd(args)...); })
       return { _BoundAttr<AA>{}..., T::New(__hc_fwd(args)...) };
     else
-      return SelfType::NewRaw(__hc_fwd(args)...);
+      return IDType::NewRaw(__hc_fwd(args)...);
   }
 
-  __ndbg_inline static constexpr SelfType NewRaw(auto&&...args) __noexcept {
+  __ndbg_inline static constexpr IDType NewRaw(auto&&...args) __noexcept {
     return { _BoundAttr<AA>{}..., T{__hc_fwd(args)...} };
   }
 
@@ -82,7 +82,9 @@ concept __handle_in_group = requires(H& h) {
 };
 
 template <typename H, typename...Groups>
-concept handle_in_group = (false || ... || __handle_in_group<H, Groups>);
+concept handle_in_group = 
+  ((sizeof...(Groups) == 0) ||
+    ... || __handle_in_group<H, Groups>);
 
 $Handle(__eg_handle_, void*, Boolean, Pointer);
 static_assert(sizeof(__eg_handle_) == sizeof(void*));
