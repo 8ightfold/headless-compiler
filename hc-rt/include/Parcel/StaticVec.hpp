@@ -436,7 +436,7 @@ namespace hc::parcel {
     /// @brief Sets the size to `n` without initializing.
     /// @return If resizing was successful.
     constexpr bool resizeUninit(usize n) {
-      if __expect_true(n < this->capacity()) {
+      if __expect_true(n <= this->capacity()) {
         this->__setSize(n);
         return true;
       }
