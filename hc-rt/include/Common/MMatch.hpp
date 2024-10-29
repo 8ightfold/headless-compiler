@@ -28,12 +28,12 @@ namespace hc {
     using Type = meta::RemoveCVRef<T>;
     constexpr MMatch(T V) : V(V) { }
   public:
-    constexpr bool is(auto&& R) {
+    constexpr bool is(auto&& R) const {
       return (V == __hc_fwd(R));
     }
 
     [[gnu::flatten]] constexpr bool 
-      is(auto&& R, auto&&...RR)
+      is(auto&& R, auto&&...RR) const
      requires(sizeof...(RR) > 0) {
       return (is(__hc_fwd(R)) || 
         ... || is(__hc_fwd(RR)));
