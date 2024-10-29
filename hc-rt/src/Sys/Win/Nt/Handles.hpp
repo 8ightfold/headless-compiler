@@ -46,6 +46,7 @@ static_assert(sizeof(name##Handle) == sizeof(void*))
 namespace hc::sys::win {
 
 $HandleGroup(HANDLE);
+$HandleGroup(CONSOLE_HANDLE);
 $HandleGroup(FILE_HANDLE);
 $HandleGroup(IO_HANDLE);
 $HandleGroup(IPC_HANDLE);
@@ -53,7 +54,7 @@ $HandleGroup(SYNC_HANDLE);
 $HandleGroup(WAIT_HANDLE);
 
 $DefHANDLE(AccessTok);
-$DefHANDLE(Console,     IO_HANDLE);
+$DefHANDLE(Console,     CONSOLE_HANDLE, IO_HANDLE);
 $DefHANDLE(ConsoleBuf,  IO_HANDLE);
 $DefHANDLE(Device);
 $DefHANDLE(Directory,   FILE_HANDLE);
@@ -106,7 +107,7 @@ public:
   void* __data = nullptr;
 };
 
-using FileObjHandle = SelectiveHandle<FILE_HANDLE>;
+using FileObjHandle = SelectiveHandle<CONSOLE_HANDLE, FILE_HANDLE>;
 using IOHandle      = SelectiveHandle<IO_HANDLE>;
 using IPCHandle     = SelectiveHandle<IPC_HANDLE>;
 using SyncHandle    = SelectiveHandle<SYNC_HANDLE>;

@@ -7,9 +7,12 @@ target_sources(hcrt-xcrt PRIVATE
   Phase0/Xtors.cpp
 
   Phase1/ArgParser.cpp
+  Phase1/ConsoleSetup.cpp
   Phase1/Initialization.cpp
   Phase1/Locks.cpp
   Phase1/StdIO.cpp
+
+  Memory/Box.cpp
 
   Shutdown/Atexit.cpp
   Shutdown/Exit.cpp

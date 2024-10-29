@@ -18,13 +18,16 @@
 
 #include <Phase1/Initialization.hpp>
 #include <Phase1/ArgParser.hpp>
+#include <Phase1/ConsoleSetup.hpp>
+#include <Memory/Box.hpp>
+#include <String/Utils.hpp>
+// TODO: Swap out
+#include <GlobalXtors.hpp>
+
 #include <Bootstrap/_NtModule.hpp>
 #include <Parcel/StaticVec.hpp>
 #include <Sys/Args.hpp>
 #include <xcrtDefs.hpp>
-#include <String/Utils.hpp>
-// TODO: Swap out
-#include <GlobalXtors.hpp>
 
 using namespace xcrt;
 using namespace hc;
@@ -100,6 +103,8 @@ void __xcrt_setup(void) {
   sys::__init_paths();
 
   // Set up standard IO.
+  XCRT_NAMESPACE::setup_heap_funcs();
+  XCRT_NAMESPACE::setup_console();
   // TODO: __xcrt_sysio_setup();
 
   // Set up thread_local backend after sysio, 
