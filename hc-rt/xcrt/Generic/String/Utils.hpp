@@ -97,7 +97,7 @@ template <typename Char>
 inline usize xstringlen(const Char* src) {
   static_assert(sizeof(Char) <= 2);
   if constexpr (do_unsafe_multibyte_ops) {
-    using ReadType = hc::common::intn_t<4 * sizeof(Char)>;
+    using ReadType = hc::intn_t<4 * sizeof(Char)>;
     return xstringlen_wide_read<ReadType, Char>(src);
   } else {
     return xstringlen_byte_read<Char>(src);
@@ -117,7 +117,7 @@ __always_inline usize wstringlen(const wchar_t* src) {
 
 template <typename Int, typename Char>
 inline void* xFFC_wide_read(const Char* src, Char C, const usize n) {
-  using UChar = hc::common::uintty_t<Char>;
+  using UChar = hc::uintty_t<Char>;
   constexpr usize alignTo = sizeof(Int);
   constexpr usize incOff  = sizeof(Int) / sizeof(Char);
 
@@ -145,7 +145,7 @@ inline void* xFFC_wide_read(const Char* src, Char C, const usize n) {
 template <typename Char>
 [[maybe_unused]] inline void*
  xFFC_byte_read(const Char* S, Char C, usize n) {
-  using UChar = hc::common::uintty_t<Char>;
+  using UChar = hc::uintty_t<Char>;
   for (; n && *S != C; --n, ++S);
   return n ? hc::ptr_castex<UChar>(S) : nullptr;
 }
@@ -155,7 +155,7 @@ inline void* xfind_first_char(
  const Char* S, Char C, usize max_read) {
   static_assert(sizeof(Char) <= 2);
   if constexpr (do_unsafe_multibyte_ops) {
-    using ReadType = hc::common::intn_t<4 * sizeof(Char)>;
+    using ReadType = hc::intn_t<4 * sizeof(Char)>;
     // Check if the overhead of aligning and generating a mask
     // is greater than the overlead of just doing a direct search.
     if (max_read > (alignof(ReadType) * 4))
@@ -183,7 +183,7 @@ inline wchar_t* wfind_first_char(
 template <typename Char, typename Cmp>
 inline constexpr i32 xstrcmp(
  const Char* lhs, const Char* rhs, Cmp&& cmp) {
-  using ConvType = const hc::common::uintty_t<Char>*;
+  using ConvType = const hc::uintty_t<Char>*;
   for (; *lhs && !cmp(*lhs, *rhs); ++lhs, ++rhs);
   return cmp(*ConvType(lhs), *ConvType(rhs));
 }
@@ -191,7 +191,7 @@ inline constexpr i32 xstrcmp(
 template <typename Char, typename Cmp>
 inline constexpr i32 xstrncmp(
  const Char* lhs, const Char* rhs, usize n, Cmp&& cmp) {
-  using ConvType = const hc::common::uintty_t<Char>*;
+  using ConvType = const hc::uintty_t<Char>*;
   if __expect_false(n == 0)
     return 0;
   

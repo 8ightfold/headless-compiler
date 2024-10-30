@@ -157,7 +157,7 @@ namespace hc::sys {
     static inline OpqErrorID ErrorID(T V) {
       static constexpr bool is_pow2 = !(sizeof(T) & (sizeof(T) - 1));
       static_assert(is_pow2, "sizeof(Err) must be a power of 2.");
-      using TypeVal = common::uintty_t<T>;
+      using TypeVal = uintty_t<T>;
       auto preID = __builtin_bit_cast(TypeVal, V);
       return static_cast<OpqErrorID>(preID);
     }

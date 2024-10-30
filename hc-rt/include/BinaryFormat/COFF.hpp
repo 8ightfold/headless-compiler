@@ -179,8 +179,8 @@ namespace COFF {
 
   template <usize PointerSize = sizeof(void*)>
   struct OptPEWindowsHeader {
-    using IPtr = common::intn_t<PointerSize>;
-    using UPtr = common::uintn_t<PointerSize>;
+    using IPtr = intn_t<PointerSize>;
+    using UPtr = uintn_t<PointerSize>;
   public:
     UPtr image_base;
     u32  section_alignment;

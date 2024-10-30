@@ -58,32 +58,34 @@ using isize = __make_signed(usize);
 using iptrdiff = __make_signed(decltype((u8*)nullptr - (u8*)nullptr));
 using uptrdiff = __make_unsigned(iptrdiff);
 
-namespace hc::common {
-  template <usize N> struct _IntN;
-  template <usize N> struct _UIntN;
+namespace hc {
 
-  template <> struct  _IntN<1UL>  { using type = i8; };
-  template <> struct  _IntN<2UL>  { using type = i16; };
-  template <> struct  _IntN<4UL>  { using type = i32; };
-  template <> struct  _IntN<8UL>  { using type = i64; };
-  template <> struct  _IntN<16UL> { using type = i128; };
+template <usize N> struct _IntN;
+template <usize N> struct _UIntN;
 
-  template <> struct _UIntN<1UL>  { using type = u8; };
-  template <> struct _UIntN<2UL>  { using type = u16; };
-  template <> struct _UIntN<4UL>  { using type = u32; };
-  template <> struct _UIntN<8UL>  { using type = u64; };
-  template <> struct _UIntN<16UL> { using type = u128; };
+template <> struct  _IntN<1UL>  { using type = i8; };
+template <> struct  _IntN<2UL>  { using type = i16; };
+template <> struct  _IntN<4UL>  { using type = i32; };
+template <> struct  _IntN<8UL>  { using type = i64; };
+template <> struct  _IntN<16UL> { using type = i128; };
 
-  template <usize N> using intn_t  = typename _IntN<N>::type;
-  template <usize N> using uintn_t = typename _UIntN<N>::type;
-  template <typename T> using intty_t  = intn_t<sizeof(T)>;
-  template <typename T> using uintty_t = uintn_t<sizeof(T)>;
-} // namespace hc::common
+template <> struct _UIntN<1UL>  { using type = u8; };
+template <> struct _UIntN<2UL>  { using type = u16; };
+template <> struct _UIntN<4UL>  { using type = u32; };
+template <> struct _UIntN<8UL>  { using type = u64; };
+template <> struct _UIntN<16UL> { using type = u128; };
 
-using iptr = hc::common::intty_t<void*>;
-using uptr = hc::common::uintty_t<void*>;
+template <usize N> using intn_t  = typename _IntN<N>::type;
+template <usize N> using uintn_t = typename _UIntN<N>::type;
+template <typename T> using intty_t  = intn_t<sizeof(T)>;
+template <typename T> using uintty_t = uintn_t<sizeof(T)>;
 
-using ihalfptr = hc::common::intn_t<sizeof(void*) / 2>;
+} // namespace hc
+
+using iptr = hc::intty_t<void*>;
+using uptr = hc::uintty_t<void*>;
+
+using ihalfptr = hc::intn_t<sizeof(void*) / 2>;
 using uhalfptr = __make_unsigned(ihalfptr);
 
 //======================================================================//
@@ -101,16 +103,18 @@ using f16 = __hc_f16;
 using f32 = float;
 using f64 = double;
 
-namespace hc::common {
-  template <usize N> struct _FloatN;
+namespace hc {
 
-  template <> struct _FloatN<2UL> { using type = f16; };
-  template <> struct _FloatN<4UL> { using type = f32; };
-  template <> struct _FloatN<8UL> { using type = f64; };
+template <usize N> struct _FloatN;
 
-  template <usize N> 
-  using floatn_t = typename _FloatN<N>::type;
-} // namespace hc::common
+template <> struct _FloatN<2UL> { using type = f16; };
+template <> struct _FloatN<4UL> { using type = f32; };
+template <> struct _FloatN<8UL> { using type = f64; };
+
+template <usize N> 
+using floatn_t = typename _FloatN<N>::type;
+
+} // namespace hc
 
 //======================================================================//
 // Pseudofunctions
@@ -119,10 +123,17 @@ namespace hc::common {
 #undef __sizeof
 #undef __bitsizeof
 
-namespace hc { 
-  struct __dummy { };
-  // Proxy void type.
-  struct __void  { };
+namespace hc {
+// Standard dummy type.
+struct __dummy { };
+// Proxy void type.
+struct __void {
+  __always_inline constexpr
+   __void* operator&() const noexcept {
+    return nullptr;
+  }
+};
+
 } // namespace hc
 
 template <typename T = void> 
