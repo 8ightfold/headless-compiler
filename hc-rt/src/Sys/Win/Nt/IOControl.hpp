@@ -19,7 +19,7 @@
 #pragma once
 
 #include "Filesystem.hpp"
-#include "Info.hpp"
+#include "Volume.hpp"
 #include <Common/Memory.hpp>
 
 // See https://github.com/wine-mirror/wine/blob/master/include/winioctl.h

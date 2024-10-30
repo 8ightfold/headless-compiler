@@ -22,6 +22,9 @@
 #include "Structs.hpp"
 #include "Filesystem.hpp"
 
+// For more info:
+// https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ne-wdm-_fsinfoclass
+
 #define $AssocType(ty, val) \
   template <> \
   struct FSInfoAssoc<ty> {  \

@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "Nt/Info.hpp"
+#include "Nt/Volume.hpp"
 #include "Filesystem.hpp"
 
 namespace hc::sys {
