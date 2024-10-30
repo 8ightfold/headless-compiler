@@ -15,6 +15,10 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
+//
+//  Info used for NtQueryVolumeInformationFile.
+//
+//===----------------------------------------------------------------===//
 
 #pragma once
 #pragma clang system_header
