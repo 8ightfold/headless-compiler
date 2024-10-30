@@ -79,6 +79,8 @@ concept __is_HANDLE_of = __is_HANDLE<H> && handle_in_group<H, Groups...>;
 
 __always_inline constexpr bool
  __is_valid_HANDLE(const void* data) noexcept {
+  // There are exceptions to this check (eg. Console, Process),
+  // but for the most part it holds true.
   static constexpr uptr invalid = uptr(-1LL);
   return data && (data != ptr_cast<>(invalid));
 }
