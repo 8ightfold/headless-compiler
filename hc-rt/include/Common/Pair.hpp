@@ -60,14 +60,14 @@ inline constexpr const meta::__conditional_t<!!I, T, U>&
 }
 
 template <usize I, class T, class U>
-inline constexpr meta::__conditional_t<!!I, T, U>&&
+inline constexpr meta::__conditional_t<!!I, T, U>
  get(Pair<T, U>&& V) {
   if constexpr (I == 0) return V.t;
   else return V.u;
 }
 
 template <usize I, class T, class U>
-inline constexpr const meta::__conditional_t<!!I, T, U>&&
+inline constexpr meta::__conditional_t<!!I, T, U>
  get(const Pair<T, U>&& V) {
   if constexpr (I == 0) return V.t;
   else return V.u;
