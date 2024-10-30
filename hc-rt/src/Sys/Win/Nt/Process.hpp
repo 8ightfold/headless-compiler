@@ -28,7 +28,7 @@
 
 namespace hc::sys::win {
 
-enum class ProcessInfo : ULong {
+enum class ProcInfo : ULong {
 # define ProcDecl(name, ...) name,
 # define $ProcQ_(name, ...)  name,
 # define $Proc_S(name, ...)  name,
@@ -232,7 +232,7 @@ struct TracingEntry {
   ClientID client_id;
   ULong type;
   void* stacks[/*PROCESS_HANDLE_TRACING_MAX_STACKS*/16];
-}
+};
 
 struct TracingQuery {
   GenericHandle handle;
@@ -287,16 +287,16 @@ struct InfoAssocBase {
   using TypeEx2 = TEx2;
 };
 
-template <ProcessInfo> struct InfoQuery {
+template <ProcInfo> struct InfoQuery {
   static constexpr bool isSet = false;
 };
 
-template <ProcessInfo> struct InfoSet {
+template <ProcInfo> struct InfoSet {
   static constexpr bool isSet = false;
 };
 
 #define $GenInfo(mode, name, ty...) \
-template <> struct mode <ProcessInfo::name> \
+template <> struct mode <ProcInfo::name> \
   : public InfoAssocBase<ty> {};
 #define $ProcQ_(name, ty...) $GenInfo(InfoQuery, name, ty)
 #define $Proc_S(name, ty...) $GenInfo(InfoSet, name, ty)
