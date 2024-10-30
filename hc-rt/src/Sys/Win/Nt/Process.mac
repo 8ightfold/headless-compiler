@@ -41,6 +41,10 @@
 # define $ProcUnused(name, ty...)
 #endif
 
+#ifndef _NT_PROCINFO_EXTRAS
+# define _NT_PROCINFO_EXTRAS 0
+#endif
+
 $ProcQ_(BasicInformation,           BasicInfo, BasicInfoEx)
 $ProcQS(QuotaLimits,                QuotaLimits, QuotaLimitsEx)
 $ProcQ_(IoCounters,                 IOCounters)
@@ -97,10 +101,10 @@ $ProcQS(AffinityUpdateMode,         AffinityUpdateMode)
 $ProcQS(MemoryAllocationMode,       MemoryAllocMode)
 $ProcQ_(GroupInformation,           UShort[])
 $Proc_S(TokenVirtualizationEnabled, Alt<bool, ULong>)
-$ProcQ_(ConsoleHostProcess,         ULongPtr)
+$ProcQS(ConsoleHostProcess,         ULongPtr) // PID
 
 // TODO: Fill out the rest
-#if 0
+#if _NT_PROCINFO_EXTRAS
 
 $ProcQ_(WindowInformation,                PROCESS_WINDOW_INFORMATION)
 $ProcQ_(HandleInformation,                PROCESS_HANDLE_SNAPSHOT_INFORMATION) // Since WIN8
@@ -182,3 +186,5 @@ $ProcUnused(FindFirstThreadByTebValue,PROCESS_TEB_VALUE_INFORMATION)
 #undef $Proc_S
 #undef $ProcQS
 #undef $ProcUnused
+
+#undef _NT_PROCINFO_EXTRAS
