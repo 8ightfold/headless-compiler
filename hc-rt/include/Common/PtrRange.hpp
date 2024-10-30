@@ -65,6 +65,10 @@ public:
     return static_cast<RawVoidType>(this->__data);
   }
 
+  inline constexpr RawVoidType get() const {
+    return static_cast<RawVoidType>(this->__data);;
+  }
+
   [[gnu::always_inline]] 
   constexpr bool isEmpty() const {
     return this->__data == nullptr;
@@ -122,10 +126,47 @@ template <typename T>
 using __ptr_range_base_t = typename
   _PtrRangeType<T>::type;
 
+template <typename T>
+[[nodiscard]] inline constexpr usize ptr_distance(
+ const T* lhs, const T* rhs) noexcept {
+  __hc_invariant(lhs <= rhs);
+  return (rhs - lhs);
+}
+
+[[nodiscard]] inline usize ptr_distance(
+ const void* lhs, const void* rhs) noexcept {
+  auto* blhs = static_cast<const u8*>(lhs);
+  auto* brhs = static_cast<const u8*>(rhs);
+  return ptr_distance(blhs, brhs);
+}
+
+[[nodiscard]] __always_inline usize ptr_distance(
+ _VoidPtrProxy lhs, _VoidPtrProxy rhs) noexcept {
+  return ptr_distance(lhs.get(), rhs.get());
+}
+
+template <typename T>
+[[nodiscard]] inline constexpr usize ptr_distance_bytes(
+ const T* lhs, const T* rhs) noexcept {
+  const usize dist = ptr_distance(lhs, rhs);
+  if constexpr (meta::not_void<T>) {
+    return dist * sizeof(T);
+  } else {
+    return dist;
+  }
+}
+
+[[nodiscard]] __always_inline usize ptr_distance_bytes(
+ _VoidPtrProxy lhs, _VoidPtrProxy rhs) noexcept {
+  return ptr_distance_bytes(lhs.get(), rhs.get());
+}
+
+////////////////////////////////////////////////////////////////////////
+// Implementation
+
 // TODO: Add deducing this
 
-template <typename T = void>
-struct PtrRange {
+template <typename T = void> struct PtrRange {
   using SelfType = PtrRange<T>;
   using PtrType  = __ptr_range_base_t<T>;
 public:
@@ -203,11 +244,7 @@ public:
   }
 
   usize sizeInBytes() const {
-    if constexpr (meta::is_void<T>) {
-      return this->size();
-    } else {
-      return (__end - __begin) * __sizeof(T);
-    }
+    return ptr_distance_bytes(__begin, __end);
   }
 
   bool isEmpty() const {
