@@ -15,12 +15,17 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
+//
+//  Info used for Nt[Query|Set]InformationProcess.
+//
+//===----------------------------------------------------------------===//
 
 #pragma once
 #pragma clang system_header
 
 #include "Structs.hpp"
 #include "Filesystem.hpp"
+#include "Utils.hpp"
 
 // For more info:
 // https://processhacker.sourceforge.io/doc/ntpsapi_8h_source.html
@@ -34,6 +39,8 @@ enum class ProcInfo : ULong {
 # define $Proc_S(name, ...)  name,
 # define $ProcQS(name, ...)  name,
 # define $ProcUnused(name, ...) name,
+// TODO: Remove when complete
+# define _NT_PROCINFO_EXTRAS 1
 # include "Process.mac"
   MaxValue
 };
@@ -261,21 +268,6 @@ struct WSWatchInfoEx : public WSWatchInfo {
 
 namespace proc {
 
-template <class User, class Kern>
-struct Alt { };
-
-template <class A, class B>
-struct Or { };
-
-template <class QueryType>
-struct SetSizeBool { };
-
-template <class Get, class Set>
-struct Var { };
-
-//////////////////////////////////////////////////////////////////////////
-// Implementation
-
 template <
   class T = void,
   class TEx = T,
@@ -311,23 +303,61 @@ template <> struct mode <ProcInfo::name> \
 // Wrapper
 //======================================================================//
 
-template <typename T> struct ProcTypeInfo {
+template <ProcInfo Info>
+concept is_procQuery = proc::InfoQuery<Info>::isSet;
 
+template <ProcInfo Info>
+concept is_procSet = proc::InfoSet<Info>::isSet;
+
+template <class Base> struct ProcInfoBase {
+  using Info    = QSInfo<typename Base::Type>;
+  using InfoEx  = QSInfo<typename Base::TypeEx>;
+  using InfoEx2 = QSInfo<typename Base::TypeEx2>;
 };
 
-template <class User, class Kern>
-struct ProcTypeInfo<proc::Alt<User, Kern>> {
-
+template <ProcInfo Info> struct ProcInfoQuery {
+  static_assert(is_procQuery<Info>,
+    "Query has not been enabled for this command!");
+public:
+  using Type = proc::InfoQuery<Info>;
+  using Base = ProcInfoBase<Type>;
+  // Public defs
+  using Query = QSQueryType<typename Base::Info>;
+  using QueryEx = QSQueryType<typename Base::InfoEx>;
+  using QueryEx2 = QSQueryType<typename Base::InfoEx2>;
 };
 
-template <class A, class B>
-struct ProcTypeInfo<proc::Or<A, B>> {
-
+template <ProcInfo Info> struct ProcInfoSet {
+  static_assert(is_procSet<Info>,
+    "Set has not been enabled for this command!");
+public:
+  using Type = proc::InfoSet<Info>;
+  using Base = ProcInfoBase<Type>;
+  // Public defs
+  using Set = QSSetType<typename Base::Info>;
+  using SetEx = QSSetType<typename Base::InfoEx>;
+  using SetEx2 = QSSetType<typename Base::InfoEx2>;
 };
 
-template <class A, class B>
-struct ProcTypeInfo<proc::Var<A, B>> {
+template <ProcInfo Info>
+using ProcQuery = typename ProcInfoQuery<Info>::Query;
 
+template <ProcInfo Info>
+using ProcQueryEx = typename ProcInfoQuery<Info>::QueryEx;
+
+template <ProcInfo Info>
+using ProcSet = typename ProcInfoSet<Info>::Set;
+
+template <ProcInfo Info>
+using ProcSetEx = typename ProcInfoSet<Info>::SetEx;
+
+template <class QSType, typename...Args>
+concept __is_valid_procinfo =
+  (sizeof...(Args) >= QSType::argMin)
+&& (sizeof...(Args) <= QSType::argMin)
+&& requires(Args&...args) {
+  QSType::Size(args...);
+  QSType::Arg(args...);
 };
 
 } // namespace hc::sys::win

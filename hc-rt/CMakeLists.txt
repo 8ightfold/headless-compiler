@@ -2,7 +2,7 @@ include_guard(DIRECTORY)
 
 project(
   hcrt-rt
-  VERSION 0.1.30
+  VERSION 0.1.31
   LANGUAGES CXX
 )
 

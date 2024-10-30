@@ -25,6 +25,7 @@
 #include <xcrt.hpp>
 
 #include <Sys/Win/Console.hpp>
+#include <Sys/Win/Process.hpp>
 
 using namespace hc;
 using namespace hc::bootstrap;
@@ -101,6 +102,34 @@ void TestPrintCon(StrRef Str) {
   }
 }
 
+#define TEST_QUERY(name, bound...) do { \
+  auto R = sys::query_process<name, ##bound>(); \
+  if (R.isOk()) \
+    TestPrint("Got " #name "!"); \
+  else \
+    TestPrint("Could not get " #name "."); \
+} while(0)
+
+void TestQuery() {
+  using enum ProcInfo;
+  TEST_QUERY(CycleTime);
+  TEST_QUERY(GroupInformation, 4);
+}
+
+void TestSet() {
+  using enum ProcInfo;
+  auto R = sys::query_process<ConsoleHostProcess>();
+  if (R.isErr()) {
+    TestPrint("Could not get ConsoleHostProcess.");
+    return;
+  }
+  if (!sys::set_process<ConsoleHostProcess>(R.ok())) {
+    TestPrint("Could not set ConsoleHostProcess.");
+    return;
+  }
+  TestPrint("Set ConsoleHostProcess!");
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 struct Global {
@@ -128,6 +157,8 @@ Global global {};
 int main(int V, char** Args) {
   if (V == 0)
     return 55;
+  TestQuery();
+  TestSet();
   if (!GetConsoleHandle()) {
     TestPrint("No console handle.");
     return 1;

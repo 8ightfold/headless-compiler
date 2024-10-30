@@ -24,6 +24,10 @@
 # define $NtFile(name) $NtGen(name##File)
 #endif // $NtFile
 
+#ifndef $NtProc
+# define $NtProc(name) $NtGen(name##Process)
+#endif // $NtFile
+
 // Exception
 $NtGen(RaiseException)
 $NtGen(RaiseHardError)
@@ -75,7 +79,11 @@ $NtGen(RequestPort)
 $NtGen(RequestWaitReplyPort)
 $NtGen(WriteRequestData)
 // Process
-$NtGen(TerminateProcess)
+$NtProc(Create)
+$NtProc(Open)
+$NtProc(QueryInformation)
+$NtProc(SetInformation)
+$NtProc(Terminate)
 // Profile
 $NtGen(CreateProfile)               // NtStatus(...)
 $NtGen(QueryIntervalProfile)        // NtStatus(...)
@@ -116,3 +124,4 @@ $NtGen(TestAlert)                   // NtStatus()
 
 #undef $NtGen
 #undef $NtFile
+#undef $NtProc

@@ -23,10 +23,8 @@
 #include <Bootstrap/Win64KernelDefs.hpp>
 #include <Sys/Win/Console.hpp>
 #include <Sys/Win/Filesystem.hpp>
+#include <Sys/Win/Process.hpp>
 #include <Sys/Win/Volume.hpp>
-
-// TODO: Update
-#include <Sys/Win/Nt/Process.hpp>
 
 #include <BinaryFormat/COFF.hpp>
 #include <Common/Flags.hpp>
@@ -200,9 +198,8 @@ static NtStatus CommitState(CSRConnectionState& state) {
       PP->std_err = state.ErrHandle;
   }
 
-  out_handle |= 1U;
-  // TODO: Implement:
-  // sys::set_info<ProcInfo::ConsoleHostProcess>(out_handle);
+  out_handle |= 1U; // No idea why we do this...
+  sys::set_process<ProcInfo::ConsoleHostProcess>(out_handle);
   return 0;
 }
 
@@ -224,7 +221,7 @@ static bool SetupCUIApp() {
   if (!console || M.is(CreateNewConsole, CreateNoWindow)) {
     // TODO: ConsoleAllocate(state);
   } else {
-
+    // TODO: CreateConnectionObject
   }
 
   // CommitState(state);
