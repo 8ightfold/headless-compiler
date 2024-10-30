@@ -21,11 +21,17 @@
 
 #include <Bootstrap/_NtModule.hpp>
 #include <Bootstrap/Win64KernelDefs.hpp>
+#include <Sys/Win/Console.hpp>
 #include <Sys/Win/Filesystem.hpp>
 #include <Sys/Win/Volume.hpp>
 
+// TODO: Update
+#include <Sys/Win/Nt/Process.hpp>
+
 #include <BinaryFormat/COFF.hpp>
+#include <Common/Flags.hpp>
 #include <Common/InlineMemcpy.hpp>
+#include <Common/MMatch.hpp>
 #include <Parcel/StaticVec.hpp>
 #include <Meta/Unwrap.hpp>
 
@@ -70,23 +76,41 @@ struct CSRConsoleStartInfo {
 };
 
 struct CSRConnectionState {
-
+  union {
+    u32 Flags = 0;
+    struct {
+      __prefer_type(bool) u32 HasInp: 1;	
+      __prefer_type(bool) u32 HasOut: 1;	
+      __prefer_type(bool) u32 HasErr: 1;	
+      u32 _BitPadding: 29;	
+    };
+  };
+  u32 SomeData;	
+  GenericHandle ConnectionHandle;	
+  ConsoleHandle ConsoleHandle;	
+  IOFile  InpHandle;	
+  IOFile  OutHandle;	
+  IOFile  ErrHandle;	
+  bool    IsValidHandle;	
+  u8      _Padding[7];	
 };
 
 static_assert(sizeof(Coords) == 4);
 static_assert(sizeof(CSRConsoleStartInfo) == 0x53c);
+static_assert(sizeof(CSRConnectionState) == 0x38);
 
 //////////////////////////////////////////////////////////////////////////
 // Globals
 
 __imut Win64LDRDataTableEntry* exeEntry = nullptr;
 __imut pcl::StaticVec<wchar_t, RT_MAX_PATH> exeName {};
+__imut CSRConnectionState connectionState {};
 
 } // namespace `anonymous`
 
 constinit bool XCRT_NAMESPACE::isConsoleApp = false;
 
-static bool InitializeConsoleFlag() {
+static bool InitConsoleFlag() {
   using namespace binfmt;
   auto O = __NtModule()->getHeader().win;
 
@@ -100,7 +124,7 @@ static bool InitializeConsoleFlag() {
   return (XCRT_NAMESPACE::isConsoleApp = false);
 }
 
-static void InitializeExeName() {
+static void InitExeName() {
   if (!exeName.isEmpty())
     return;
   const auto name = exeEntry->base_dll_name;
@@ -122,12 +146,12 @@ static bool InitializeServerData(CSRConsoleStartInfo* P) {
   return true;
 }
 
+/// Proxy: `ConsoleCloseIfConsoleHandle`.
+/// Signature: `NtStatus(HANDLE*)`
 static NtStatus CloseIfConsoleHandle(IOFile& handle) {
   auto tmp_handle = ConsoleHandle::New(handle);
   IoStatusBlock IO {};
-  auto info = sys::query_volume_info<FSDeviceInfo>(
-    tmp_handle, IO
-  );
+  auto info = sys::query_volume_info<FSDeviceInfo>(tmp_handle, IO);
 
   if ($NtFail(IO.status))
     return IO.status;
@@ -140,23 +164,70 @@ static NtStatus CloseIfConsoleHandle(IOFile& handle) {
   return ret;
 }
 
+/// Proxy: `ConsoleCommitState`.
+/// Signature: `NtStatus(CONSOLE_STATE*)`
+static NtStatus CommitState(CSRConnectionState& state) {
+  auto* PP = HcCurrentPEB()->process_params;
+  IoStatusBlock io {};
+  // Unknown masked flags
+  com::bitmask<9>(PP->flags);
+  com::bitmask<10>(PP->flags);
+
+  uptr out_handle = 0;
+  const auto con_handle
+    = ConsoleHandle(state.ConnectionHandle);
+  PP->console_handle = ptr_cast<__void>(con_handle.get());
+
+  if (con_handle) {
+    constexpr auto code = CtlCode::New(
+      DeviceType::Console, 0x8,
+      CtlMethod::Neither, AccessMask::Any
+    );
+    (void) sys::control_device_file(
+      con_handle, io, code,
+      AddrRange::New(),
+      AddrRange::New(ptr_cast<>(&out_handle), 8)
+    );
+  }
+
+  connectionState = state;
+  if (state.Flags & 0b111) {
+    if (state.HasInp)
+      PP->std_in = state.InpHandle;
+    if (state.HasOut)
+      PP->std_out = state.OutHandle;
+    if (state.HasErr)
+      PP->std_err = state.ErrHandle;
+  }
+
+  out_handle |= 1U;
+  // TODO: Implement:
+  // sys::set_info<ProcInfo::ConsoleHostProcess>(out_handle);
+  return 0;
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Top-level
 
 static bool SetupCUIApp() {
-  CSRConnectionState state {};
   auto* PP = HcCurrentPEB()->process_params;
+  auto console = ConsoleHandle::New(PP->console_handle);
+  const MMatch M(console);
 
-  if ((PP->console_flags & 0x4) != 0) {
+  if (PP->console_flags & 0x4) {
     CloseIfConsoleHandle(PP->std_in);
     CloseIfConsoleHandle(PP->std_in);
     CloseIfConsoleHandle(PP->std_err);
   }
 
-  auto con = PP->console_handle;
-  if (con == nullptr) {
+  CSRConnectionState state {};
+  if (!console || M.is(CreateNewConsole, CreateNoWindow)) {
     // TODO: ConsoleAllocate(state);
+  } else {
+
   }
+
+  // CommitState(state);
 
   return false;
 }
@@ -165,9 +236,9 @@ static bool SetupGUIApp() {
   auto* PP = HcCurrentPEB()->process_params;
   PP->console_handle = nullptr;
 
-  if ((PP->flags & CF_HasInp) == 0)
+  if (!com::has_flagval<CF_HasInp>(PP->flags))
     CloseIfConsoleHandle(PP->std_in);
-  if ((PP->flags & CF_HasOut) == 0)
+  if (!com::has_flagval<CF_HasOut>(PP->flags))
     CloseIfConsoleHandle(PP->std_out);
   NtStatus R = CloseIfConsoleHandle(PP->std_err);
   
@@ -176,8 +247,8 @@ static bool SetupGUIApp() {
 
 bool XCRT_NAMESPACE::setup_console() {
   exeEntry = Win64LoadOrderList::GetExecutableEntry();
-  InitializeConsoleFlag();
-  InitializeExeName();
+  InitConsoleFlag();
+  InitExeName();
   if (!isConsoleApp)
     return SetupGUIApp();
   return SetupCUIApp();
