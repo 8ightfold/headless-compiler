@@ -76,10 +76,10 @@ $ProcQS(BreakOnTermination,         ULong)
 
 $ProcQ_(DebugObjectHandle,          PortHandle)
 $ProcQS(DebugFlags,                 ULong)
-$ProcQS(HandleTracing,
+$ProcQS(HandleTracing,              // s: size 0 disables, otherwise enables
                                     Var<TracingEntry, Or<TracingEnable, void>>,
                                     Var<TracingEntry, Or<TracingEnableEx, void>>
-) // s: size 0 disables, otherwise enables
+)
 $ProcQS(IoPriority,                 IoPriorityHint)
 $ProcQS(ExecuteFlags,               MemExecOption)
 $ProcUnused(ResourceManagement)     // Deprecated

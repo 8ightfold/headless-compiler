@@ -25,14 +25,14 @@
 namespace std {
 
 template <typename T>
-using _SwapResult = std::enable_if_t<
+using __swap_result = std::enable_if_t<
   hc::meta::is_move_constructible<T> &&
   hc::meta::is_move_assignable<T>
 >;
 
 template <typename T>
 inline __abi_hidden constexpr
-_SwapResult<T> swap(T& a, T& b) __noexcept {
+__swap_result<T> swap(T& a, T& b) __noexcept {
   T tmp(__hc_move_(a));
   a = __hc_move_(b);
   b = __hc_move_(tmp);

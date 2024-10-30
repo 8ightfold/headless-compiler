@@ -20,66 +20,65 @@
 
 #include <Meta/Traits.hpp>
 
-HC_HAS_REQUIRED(builtin, __is_signed);
-HC_HAS_REQUIRED(builtin, __is_unsigned);
-
 namespace hc {
-  template <typename T>
-  struct _Limits {
-    $compile_failure(_Limits, "Undefined limit type.")
-  };
 
-  template <typename T>
-  struct _Limits<const T> : _Limits<T> { };
+template <typename T>
+struct _Limits {
+  $compile_failure(_Limits, "Undefined limit type.")
+};
 
-  template <typename T>
-  struct _Limits<volatile T> : _Limits<T> { };
+template <typename T>
+struct _Limits<const T> : _Limits<T> { };
 
-  // Implementation
+template <typename T>
+struct _Limits<volatile T> : _Limits<T> { };
 
-  template <typename T>
-  requires meta::is_signed<T>
-  struct _Limits<T> {
-    static constexpr T max = ~(T(1) << (__bitsizeof(T) - 1));
-    static constexpr T min = -max - T(1);
-    static constexpr T lowest = min;
-  };
+// Implementation
 
-  template <typename T>
-  requires meta::is_unsigned<T>
-  struct _Limits<T> {
-    static constexpr T max = ~T(0U);
-    static constexpr T min = T(0U);
-    static constexpr T lowest = min;
-  };
+template <typename T>
+requires meta::is_signed<T>
+struct _Limits<T> {
+  static constexpr T max = ~(T(1) << (__bitsizeof(T) - 1));
+  static constexpr T min = -max - T(1);
+  static constexpr T lowest = min;
+};
 
-  template <>
-  struct _Limits<f16> {
-    static constexpr f16 max = __FLT16_MAX__;
-    static constexpr f16 min = __FLT16_MIN__;
-    static constexpr f16 lowest = -min;
-  };
+template <typename T>
+requires meta::is_unsigned<T>
+struct _Limits<T> {
+  static constexpr T max = ~T(0U);
+  static constexpr T min = T(0U);
+  static constexpr T lowest = min;
+};
 
-  template <>
-  struct _Limits<f32> {
-    static constexpr f32 max = __FLT_MAX__;
-    static constexpr f32 min = __FLT_MIN__;
-    static constexpr f32 lowest = -min;
-  };
+template <>
+struct _Limits<f16> {
+  static constexpr f16 max = __FLT16_MAX__;
+  static constexpr f16 min = __FLT16_MIN__;
+  static constexpr f16 lowest = -min;
+};
 
-  template <>
-  struct _Limits<f64> {
-    static constexpr f64 max = __DBL_MAX__;
-    static constexpr f64 min = __DBL_MIN__;
-    static constexpr f64 lowest = -min;
-  };
+template <>
+struct _Limits<f32> {
+  static constexpr f32 max = __FLT_MAX__;
+  static constexpr f32 min = __FLT_MIN__;
+  static constexpr f32 lowest = -min;
+};
 
-  template <typename T>
-  __global T Max = _Limits<T>::max;
+template <>
+struct _Limits<f64> {
+  static constexpr f64 max = __DBL_MAX__;
+  static constexpr f64 min = __DBL_MIN__;
+  static constexpr f64 lowest = -min;
+};
 
-  template <typename T>
-  __global T Min = _Limits<T>::min;
+template <typename T>
+__global T Max = _Limits<T>::max;
 
-  template <typename T>
-  __global T Lowest = _Limits<T>::lowest;
+template <typename T>
+__global T Min = _Limits<T>::min;
+
+template <typename T>
+__global T Lowest = _Limits<T>::lowest;
+
 } // namespace hc
