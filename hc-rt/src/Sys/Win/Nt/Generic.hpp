@@ -18,8 +18,7 @@
 
 #pragma once
 
-#include <Bootstrap/LargeInteger.hpp>
-#include <Bootstrap/UnicodeString.hpp>
+#include <Bootstrap/WinapiDefs.hpp>
 #include <Bootstrap/Syscalls.hpp>
 #include <Common/EnumBitwise.hpp>
 #include <Common/Fundamental.hpp>
@@ -40,16 +39,34 @@
 namespace hc::sys {
 namespace win {
 
-using bootstrap::LargeInt;
-using bootstrap::ULargeInt;
-using bootstrap::UnicodeString;
-using bootstrap::StaticUnicodeString;
-using WNameRange    = common::PtrRange<wchar_t>;
-using NtStatus      = i32;
-using Long          = i32;
-using ULong         = u32;
-using DWord         = ULong;
-using Boolean       = bool; // AKA. u8
+using boot::LargeInt;
+using boot::ULargeInt;
+using boot::KPriority;
+using boot::KAffinity;
+using boot::KUserTimes;
+
+using boot::IOCounters;
+using boot::PooledUsageAndLimits;
+using boot::QuotaLimits;
+using boot::QuotaLimitsEx;
+using boot::RateQuotaLimits;
+using boot::VMCounters;
+using boot::VMCountersEx;
+using boot::VMCountersEx2;
+using boot::UnicodeString;
+using boot::StaticUnicodeString;
+
+using PEB = boot::Win64PEB;
+
+using WNameRange  = com::PtrRange<wchar_t>;
+using NtStatus    = i32;
+using UShort      = u16;
+using Long        = i32;
+using ULong       = u32;
+using LongPtr     = iptr; // __int3264
+using ULongPtr    = uptr; // unsigned __int3264
+using DWord       = ULong;
+using Boolean     = bool; // AKA. u8
 
 //====================================================================//
 // Enumerations
@@ -120,6 +137,10 @@ $MarkBitwise(AccessMask)
 $MarkBitwise(ObjAttribMask)
 $MarkBitwiseEx(AccessMaskSpecific, ULong)
 
+//====================================================================//
+// Objects
+//====================================================================//
+
 struct ObjectAttributes {
   ULong length  = sizeof(ObjectAttributes);
   FileObjHandle   root_directory = nullptr;
@@ -129,7 +150,16 @@ struct ObjectAttributes {
   void*           security_QOS = nullptr;
 };
 
+struct ClientID {
+  ProcessHandle process;
+  ThreadHandle  thread;
+};
+
 } // namespace win
+
+//====================================================================//
+// Misc.
+//====================================================================//
 
 using NtSyscall = bootstrap::Syscall;
 using win::NtStatus;

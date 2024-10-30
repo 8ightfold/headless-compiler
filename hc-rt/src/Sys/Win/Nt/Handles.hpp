@@ -65,6 +65,7 @@ $DefHANDLE(FileMap,     FILE_HANDLE);
 $DefHANDLE(Job);
 $DefHANDLE(Mailslot);
 $DefHANDLE(Mutex,       SYNC_HANDLE);
+$DefHANDLE(Port);
 $DefHANDLE(Pipe,        IPC_HANDLE, IO_HANDLE);
 $DefHANDLE(Process,     IPC_HANDLE);
 $DefHANDLE(Semaphore,   SYNC_HANDLE);

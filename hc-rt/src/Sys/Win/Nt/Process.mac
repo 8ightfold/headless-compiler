@@ -1,0 +1,184 @@
+//===- Sys/Win/Nt/Process.mac ---------------------------------------===//
+//
+// Copyright (C) 2024 Eightfold
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS)
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+//     limitations under the License.
+//
+//===----------------------------------------------------------------===//
+
+#ifndef $ProcDecl
+# define $ProcDecl(name, ty...)
+#endif
+
+#ifndef $ProcQ_
+/// QueryInformationProcess
+# define $ProcQ_(name, ty...)
+#endif
+
+#ifndef $Proc_S
+/// SetInformationProcess
+# define $Proc_S(name, ty...)
+#endif
+
+#ifndef $ProcQS
+/// [Query|Set]InformationProcess
+# define $ProcQS(name, ty...) \
+   $ProcQ_(name, ##ty)        \
+   $Proc_S(name, ##ty)
+#endif
+
+#ifndef $ProcUnused
+# define $ProcUnused(name, ty...)
+#endif
+
+$ProcQ_(BasicInformation,           BasicInfo, BasicInfoEx)
+$ProcQS(QuotaLimits,                QuotaLimits, QuotaLimitsEx)
+$ProcQ_(IoCounters,                 IOCounters)
+$ProcQ_(VmCounters,                 VMCounters, VMCountersEx, VMCountersEx2)
+$ProcQ_(Times,                      KUserTimes)
+$Proc_S(BasePriority,               KPriority)
+$Proc_S(RaisePriority,              ULong)
+$ProcQ_(DebugPort,                  LongPtr)
+$Proc_S(ExceptionPort,              ExceptionPort) // Requires SeTcbPrivilege
+$Proc_S(AccessToken,                AccessToken)
+
+$ProcQS(LdtInformation,             LDTInfo)
+$Proc_S(LdtSize,                    LDTSize)
+$ProcQS(DefaultHardErrorMode,       ULong)
+$ProcUnused(IoPortHandlers)         // Kernel only
+$ProcQ_(PooledUsageAndLimits,       PooledUsageAndLimits)
+$ProcQS(WorkingSetWatch,            Var<WSWatchInfoEx[], void>)
+$ProcQS(UserModeIOPL,               ULong) // Requires SeTcbPrivilege
+$Proc_S(EnableAlignmentFaultFixup,  Boolean)
+$ProcQS(PriorityClass,              PriorityClass)
+$ProcQS(Wx86Information,            Alt<bool, ULong>)
+
+$ProcQ_(HandleCount,                Or<ULong, HandleInfo>)
+$Proc_S(AffinityMask,               KAffinity)
+$ProcQS(PriorityBoost,              Alt<bool, ULong>)
+$ProcQS(DeviceMap,                  DevicemapInfo, DevicemapInfoEx)
+$ProcQ_(SessionInformation,         SessionInfo)
+$Proc_S(ForegroundInformation,      ForegroundInfo)
+$ProcQ_(Wow64Information,           ULongPtr)
+$ProcQ_(ImageFileName,              UnicodeString)
+$ProcQ_(LUIDDeviceMapsEnabled,      Alt<bool, ULong>)
+$ProcQS(BreakOnTermination,         ULong)
+
+$ProcQ_(DebugObjectHandle,          PortHandle)
+$ProcQS(DebugFlags,                 ULong)
+$ProcQS(HandleTracing,
+                                    Var<TracingEntry, Or<TracingEnable, void>>,
+                                    Var<TracingEntry, Or<TracingEnableEx, void>>
+) // s: size 0 disables, otherwise enables
+$ProcQS(IoPriority,                 IoPriorityHint)
+$ProcQS(ExecuteFlags,               MemExecOption)
+$ProcUnused(ResourceManagement)     // Deprecated
+$ProcQ_(Cookie,                     ULong)
+$ProcUnused(ImageInformation,       SECTION_IMAGE_INFORMATION) // TODO: q
+$ProcQ_(CycleTime,                  CycleTimeInfo) // Since VISTA
+$ProcQ_(PagePriority,               ULong)
+
+$Proc_S(InstrumentationCallback,    Or<InstrumentationCallbackInfo, void*>)
+$Proc_S(ThreadStackAllocation,      StackAllocInfo, StackAllocInfoEx)
+$ProcQ_(WorkingSetWatchEx,          WSWatchInfoEx[])
+$ProcQ_(ImageFileNameWin32,         UnicodeString)
+$ProcQ_(ImageFileMapping,           FileHandle) // Input
+$ProcQS(AffinityUpdateMode,         AffinityUpdateMode)
+$ProcQS(MemoryAllocationMode,       MemoryAllocMode)
+$ProcQ_(GroupInformation,           UShort[])
+$Proc_S(TokenVirtualizationEnabled, Alt<bool, ULong>)
+$ProcQ_(ConsoleHostProcess,         ULongPtr)
+
+// TODO: Fill out the rest
+#if 0
+
+$ProcQ_(WindowInformation,                PROCESS_WINDOW_INFORMATION)
+$ProcQ_(HandleInformation,                PROCESS_HANDLE_SNAPSHOT_INFORMATION) // Since WIN8
+$Proc_S(MitigationPolicy,                 PROCESS_MITIGATION_POLICY_INFORMATION)
+$Proc_S(DynamicFunctionTableInformation,  PROCESS_DYNAMIC_FUNCTION_TABLE_INFORMATION)
+$ProcDecl(HandleCheckingMode) // TODO: qs: ULONG; s: 0 disables, otherwise enables
+$ProcQ_(KeepAliveCount,                   PROCESS_KEEPALIVE_COUNT_INFORMATION)
+$Proc_S(RevokeFileHandles,                PROCESS_REVOKE_FILE_HANDLES_INFORMATION)
+$Proc_S(WorkingSetControl,                PROCESS_WORKING_SET_CONTROL)
+$ProcQ_(HandleTable,                      ULONG[]) // Since WINBLUE
+$ProcQS(CheckStackExtentsMode,            ULong) // KPROCESS->CheckStackExtents (CFG)
+
+$ProcQ_(CommandLineInformation,     UnicodeString)
+$ProcQ_(ProtectionInformation,      PS_PROTECTION)
+$Proc_S(MemoryExhaustion,           PROCESS_MEMORY_EXHAUSTION_INFO) // Since THRESHOLD
+$Proc_S(FaultInformation,           PROCESS_FAULT_INFORMATION)
+$ProcQ_(TelemetryIdInformation,     PROCESS_TELEMETRY_ID_INFORMATION)
+$ProcQS(CommitReleaseInformation,   PROCESS_COMMIT_RELEASE_INFORMATION)
+$ProcQS(DefaultCpuSetsInformation,  SYSTEM_CPU_SET_INFORMATION[5])
+$ProcQS(AllowedCpuSetsInformation,  SYSTEM_CPU_SET_INFORMATION[5])
+$ProcUnused(SubsystemProcess)
+$ProcQ_(JobMemoryInformation,       PROCESS_JOB_MEMORY_INFO)
+
+$ProcDecl(InPrivate) // TODO: q: Boolean; s: void // ETW // Since THRESHOLD2
+$ProcDecl(RaiseUMExceptionOnInvalidHandleClose) // TODO: qs: ULONG; s: 0 disables, otherwise enables
+$ProcDecl(IumChallengeResponse)
+$ProcQ_(ChildProcessInformation,          PROCESS_CHILD_PROCESS_INFORMATION)
+$ProcQS(HighGraphicsPriorityInformation,  Boolean) // requires SeTcbPrivilege
+$ProcQ_(SubsystemInformation,             SUBSYSTEM_INFORMATION_TYPE) // Since REDSTONE2
+$ProcQ_(EnergyValues,                     PROCESS_ENERGY_VALUES, PROCESS_EXTENDED_ENERGY_VALUES)
+$ProcQS(PowerThrottlingState,             POWER_THROTTLING_PROCESS_STATE)
+$ProcDecl(ProcessActivityThrottlePolicy,  PROCESS_ACTIVITY_THROTTLE_POLICY)
+$ProcQ_(Win32kSyscallFilterInformation,   WIN32K_SYSCALL_FILTER)
+
+$Proc_S(DisableSystemAllowedCpuSets,      Boolean)
+$ProcQ_(WakeInformation,                  PROCESS_WAKE_INFORMATION)
+$ProcQS(EnergyTrackingState,              PROCESS_ENERGY_TRACKING_STATE)
+$ProcDecl(ManageWritesToExecutableMemory, MANAGE_WRITES_TO_EXECUTABLE_MEMORY) // Since REDSTONE3
+$ProcUnused(CaptureTrustletLiveDump)
+$ProcDecl(TelemetryCoverage) // TODO: q: TELEMETRY_COVERAGE_HEADER; s: TELEMETRY_COVERAGE_POINT
+$ProcUnused(EnclaveInformation)
+$ProcQS(EnableReadWriteVmLogging,         PROCESS_READWRITEVM_LOGGING_INFORMATION)
+$ProcQ_(UptimeInformation,                PROCESS_UPTIME_INFORMATION)
+$ProcQ_(ImageSection,                     HANDLE)
+
+$ProcUnused(DebugAuthInformation) // Since REDSTONE4
+$Proc_S(SystemResourceManagement,           PROCESS_SYSTEM_RESOURCE_MANAGEMENT)
+$ProcQ_(SequenceNumber,                     ULONGLONG)
+$ProcUnused(LoaderDetour) // Since REDSTONE5
+$ProcQ_(SecurityDomainInformation,          PROCESS_SECURITY_DOMAIN_INFORMATION)
+$Proc_S(CombineSecurityDomainsInformation,  PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION)
+$ProcQS(EnableLogging,                      PROCESS_LOGGING_INFORMATION)
+$ProcQS(LeapSecondInformation,              PROCESS_LEAP_SECOND_INFORMATION)
+$Proc_S(FiberShadowStackAllocation,         PROCESS_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION) // Since 19H1
+$Proc_S(FreeFiberShadowStackAllocation,     PROCESS_FREE_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION)
+
+$Proc_S(AltSystemCallInformation,           PROCESS_SYSCALL_PROVIDER_INFORMATION) // Since 20H1
+$Proc_S(DynamicEHContinuationTargets,       PROCESS_DYNAMIC_EH_CONTINUATION_TARGETS_INFORMATION)
+$Proc_S(DynamicEnforcedCetCompatibleRanges, PROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGE_INFORMATION) // Since 20H2
+$ProcUnused(CreateStateChange) // Succeeded by NtCreateProcessStateChange // Since WIN11
+$ProcUnused(ApplyStateChange) // Succeeded by NtChangeProcessState
+$Proc_S(EnableOptionalXStateFeatures,       u64) // Optional XState feature bitmask
+$ProcQS(AltPrefetchParam,                   OVERRIDE_PREFETCH_PARAMETER) // App Launch Prefetch (ALPF) // Since 22H1
+$ProcUnused(AssignCpuPartitions)
+$Proc_S(PriorityClassEx,                    PROCESS_PRIORITY_CLASS_EX)
+$ProcQ_(MembershipInformation,              PROCESS_MEMBERSHIP_INFORMATION)
+
+$ProcQ_(EffectiveIoPriority,          IO_PRIORITY_HINT)
+$ProcQ_(EffectivePagePriority,        ULong)
+$ProcUnused(SchedulerSharedData,      SCHEDULER_SHARED_DATA_SLOT_INFORMATION) // Since 24H2
+$ProcUnused(SlistRollbackInformation)
+$ProcQ_(NetworkIoCounters,            PROCESS_NETWORK_COUNTERS)
+$ProcUnused(FindFirstThreadByTebValue,PROCESS_TEB_VALUE_INFORMATION)
+
+#endif
+
+#undef $ProcDecl
+#undef $ProcQ_
+#undef $Proc_S
+#undef $ProcQS
+#undef $ProcUnused
