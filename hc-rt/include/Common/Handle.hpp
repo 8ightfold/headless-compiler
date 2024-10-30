@@ -61,6 +61,10 @@ public:
     return { _BoundAttr<AA>{}..., T{__hc_fwd(args)...} };
   }
 
+  constexpr decltype(auto) get(this auto&& self) {
+    return __hc_fwd(self).__data;
+  }
+
 public:
   T __data { };
 };
