@@ -23,7 +23,8 @@
 namespace hc::sys {
 inline namespace __nt {
 
-__nt_attrs win::FileObjHandle open_file(
+[[nodiscard]] __nt_attrs
+win::FileObjHandle open_file(
  NtAccessMask mask,
  win::ObjectAttributes& attr,
  win::IoStatusBlock& io, 

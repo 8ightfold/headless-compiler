@@ -98,7 +98,7 @@ inline __abi_hidden void __qpi_assign(To& to, From from) {
 }
 
 template <win::ProcInfo InfoClass, typename...Query>
-__nt_attrs auto query_process_info(
+[[nodiscard]] __nt_attrs auto query_process_info(
   win::ProcessHandle handle, Query&&...query)
  -> com::Pair<win::NtStatus, /*Length*/ win::ULong> {
   using QType = win::ProcQuery<InfoClass>;
@@ -125,7 +125,7 @@ __nt_attrs auto query_process_info(
 }
 
 template <win::ProcInfo InfoClass, usize ArrSize = 0>
-inline auto query_process(win::ProcessHandle handle)
+[[nodiscard]] inline auto query_process(win::ProcessHandle handle)
  -> QueryResult<win::ProcQuery<InfoClass>> {
   using QType = win::ProcQuery<InfoClass>;
   // Return ASAP if invalid.
@@ -139,7 +139,7 @@ inline auto query_process(win::ProcessHandle handle)
 }
 
 template <win::ProcInfo InfoClass, usize ArrSize = 0>
-inline auto query_process() {
+[[nodiscard]] inline auto query_process() {
   return query_process<InfoClass, ArrSize>(current_process());
 }
 

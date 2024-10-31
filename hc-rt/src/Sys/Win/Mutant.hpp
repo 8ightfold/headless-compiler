@@ -23,7 +23,8 @@
 namespace hc::sys {
 inline namespace __nt {
 
-__nt_attrs win::MutexHandle create_mutant(
+[[nodiscard]] __nt_attrs
+win::MutexHandle create_mutant(
   win::NtStatus& S,
   NtAccessMask mask = win::MutantAllAccess,
   const wchar_t* name = nullptr,
