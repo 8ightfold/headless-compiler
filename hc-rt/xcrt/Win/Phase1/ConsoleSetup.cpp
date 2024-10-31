@@ -144,6 +144,29 @@ static bool InitializeServerData(CSRConsoleStartInfo* P) {
   return true;
 }
 
+/// Proxy: `ConsoleIsCallerInLowbox`.
+/// Signature: `NtStatus(BOOLEAN*)`
+static NtStatus IsCallerInLowbox(bool& out) {
+  TokenHandle handle = ThreadEffectiveToken;
+  ULong token_class  = /*TokenIsAppContainer*/ 0x1D;
+  ULong return_buf  = 0;
+  ULong return_size = 0;
+  
+  NtStatus status = sys::isyscall<
+   Syscall::QueryInformationToken>(
+    handle, token_class,
+    &return_buf, sizeof(return_buf),
+    &return_size
+  );
+
+  if ($NtSuccess(status)) {
+    out = !!return_buf;
+    status = 0;
+  }
+
+  return status;
+}
+
 /// Proxy: `ConsoleCloseIfConsoleHandle`.
 /// Signature: `NtStatus(HANDLE*)`
 static NtStatus CloseIfConsoleHandle(IOFile& handle) {
@@ -200,6 +223,9 @@ static NtStatus CommitState(CSRConnectionState& state) {
 
   out_handle |= 1U; // No idea why we do this...
   sys::set_process<ProcInfo::ConsoleHostProcess>(out_handle);
+  // TODO:
+  // InitializeCtrlHandling();
+  // NVar1 = SetTEBLangID();
   return 0;
 }
 
@@ -222,6 +248,18 @@ static bool SetupCUIApp() {
     // TODO: ConsoleAllocate(state);
   } else {
     // TODO: CreateConnectionObject
+    NtStatus status = 0;
+    $scope {
+      bool in_lowbox = false
+      if (status != /*STATUS_ACCESS_DENIED*/ 0xC0000022)
+        break;
+      if ($NtFail(IsCallerInLowbox(in_lowbox)))
+        break;
+      if (!in_lowbox)
+        break;
+      // sys::close_file(state.ConsoleHandle);
+      // TODO: ALLOC_CONSOLE
+    }
   }
 
   // CommitState(state);

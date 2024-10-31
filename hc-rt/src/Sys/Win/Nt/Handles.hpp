@@ -25,6 +25,10 @@
 #include <Common/Handle.hpp>
 #include <Common/Casting.hpp>
 
+// For more info:
+// https://en.wikipedia.org/wiki/Object_Manager
+// https://github.com/hfiref0x/WinObjEx64/blob/master/Source/WinObjEx64/objects.h#L27
+
 #define _HC_NTHANDLE_GROUP(name) InGroup<name>
 
 #define $DefHANDLEEx(name, groups...) \
@@ -52,6 +56,7 @@ $HandleGroup(FILE_HANDLE);
 $HandleGroup(IO_HANDLE);
 $HandleGroup(IPC_HANDLE);
 $HandleGroup(SYNC_HANDLE);
+$HandleGroup(TOKEN_HANDLE);
 $HandleGroup(WAIT_HANDLE);
 
 $DefHANDLE(AccessTok);
@@ -63,13 +68,21 @@ $DefHANDLE(Event);
 $DefHANDLE(File,        FILE_HANDLE, IO_HANDLE);
 $DefHANDLE(FileMap,     FILE_HANDLE);
 $DefHANDLE(Job);
+$DefHANDLE(Key);
 $DefHANDLE(Mailslot);
 $DefHANDLE(Mutex,       SYNC_HANDLE);
 $DefHANDLE(Port);
 $DefHANDLE(Pipe,        IPC_HANDLE, IO_HANDLE);
 $DefHANDLE(Process,     IPC_HANDLE);
+$DefHANDLE(Section);
 $DefHANDLE(Semaphore,   SYNC_HANDLE);
+$DefHANDLE(Symlink,     FILE_HANDLE);
 $DefHANDLE(Thread,      IPC_HANDLE);
+$DefHANDLE(Timer,       SYNC_HANDLE);
+$DefHANDLE(Token,       TOKEN_HANDLE);
+
+using AccessTok = AccessTokHandle;
+using SymbolicLink = SymlinkHandle;
 
 template <typename H>
 concept __is_HANDLE = handle_in_group<H, HANDLE>;
@@ -168,6 +181,10 @@ constexpr bool operator==(
 $DefProxy(InvalidHandle,    -1);
 $DefProxy(CreateNewConsole, -2, CONSOLE_HANDLE, FILE_HANDLE);
 $DefProxy(CreateNoWindow,   -3, CONSOLE_HANDLE, FILE_HANDLE);
+
+$DefProxy(ProcessToken,         -4, TOKEN_HANDLE);
+$DefProxy(ThreadToken,          -5, TOKEN_HANDLE);
+$DefProxy(ThreadEffectiveToken, -6, TOKEN_HANDLE);
 
 } // namespace hc::sys::win
 

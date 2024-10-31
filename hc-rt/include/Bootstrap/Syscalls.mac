@@ -115,6 +115,8 @@ $NtGen(CreateTimer)
 $NtGen(OpenTimer)
 $NtGen(QueryTimer)
 $NtGen(SetTimer)
+// Token
+$NtGen(QueryInformationToken)
 // Misc.
 $NtGen(Close)                       // NtStatus(WinHandle)
 $NtGen(GetCurrentProcessorNumber)   // ULong()
