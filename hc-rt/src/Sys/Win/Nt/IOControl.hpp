@@ -53,6 +53,7 @@ struct __packed_alignas(CTL_TYPE) CtlCode {
   }
 
   static CTL_TYPE ToCode(CtlCode code) {
+    // TODO: Add consteval?
     return com::__bit_cast<CTL_TYPE>(code);
   }
 
