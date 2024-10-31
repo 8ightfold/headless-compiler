@@ -105,7 +105,7 @@ struct BasicInfoEx {
 // ...
 
 struct AccessToken {
-  AccessTokHandle token; // TOKEN_ASSIGN_PRIMARY access
+  AccessTok token; // TOKEN_ASSIGN_PRIMARY access
   ThreadHandle thread; // THREAD_QUERY_INFORMATION access
 };
 
