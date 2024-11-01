@@ -18,9 +18,11 @@
 
 #include <Phase1/ConsoleSetup.hpp>
 #include <Memory/Box.hpp>
+#include <String/Utils.hpp>
 
 #include <Bootstrap/_NtModule.hpp>
 #include <Bootstrap/Win64KernelDefs.hpp>
+#include <Bootstrap/KUserSharedData.hpp>
 #include <Sys/Win/Console.hpp>
 #include <Sys/Win/Filesystem.hpp>
 #include <Sys/Win/Process.hpp>
@@ -33,6 +35,15 @@
 #include <Parcel/StaticVec.hpp>
 #include <Meta/Unwrap.hpp>
 
+#define PACKING_TEST(obj, offset, member) \
+ static_assert($offsetof(member, obj) == offset, \
+  #obj "::" #member " is offset incorrectly. Please report this.")
+
+#define STRT_TEST(offset, member) \
+  PACKING_TEST(CSRConsoleStartInfo, offset, member)
+#define CONN_TEST(offset, member) \
+  PACKING_TEST(CSRConnectionObject, offset, member)
+
 using namespace hc;
 using namespace hc::bootstrap;
 using namespace hc::sys::win;
@@ -44,7 +55,28 @@ enum ConsoleFlags : u32 {
   CF_HasOut = 0x400,
 };
 
-struct Coords {
+enum StartFlags : u32 {
+  SF_UseShowWindow    = 0x1,
+  SF_UseSize          = 0x2,
+  SF_UsePosition      = 0x4,
+  SF_UseCountChars    = 0x8,
+  SF_UseFillAttribute = 0x10,
+  SF_RunFullscreen    = 0x20,
+  SF_ForceOnFeedback  = 0x40,
+  SF_ForceOffFeedback = 0x80,
+  SF_UseStdHandles    = 0x100,
+  // Winver 0x400
+  SF_UseHotkey        = 0x200,
+  SF_ShellPrivate     = 0x400,
+  SF_TitleIsLinkName  = 0x800,
+  SF_TitleIsAppID     = 0x1000,
+  SF_PreventPinning   = 0x2000,
+};
+
+//////////////////////////////////////////////////////////////////////////
+// Objects
+
+struct Coords /*TODO*/ {
   u16 X = 0;
   u16 Y = 0;
 };
@@ -53,7 +85,7 @@ struct CSRConsoleParams {
 
 };
 
-struct CSRConsoleStartInfo {
+struct __packed_align(4) CSRConsoleStartInfo {
   int       IconIndex;
   int       HotKey;
   u32       WindowFlags;
@@ -77,25 +109,57 @@ struct CSRConnectionState {
   union {
     u32 Flags = 0;
     struct {
-      __prefer_type(bool) u32 HasInp: 1;	
-      __prefer_type(bool) u32 HasOut: 1;	
-      __prefer_type(bool) u32 HasErr: 1;	
-      u32 _BitPadding: 29;	
+      __prefer_type(bool) u32 HasInp : 1;
+      __prefer_type(bool) u32 HasOut : 1;
+      __prefer_type(bool) u32 HasErr : 1;
+      u32 _BitPadding: 29;
     };
   };
-  u32 SomeData;	
-  GenericHandle ConnectionHandle;	
-  ConsoleHandle ConsoleHandle;	
-  IOFile  InpHandle;	
-  IOFile  OutHandle;	
-  IOFile  ErrHandle;	
-  bool    IsValidHandle;	
-  u8      _Padding[7];	
+  u32 SomeData;
+  GenericHandle ConnectionHandle;
+  ConsoleHandle ConsoleHandle;
+  IOFile  InpHandle;
+  IOFile  OutHandle;
+  IOFile  ErrHandle;
+  bool    IsValidHandle;
+  u8      _Padding[7];
 };
+
+struct __packed_align(4) CSRConnectionObject {
+  static constexpr usize ExtraSize(usize N) {
+    return N * sizeof(char);
+  }
+public:
+  ULong               Size;
+  ULong               ID;
+  char                ServerName[7];
+  CSRConsoleStartInfo ConsoleData;
+  u8                  Head;
+  ULong               Body;
+  u8                  Tail;
+  u8                  NameSize;
+  UShort              BufferSize;
+  char                Extra[8];
+};
+
+STRT_TEST(0x020, IsConsoleApplication);
+STRT_TEST(0x022, TitleSize);
+STRT_TEST(0x024, Title);
+STRT_TEST(0x22e, BaseDllNameSize);
+STRT_TEST(0x230, BaseDllName);
+STRT_TEST(0x330, DosPathSize);
+STRT_TEST(0x332, DosPath);
+
+CONN_TEST(0x8,   ServerName);
+CONN_TEST(0xf,   ConsoleData);
+CONN_TEST(0x54b, Head);
+CONN_TEST(0x551, NameSize);
+CONN_TEST(0x554, Extra);
 
 static_assert(sizeof(Coords) == 4);
 static_assert(sizeof(CSRConsoleStartInfo) == 0x53c);
-static_assert(sizeof(CSRConnectionState) == 0x38);
+static_assert(sizeof(CSRConnectionState)  == 0x38);
+static_assert(sizeof(CSRConnectionObject) == 0x55c);
 
 //////////////////////////////////////////////////////////////////////////
 // Globals
@@ -122,6 +186,8 @@ static bool InitConsoleFlag() {
   return (XCRT_NAMESPACE::isConsoleApp = false);
 }
 
+/// Proxy: `InitExeName`
+/// Signature: `void(void)`
 static void InitExeName() {
   if (!exeName.isEmpty())
     return;
@@ -136,15 +202,91 @@ static void InitExeName() {
   exeName.push(L'\0');
 }
 
-static bool InitializeServerData(CSRConsoleStartInfo* P) {
-  if (P == nullptr)
-    return false;
-  
+static inline int ParseShellInfo(
+ UnicodeString& info, const wchar_t* keyword) {
+  __hc_invariant(keyword != nullptr);
+  const usize len = xcrt::wstringlen(keyword);
+  wchar_t* off = xcrt::wfind_first_str(
+    info.buffer, keyword, info.getSize());
 
-  return true;
+  // IconVal = (SIZE_T)wcsstr(ShellInfoBuf,L"dde.");
+  // if ((wchar_t *)IconVal != NULL) {
+  //   Icon_Str.Buffer = (PWSTR)(IconVal + 8);
+  //   for (ShellInfoBuf = Icon_Str.Buffer; (0x2f < (ushort)*ShellInfoBuf && ((ushort)*ShellInfoBuf < 0x3a) );
+  //       ShellInfoBuf = ShellInfoBuf + 1) {
+  //   }
+  //   Icon_Str.Length = (short)ShellInfoBuf - (short)Icon_Str.Buffer;
+  //   Icon_Str.MaximumLength = Icon_Str.Length;
+  //   RtlUnicodeStringToInteger(&Icon_Str,0,&DDE_Val);
+  //   IconVal = (SIZE_T)DDE_Val;
+  // }
+
+  if (off == nullptr)
+    // TODO: Uhh? Check on this idk...
+    return reinterpret_cast<uptr>(off);
+
+  UnicodeString icon { .buffer = off };
+  
+  return int_cast<int>(0);
 }
 
-/// Proxy: `ConsoleIsCallerInLowbox`.
+/// Proxy: `ConsoleInitializeServerData`
+/// Signature: `NtStatus(CONSOLE_SERVER_DATA*)`
+static NtStatus InitializeServerData(CSRConsoleStartInfo& info) {
+  auto* PP = HcCurrentPEB()->process_params;
+  const auto con_handle
+    = ConsoleHandle::New(PP->console_handle);
+  
+  info.IsConsoleApplication = XCRT_NAMESPACE::isConsoleApp;
+  info.CreateNoWindow = (con_handle == CreateNoWindow);
+  info.WindowFlags = PP->flags;
+
+  if (PP->group_id != 0) {
+    info.ProcessGroupId = PP->group_id;
+  } else {
+    $unreachable_msg("Shit!");
+    // info.ProcessGroupId = ClientId.UniqueProcess;
+  }
+
+  UnicodeString shell_info = PP->shell_info;
+  if (shell_info.buffer != nullptr) {
+    int hotkey = 0;
+    // IconVal = (SIZE_T)wcsstr(ShellInfoBuf,L"dde.");
+    // if ((wchar_t *)IconVal != NULL) {
+    //   Icon_Str.Buffer = (PWSTR)(IconVal + 8);
+    //   for (ShellInfoBuf = Icon_Str.Buffer; (0x2f < (ushort)*ShellInfoBuf && ((ushort)*ShellInfoBuf < 0x3a) );
+    //       ShellInfoBuf = ShellInfoBuf + 1) {
+    //   }
+    //   Icon_Str.Length = (short)ShellInfoBuf - (short)Icon_Str.Buffer;
+    //   Icon_Str.MaximumLength = Icon_Str.Length;
+    //   RtlUnicodeStringToInteger(&Icon_Str,0,&DDE_Val);
+    //   IconVal = (SIZE_T)DDE_Val;
+    // }
+    // pData->IconIndex = (int)IconVal;
+    // 
+    // if (!has_flagval<SF_UseHotkey>(PP->flags)) {
+    //   HotKeyVal = wcsstr((PParams->ShellInfo).Buffer,L"hotkey.");
+    //   if (HotKeyVal != NULL) {
+    //     Hotkey_Str.Buffer = HotKeyVal + 7;
+    //     for (ShellInfoBuf = Hotkey_Str.Buffer;
+    //       (*ShellInfoBuf > L'/') && (*ShellInfoBuf < L':'); ShellInfoBuf += 1)
+    //     {
+    //     }
+    //     Hotkey_Str.Length = (short)ShellInfoBuf - (short)Hotkey_Str.Buffer;
+    //     Hotkey_Str.MaximumLength = Hotkey_Str.Length;
+    //     RtlUnicodeStringToInteger(&Hotkey_Str,0,&Hotkey_Val);
+    //     HotKeyVal = (wchar_t *)(ulonglong)Hotkey_Val;
+    //   }
+    // } else {
+    //   hotkey = (wchar_t *)(ulonglong)*(uint *)&PParams->hStdInput;
+    // }
+    info.HotKey = hotkey;
+  }
+
+  return 0;
+}
+
+/// Proxy: `ConsoleIsCallerInLowbox`
 /// Signature: `NtStatus(BOOLEAN*)`
 static NtStatus IsCallerInLowbox(bool& out) {
   TokenHandle handle = ThreadEffectiveToken;
@@ -167,7 +309,7 @@ static NtStatus IsCallerInLowbox(bool& out) {
   return status;
 }
 
-/// Proxy: `ConsoleCloseIfConsoleHandle`.
+/// Proxy: `ConsoleCloseIfConsoleHandle`
 /// Signature: `NtStatus(HANDLE*)`
 static NtStatus CloseIfConsoleHandle(IOFile& handle) {
   auto tmp_handle = ConsoleHandle::New(handle);
@@ -183,6 +325,38 @@ static NtStatus CloseIfConsoleHandle(IOFile& handle) {
     = sys::close_file(tmp_handle);
   handle = nullptr;
   return ret;
+}
+
+/// Proxy: `ConsoleCreateConnectionObject`
+/// Signature: `NtStatus(HANDLE*, HANDLE, char*, void* buf, u16 buflen)
+static NtStatus CreateConnectionObject(
+ FileObjRef out, ConsoleHandle console,
+ StrRef name, AddrRange buf
+) {
+  CSRConsoleStartInfo info {};
+
+
+  // __array_memcpy(obj->ServerName, "server");
+
+  return 0;
+}
+
+/// Proxy: `ConsoleAttatchOrAllocate`
+/// Signature: `NtStatus(CONNECTION_STATE*, wchar_t*)`
+static NtStatus AttatchOrAllocate(CSRConnectionState& state, wchar_t* str) {
+
+  return 0;
+}
+
+/// Proxy: `ConsoleAllocate`
+/// Signature: `NtStatus(CONNECTION_STATE*)`
+static NtStatus AllocateConsole(CSRConnectionState& state) {
+  NtStatus status = 0;
+  if (!KUSER_SHARED_DATA.Dbg.ConsoleBrokerEnabled) {
+
+  }
+
+  return status;
 }
 
 /// Proxy: `ConsoleCommitState`.
@@ -246,20 +420,19 @@ static bool SetupCUIApp() {
   CSRConnectionState state {};
   if (!console || M.is(CreateNewConsole, CreateNoWindow)) {
     // TODO: ConsoleAllocate(state);
-  } else {
+  } else $scope {
     // TODO: CreateConnectionObject
     NtStatus status = 0;
-    $scope {
-      bool in_lowbox = false
-      if (status != /*STATUS_ACCESS_DENIED*/ 0xC0000022)
-        break;
-      if ($NtFail(IsCallerInLowbox(in_lowbox)))
-        break;
-      if (!in_lowbox)
-        break;
-      // sys::close_file(state.ConsoleHandle);
-      // TODO: ALLOC_CONSOLE
-    }
+    
+    bool in_lowbox = false;
+    if (status != /*STATUS_ACCESS_DENIED*/ 0xC0000022)
+      break;
+    if ($NtFail(IsCallerInLowbox(in_lowbox)))
+      break;
+    if (!in_lowbox)
+      break;
+    // sys::close_file(state.ConsoleHandle);
+    // TODO: ALLOC_CONSOLE
   }
 
   // CommitState(state);
