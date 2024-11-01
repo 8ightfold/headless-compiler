@@ -290,7 +290,11 @@ inline constexpr T&&
 # define __hc_invariant(expr...) __hc_cxassert(expr)
 #endif // __hc_invariant
 
-#define __hc_clear_padding(expr...) __builtin_clear_padding(&(expr))
+#if __has_builtin(__builtin_clear_padding)
+# define __hc_clear_padding(expr...) __builtin_clear_padding(&(expr))
+#else
+# define __hc_clear_padding(expr...) (void(0))
+#endif
 
 #define __hc_todo(name, ret...) \
  do { __hc_unreachable(name " is unimplemented."); \
