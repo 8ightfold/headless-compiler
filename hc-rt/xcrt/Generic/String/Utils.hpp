@@ -268,11 +268,11 @@ inline constexpr i32 xstrncmp(
 
 template <bool IsReversed, typename Char>
 inline hc::Pair<usize, usize> xCR_lex_search(
- const Char* needle, usize needle_len, usize& period) {
+ const Char* needle, usize needle_len, usize period) {
   usize max_suffix = hc::Max<usize>;
   usize Nx = 0; // Needle Ix.
-  usize Kx = IsReversed; // Period Ix.
-  usize ptmp = IsReversed;
+  usize Kx = 1; // Period Ix.
+  usize ptmp = 1;
 
   auto cmp = [](Char a, Char b) -> bool {
     if constexpr (IsReversed)
@@ -302,23 +302,24 @@ inline hc::Pair<usize, usize> xCR_lex_search(
     }
   }
 
-  if (!IsReversed)
-    period = ptmp;
   return {max_suffix, ptmp};
 }
 
 template <typename Char>
 inline usize critical_factorization(
  const Char* needle, usize needle_len, usize& period) {
-  auto [max_suffix, _]
+  auto [max_suffix, p]
     // Normal
     = xCR_lex_search<false>(needle, needle_len, period);
-  auto [max_suffix_r, p]
+  auto [max_suffix_r, pr]
     // Reversed
     = xCR_lex_search<true>(needle, needle_len, period);
-  if (max_suffix_r < max_suffix)
-    return max_suffix + 1;
+  
   period = p;
+  // Add 1 as `Max<usize> == -1`.
+  if (max_suffix_r + 1 < max_suffix + 1)
+    return max_suffix + 1;
+  period = pr;
   return max_suffix_r + 1;
 }
 
