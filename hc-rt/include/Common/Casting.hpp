@@ -42,7 +42,7 @@ __abi_hidden constexpr To __int_cast(From V) {
     meta::MakeUnsigned<From>
   >;
   const auto I = static_cast<CastType>(V);
-  return static_cast<To>(V);
+  return static_cast<To>(I);
 }
 
 /// Will either cast from `From` to `To`, or to the underlying integral type.
