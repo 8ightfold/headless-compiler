@@ -299,21 +299,48 @@ struct Win64CurrDir {
   Win64Handle handle; // ?
 };
 
+/// Same as `RTL_DRIVE_LETTER_CURDIR`.
+struct Win64DLCurrDir {
+  u16 flags;
+  u16 length;
+  u32 timestamp;
+  Win64UnicodeString dos_path;
+};
+
 struct Win64ProcParams {
-  u32          allocation_size;
-  u32          size;
-  u32          flags;
-  u32          debug_flags;
-  Win64Handle  console_handle;
-  u32          console_flags;
-  IOFile       std_in;
-  IOFile       std_out;
-  IOFile       std_err;
-  Win64CurrDir curr_dir;
-  Win64UnicodeString dll_path;
-  Win64UnicodeString image_path;
-  Win64UnicodeString commandline;
-  wchar_t*     environment;
+  u32                 allocation_size;
+  u32                 size;
+  u32                 flags;
+  u32                 debug_flags;
+  Win64Handle         console_handle;
+  u32                 console_flags;
+  IOFile              std_in;
+  IOFile              std_out;
+  IOFile              std_err;
+  Win64CurrDir        curr_dir;
+  Win64UnicodeString  dll_path;
+  Win64UnicodeString  image_path;
+  Win64UnicodeString  commandline;
+  wchar_t*            environment;
+  u32                 X;
+  u32                 Y;
+  u32                 X_count;
+  u32                 Y_count;
+  u32                 X_chars;
+  u32                 Y_chars;
+  u32                 fill_attrib;
+  u32                 window_flags;
+  u32                 show_window;
+  Win64UnicodeString  window_title;
+  Win64UnicodeString  desktop;
+  Win64UnicodeString  shell_info;
+  Win64UnicodeString  runtime_info;
+  Win64DLCurrDir      dl_curr_dir[32];
+  uptr                environment_size;
+  uptr                environment_version;
+  Win64Addr           package_dependency_data;
+  u32                 group_id;
+  u32                 loader_threads;
   // ...
   HC_MARK_DELETED(Win64ProcParams);
 public:
@@ -353,6 +380,9 @@ public:
   Win64MemOrderList*  getLDRModulesInMemOrder() const;
   Win64LoadOrderList* getLDRModulesInLoadOrder() const;
 };
+
+static_assert(sizeof(Win64DLCurrDir) == 0x18);
+static_assert(sizeof(Win64ProcParams) == 0x410);
 
 //======================================================================//
 // TEB Data
