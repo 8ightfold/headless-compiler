@@ -106,4 +106,9 @@ else()
   target_link_libraries(nostartup PUBLIC hc::rt)
   # target_link_options(nostartup PUBLIC -v)
 endif()
-target_include_directories(${DRIVER_NAME} PRIVATE hc-rt/src hc-rt/xcrt)
+target_include_directories(
+  ${DRIVER_NAME} PRIVATE
+  hc-rt/src
+  hc-rt/xcrt/Generic
+  hc-rt/xcrt/${PLATFORM}
+)

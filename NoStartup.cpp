@@ -22,7 +22,9 @@
 #include <Common/StrRef.hpp>
 #include <Meta/Once.hpp>
 #include <Sys/Win/Except.hpp>
+
 #include <xcrt.hpp>
+#include <String/Utils.hpp>
 
 #include <Sys/Win/Console.hpp>
 #include <Sys/Win/Process.hpp>
@@ -130,6 +132,51 @@ void TestSet() {
   TestPrint("Set ConsoleHostProcess!");
 }
 
+template <usize N>
+void TestStrnlenI(const char(&A)[N], usize max) {
+  TestPrint(A);
+  constexpr usize N2 = (N - 1);
+  const usize Ex = (N2 > max) ? max : N2;
+  if (xcrt::stringnlen(A, max) == Ex)
+    TestPrint("   [PASSED]");
+  else
+    TestPrint("   [FAILED]");
+}
+
+void TestStrnlen() {
+  TestStrnlenI("jdasjkjasdkj", 512);
+  TestStrnlenI("asdsaasdasd", 3);
+  TestStrnlenI("a", 512);
+  TestStrnlenI("b", 1);
+  TestStrnlenI("c", 0);
+  TestStrnlenI("382828282828282", 7);
+  TestStrnlenI("3828282828", 77);
+}
+
+template <usize N>
+void TestStrstrI(const char(&A)[N], const char* needle, bool B) {
+  TestPrint(A);
+  TestPrint(needle);
+  if (!!xcrt::find_first_str(A, needle, (N - 1)) == B)
+    TestPrint("   [PASSED]");
+  else
+    TestPrint("   [FAILED]");
+}
+
+void TestStrstr() {
+  TestStrstrI("abcdefg", "def", true);
+  TestStrstrI("abcdefg", "efg", true);
+  TestStrstrI(
+    "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz",
+    "zabcdefghijkl", true
+  );
+  TestStrstrI("abcdfeg", "def", false);
+  TestStrstrI(
+    "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxy",
+    "zabcdefghijklmnopqrstuvwxyz", false
+  );
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 struct Global {
@@ -155,14 +202,16 @@ void static_() {
 Global global {};
 
 int main(int V, char** Args) {
-  if (V == 0)
-    return 55;
-  TestQuery();
-  TestSet();
+  // TestQuery();
+  // TestSet();
+  // TestStrnlen();
+  TestStrstr();
+
   if (!GetConsoleHandle()) {
     TestPrint("No console handle.");
     return 1;
   }
+
   for (int Ix = 0; Ix < V; ++Ix) {
     StrRef S = Args[Ix];
     TestPrintCon(S);
