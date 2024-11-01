@@ -13,3 +13,4 @@ build
 .vscode
 **/*.inc
 **/Libcxx.hpp
+**/*.hidden.*
