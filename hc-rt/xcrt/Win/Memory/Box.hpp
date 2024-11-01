@@ -70,13 +70,13 @@ template <typename T> struct Box {
 
 public:
   static Box New(auto&&...args) {
-    T* P = box_new(0, __hc_fwd(args)...);
+    T* P = box_new<T>(0, __hc_fwd(args)...);
     return Box(P);
   }
 
   static Box NewExtra(usize N, auto&&...args) {
     const usize extra = T::ExtraSize(N);
-    T* P = box_new(extra, __hc_fwd(args)...);
+    T* P = box_new<T>(extra, __hc_fwd(args)...);
     return Box(P);
   }
 
@@ -100,7 +100,17 @@ public:
     return *get();
   }
 
-  T* operator*() const& {
+  const T& operator*() const& {
+    __hc_invariant(data != nullptr);
+    return *get();
+  }
+
+  T* operator->()& {
+    __hc_invariant(data != nullptr);
+    return get();
+  }
+
+  const T* operator->() const& {
     __hc_invariant(data != nullptr);
     return get();
   }
