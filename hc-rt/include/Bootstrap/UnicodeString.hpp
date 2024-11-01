@@ -41,6 +41,14 @@ public:
   [[nodiscard]] static UnicodeString New(wchar_t* str);
   [[nodiscard]] static UnicodeString New(wchar_t* str, usize max);
   [[nodiscard]] static UnicodeString New(com::PtrRange<wchar_t> R);
+
+  [[nodiscard]] static UnicodeString New(const wchar_t* str) {
+    return UnicodeString::New(const_cast<wchar_t*>(str));
+  }
+  [[nodiscard]] static UnicodeString New(const wchar_t* str, usize max) {
+    return UnicodeString::New(const_cast<wchar_t*>(str), max);
+  }
+
   usize getSize() const { return __size / sizeof(wchar_t); }
   usize getMaxSize() const { return __size_max / sizeof(wchar_t); }
   bool isEqual(const UnicodeString& rhs) const;
@@ -63,10 +71,12 @@ public:
   }
 
   constexpr StaticUnicodeString(wchar_t C, auto...CC) :
-   StaticUnicodeString(u16(sizeof...(CC) + 1)), 
+   UnicodeString(), 
    __buffer{C, static_cast<wchar_t>(CC)...} {
     static_assert(sizeof...(CC) < N);
-    // UnicodeString::size = u16(sizeof...(CC) + 1);
+    UnicodeString::__size = u16(sizeof...(CC) + 1);
+    UnicodeString::__size_max = sizeMax;
+    UnicodeString::buffer = this->__buffer;
   }
 
   constexpr StaticUnicodeString(char C, auto...CC) :
@@ -111,11 +121,24 @@ StaticUnicodeString(T, TT...)
 //////////////////////////////////////////////////////////////////////////
 
 template <class Char, Char...CC>
-__ndbg_inline constexpr auto operator ""_UStr() noexcept {
+__ndbg_inline constexpr auto operator ""_UBuf() noexcept {
   constexpr usize N = sizeof...(CC) + 1;
-  using Type = StaticUnicodeString<Align::Up(N)>;
-  return Type::New(static_cast<wchar_t>(CC)..., L'\0');
+  using Type = StaticUnicodeString<Align::Up(N + 1)>;
+  return Type { static_cast<wchar_t>(CC)... };
 }
+
+template <class Char, Char...CC>
+__ndbg_inline constexpr UnicodeString operator ""_UStr() noexcept {
+  static constexpr wchar_t buf[] {
+    static_cast<wchar_t>(CC)..., L'\0'
+  };
+  return UnicodeString::New(buf, sizeof...(CC));
+}
+
+/// Proxy: `RtlUnicodeStringToInteger`
+/// Signature: `NtStatus(const UNICODE_STRING*, ULONG base, ULONG*)`
+i32 UnicodeStringToInteger(
+  UnicodeString S, u32& out, u32 base = 0);
 
 } // namespace bootstrap
 } // namespace hc
