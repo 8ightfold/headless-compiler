@@ -35,14 +35,29 @@ extern "C" {
 
 int strcmp(const char* lhs, const char* rhs);
 int wcscmp(const wchar_t* lhs, const wchar_t* rhs);
+
 char* strcpy(char* lhs, const char* rhs);
 wchar_t* wcscpy(wchar_t* lhs, const wchar_t* rhs);
+
 usize strlen(const char* lhs);
 usize wcslen(const wchar_t* lhs);
+
 int strncmp(const char* lhs, const char* rhs, usize len);
 int wcsncmp(const wchar_t* lhs, const wchar_t* rhs, usize len);
 
+usize strnlen(const char* lhs, usize len);
+usize wcsnlen(const wchar_t* lhs, usize len);
+
 } // extern "C"
+
+extern "C++" {
+
+char* strstr(char* str, const char* substr) __asm__("strstr");
+const char* strstr(const char* str, const char* substr) __asm__("strstr");
+wchar_t* wcsstr(wchar_t* str, const wchar_t* substr) __asm__("wcsstr");
+const wchar_t* wcsstr(const wchar_t* str, const wchar_t* substr) __asm__("wcsstr");
+
+} // extern "C++"
 
 namespace xcrt {
 
@@ -54,11 +69,15 @@ using ::strcmp;
 using ::strcpy;
 using ::strlen;
 using ::strncmp;
+using ::strnlen;
+using ::strstr;
 
 using ::wcscmp;
 using ::wcscpy;
 using ::wcslen;
 using ::wcsncmp;
+using ::wcsnlen;
+using ::wcsstr;
 using ::wmemcpy;
 
 } // namespace xcrt

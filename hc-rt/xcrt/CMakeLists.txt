@@ -24,6 +24,8 @@ add_library(hcrt-xcrt STATIC
   Generic/String/XStrcmp.cpp
   Generic/String/XStrlen.cpp
   Generic/String/XStrncmp.cpp
+  Generic/String/XStrnlen.cpp
+  Generic/String/XStrstr.cpp
 )
 add_library(hcrt::xcrt ALIAS hcrt-xcrt)
 
