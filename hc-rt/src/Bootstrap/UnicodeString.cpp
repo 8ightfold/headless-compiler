@@ -87,3 +87,120 @@ const wchar_t& UnicodeString::backSafe() const {
   __hc_invariant(buffer != nullptr);
   return buffer[getSize() - 1];
 }
+
+#include <Common/Casting.hpp>
+#include <Common/Function.hpp>
+#include <Common/MMatch.hpp>
+
+i32 hc::bootstrap::UnicodeStringToInteger(
+ UnicodeString S, u32& out, u32 base) {
+  // TODO: Swap out when Format/* is complete.
+  const wchar_t* I = S.buffer;
+  const wchar_t* E = I + S.getSize();
+  bool is_negative = false;
+
+  if __expect_false(MMatch(base).isnt(0, 2, 8, 10, 16)) {
+    // STATUS_INVALID_PARAMETER
+    return 0xC000000D;
+  }
+
+  auto in_range = [&I, &E]() -> bool {
+    return __likely_true(I != E);
+  };
+  auto advance = [&]() -> bool {
+    if __expect_true(in_range())
+      ++I;
+    return in_range();
+  };
+
+  auto curr = [&]() -> wchar_t {
+    return in_range() ? *I : L'\0';
+  };
+  auto M = [&]() -> MMatch<wchar_t> {
+    return MMatch(curr());
+  };
+  auto next = [&]() -> wchar_t {
+    return advance() ? *I : L'\0';
+  };
+
+  while (M().is(L' ', L'\t', L'\n', L'\r')) {
+    (void) advance();
+  }
+
+  if __likely_false(!in_range()) {
+    // STATUS_INVALID_PARAMETER
+    return 0xC000000D;
+  }
+
+  out = 0;
+  if (M().is(L'-', L'+')) {
+    if (curr() == L'-')
+      is_negative = true;
+    (void) advance();
+  }
+
+  if (base == 0) $scope {
+    base = 10;
+    if (curr() != L'0')
+      break;
+    switch (next()) {
+     case L'b':
+      base = 2;
+      break;
+     case L'o':
+      base = 8;
+      break;
+     case L'x':
+      base = 16;
+      break;
+     default:
+    }
+    if (base != 10)
+      advance();
+  };
+
+  i32 tmp = 0;
+  auto conv = [&, base](com::Function<i32(wchar_t)> F) {
+    while (in_range()) {
+      const i32 I = F(curr());
+      if (I == -1)
+        return;
+      tmp *= base;
+      tmp += I;
+      advance();
+    }
+  };
+
+  if (base == 2) {
+    conv([](wchar_t WC) -> i32 {
+      if (MMatch(WC).is(L'0', L'1'))
+        return WC - L'0';
+      return -1;
+    });
+  } else if (base == 8) {
+    conv([](wchar_t WC) -> i32 {
+      if (MMatch(WC).iin(L'0', L'7'))
+        return WC - L'0';
+      return -1;
+    });
+  } else if (base == 10) {
+    conv([](wchar_t WC) -> i32 {
+      if (MMatch(WC).iin(L'0', L'9'))
+        return WC - L'0';
+      return -1;
+    });
+  } else {
+    conv([](wchar_t WC) -> i32 {
+      if (MMatch(WC).iin(L'0', L'9'))
+        return WC - L'0';
+      else if (MMatch(WC).iin(L'A', L'F'))
+        return (WC - L'A') + 10;
+      else if (MMatch(WC).iin(L'a', L'f'))
+        return (WC - L'a') + 10;
+      return -1;
+    });
+  }
+
+  out = int_cast<u32>(is_negative ? -tmp : tmp);
+  return 0;
+}
