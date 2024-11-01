@@ -395,7 +395,7 @@ inline void* xFFS_short_needle(
     period = std::max(suffix, needle_len - suffix) + 1;
     Sx = 0;
     while (xFFS_available(S, S_len, Sx, needle_len)) {
-      Char haystack_char;
+      Char haystack_char = 0;
       phaystack = &S[suffix + Sx];
 
       if (*phaystack++ != needle_suffix) {
@@ -431,7 +431,7 @@ inline void* xFFS_short_needle(
         pneedle = &needle[Nx];
         phaystack = &S[Nx + Sx];
         while (Nx != hc::Max<usize>) {
-          haystack_char = *phaystack++;
+          haystack_char = *phaystack--;
     	    if ((*pneedle--) != haystack_char) {
             if (!haystack_char)
               return nullptr;
@@ -506,30 +506,18 @@ inline void* xfind_first_str(
   );
 }
 
-inline const char* find_first_str(
+inline char* find_first_str(
  const char* S, const char* needle, usize max_read) {
   const auto cmp = [](char L, char R) -> i32 { return L - R; };
   void* const P = xfind_first_str<char>(S, needle, max_read, cmp);
-  return static_cast<const char*>(P);
+  return static_cast<char*>(P);
 }
 
-inline const wchar_t* wfind_first_str(
+inline wchar_t* wfind_first_str(
  const wchar_t* S, const wchar_t* needle, usize max_read) {
   const auto cmp = [](wchar_t L, wchar_t R) -> i32 { return L - R; };
   void* const P = xfind_first_str<wchar_t>(S, needle, max_read, cmp);
-  return static_cast<const wchar_t*>(P);
-}
-
-__always_inline char* find_first_str(
- char* S, const char* needle, usize max_read) {
-  const char* const CS = S;
-  return (char*) find_first_str(CS, needle, max_read);
-}
-
-__always_inline wchar_t* wfind_first_str(
- wchar_t* S, const wchar_t* needle, usize max_read) {
-  const wchar_t* const CS = S;
-  return (wchar_t*) wfind_first_str(CS, needle, max_read);
+  return static_cast<wchar_t*>(P);
 }
 
 //======================================================================//
