@@ -261,7 +261,7 @@ void dump_struct(T* data) {
 #define X64DBG_HALT() (void(0))
 
 #include <Bootstrap/_NtModule.hpp>
-using DbgType = boot::ULong(const char* fmt, ...);
+using DbgType = boot::NtULong(const char* fmt, ...);
 using W::ExceptionRecord;
 using W::ContextSave;
 

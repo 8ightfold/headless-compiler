@@ -26,7 +26,7 @@ using namespace hc;
 using namespace hc::bootstrap;
 namespace B = hc::bootstrap;
 
-using DbgType = ULong(const char* fmt, ...);
+using DbgType = NtULong(const char* fmt, ...);
 
 namespace hc::bootstrap {
 constinit common::EnumArray<u32, Syscall> __syscalls_ {};

@@ -33,7 +33,7 @@
 namespace hc::bootstrap {
 
 using NtReturn = long;
-using ULong = unsigned long;
+using NtULong = unsigned long;
 
 template <typename Ret, typename...Args>
 using StdCall = Ret(&)(Args...);
