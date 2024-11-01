@@ -23,14 +23,14 @@ using namespace hc;
 extern "C" {
   char* strcpy(char* __dst, const char* __src) {
     const usize __len = xcrt::stringlen(__src) + 1;
-    common::inline_memcpy(__dst, __src, __len);
+    com::inline_memcpy(__dst, __src, __len);
     return __dst;
   }
 
   wchar_t* wcscpy(wchar_t* __dst, const wchar_t* __src) {
     static constexpr usize __wcl = sizeof(wchar_t); 
     const usize __len = xcrt::wstringlen(__src) + 1;
-    common::inline_memcpy(__dst, __src, __len * __wcl);
+    com::inline_memcpy(__dst, __src, __len * __wcl);
     return __dst;
   }
 } // extern "C"
