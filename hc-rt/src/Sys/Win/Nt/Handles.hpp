@@ -29,17 +29,28 @@
 // https://en.wikipedia.org/wiki/Object_Manager
 // https://github.com/hfiref0x/WinObjEx64/blob/master/Source/WinObjEx64/objects.h#L27
 
+#ifndef _HC_HANDLE_DECLARE
+# error Oops! You broke compatibility!
+#endif
+
 #define _HC_NTHANDLE_GROUP(name) InGroup<name>
 
-#define $DefHANDLEEx(name, groups...) \
-$Handle(name##Handle, void*, Boolean, Equality, \
- $PP_mapCL(_HC_NTHANDLE_GROUP, ##groups)); \
-static_assert(sizeof(name##Handle) == sizeof(void*))
+#define $DeclHANDLEHead(hname, groups...) \
+struct hname : public \
+  _HC_HANDLE_DECLARE(hname, void*, Boolean, Equality, \
+  $PP_mapCL(_HC_NTHANDLE_GROUP, ##groups))
+
+#define $DeclHANDLE(name, cls, groups...) \
+$DeclHANDLEHead(name##Handle, ##groups) { \
+  static constexpr WinObjectClass clazz = cls; \
+}; static_assert(sizeof(name##Handle) == sizeof(void*))
+
+#define $DefHANDLEEx(name, cls, groups...) \
+  $DeclHANDLE(name, cls, ##groups)
+
 /// Define and check validity of handle.
 #define $DefHANDLE(name, groups...) \
-$Handle(name##Handle, void*, Boolean, Equality, \
- $PP_mapL(_HC_NTHANDLE_GROUP, HANDLE, ##groups)); \
-static_assert(sizeof(name##Handle) == sizeof(void*))
+  $DeclHANDLE(name, OB_##name, HANDLE, ##groups)
 
 /// Extracts `__data` or returns `INVALID_HANDLE`.
 #define $unwrap_handle(H) ({ \
@@ -50,6 +61,96 @@ static_assert(sizeof(name##Handle) == sizeof(void*))
 
 namespace hc::sys::win {
 
+enum WinObjectClass : boot::NtULong {
+  OB_Device                       = 0,
+  OB_Driver                       = 1,
+  OB_Section                      = 2,
+  OB_Port                         = 3,
+  OB_SymbolicLink                 = 4,
+  OB_Key                          = 5,
+  OB_Event                        = 6,
+  OB_Job                          = 7,
+  OB_Mutant                       = 8,
+  OB_KeyedEvent                   = 9,
+  OB_Type                         = 10,
+  OB_Directory                    = 11,
+  OB_Winstation                   = 12,
+  OB_Callback                     = 13,
+  OB_Semaphore                    = 14,
+  OB_WaitablePort                 = 15,
+  OB_Timer                        = 16,
+  OB_Session                      = 17,
+  OB_Controller                   = 18,
+  OB_Profile                      = 19,
+  OB_EventPair                    = 20,
+  OB_Desktop                      = 21,
+  OB_File                         = 22,
+  OB_WMIGuid                      = 23,
+  OB_DebugObject                  = 24,
+  OB_IoCompletion                 = 25,
+  OB_Process                      = 26,
+  OB_Adapter                      = 27,
+  OB_Token                        = 28,
+  OB_ETWRegistration              = 29,
+  OB_Thread                       = 30,
+  OB_TmTx                         = 31,
+  OB_TmTm                         = 32,
+  OB_TmRm                         = 33,
+  OB_TmEn                         = 34,
+  OB_PcwObject                    = 35,
+  OB_FltConnPort                  = 36,
+  OB_FltComnPort                  = 37,
+  OB_PowerRequest                 = 38,
+  OB_ETWConsumer                  = 39,
+  OB_TpWorkerFactory              = 40,
+  OB_Composition                  = 41,
+  OB_IRTimer                      = 42,
+  OB_DxgkSharedResource           = 43,
+  OB_DxgkSharedSwapChain          = 44,
+  OB_DxgkSharedSyncObject         = 45,
+  OB_DxgkCurrentDxgProcessObject  = 46,
+  OB_DxgkCurrentDxgThreadObject   = 47,
+  OB_DxgkDisplayManager           = 48,
+  OB_DxgkDisplayMuxSwitch         = 49,
+  OB_DxgkSharedBundle             = 50,
+  OB_DxgkSharedProtectedSession   = 51,
+  OB_DxgkComposition              = 52,
+  OB_DxgkSharedKeyedMutex         = 53,
+  OB_MemoryPartition              = 54,
+  OB_RegistryTransaction          = 55,
+  OB_DmaAdapter                   = 56,
+  OB_DmaDomain                    = 57,
+  OB_CoverageSampler              = 58, // NI
+  OB_ActivationObject             = 59, // NI
+  OB_ActivityReference            = 60, // NI
+  OB_CoreMessaging                = 61, // NI
+  OB_RawInputManager              = 62, // NI
+  OB_WaitCompletionPacket         = 63, // NI
+  OB_IoCompletionReserve          = 64, 
+  OB_UserApcReserve               = 65, // NI
+  OB_IoRing                       = 66, // NI
+  OB_Terminal                     = 67, // NI
+  OB_TerminalEventQueue           = 68, // NI
+  OB_EnergyTracker                = 69, // NI
+
+  OB_AccessTok                    = OB_Token,
+  OB_Console                      = OB_File,
+  OB_ConsoleBuf                   = OB_File,
+  OB_FileMap                      = OB_File,
+  OB_Mutex                        = OB_Mutant,
+  OB_Symlink                      = OB_SymbolicLink,
+  
+  // TODO: Mailslot, Pipe
+  OB_Unknown                      = 70,
+  OB_Mailslot                     = OB_Unknown,
+  OB_Pipe                         = OB_Unknown,
+  OB_Max
+};
+
+//======================================================================//
+// Handle Objects
+//======================================================================//
+
 $HandleGroup(HANDLE);
 $HandleGroup(CONSOLE_HANDLE);
 $HandleGroup(FILE_HANDLE);
@@ -59,7 +160,7 @@ $HandleGroup(SYNC_HANDLE);
 $HandleGroup(TOKEN_HANDLE);
 $HandleGroup(WAIT_HANDLE);
 
-$DefHANDLE(AccessTok);
+$DefHANDLE(AccessTok,   TOKEN_HANDLE);
 $DefHANDLE(Console,     CONSOLE_HANDLE, IO_HANDLE);
 $DefHANDLE(ConsoleBuf,  IO_HANDLE);
 $DefHANDLE(Device);
@@ -116,16 +217,16 @@ public:
   void* __data = nullptr;
 };
 
-template <typename...GroupRestrictions>
+template <typename...Groups>
 struct [[gsl::Pointer]] SelectiveHandle {
   SelectiveHandle() = default;
   SelectiveHandle(nullptr_t) : SelectiveHandle() { }
   explicit SelectiveHandle(GenericHandle h) : __data(h.__data) { }
 
-  template <__is_HANDLE_of<GroupRestrictions...> H>
+  template <__is_HANDLE_of<Groups...> H>
   SelectiveHandle(H h) : __data(h.__data) { }
 
-  template <__is_HANDLE_of<GroupRestrictions...> H>
+  template <__is_HANDLE_of<Groups...> H>
   operator H() const { return H::New(__data); }
 
   void* get() const { return this->__data; }
@@ -137,11 +238,50 @@ public:
   void* __data = nullptr;
 };
 
+template <typename...Groups> struct HandleRef {
+  template <__is_HANDLE_of<Groups...> H>
+  HandleRef(H& handle) :
+   __idata(&handle.__data), __clazz(H::clazz) {
+  }
+
+  template <__is_HANDLE_of<Groups...> H>
+  HandleRef& operator=(H handle) {
+    if __likely_true(H::clazz == this->__clazz) {
+      __hc_invariant(this->__idata);
+      (*this->__idata) = handle.__data;
+    }
+    return *this;
+  }
+
+  template <__is_HANDLE_of<Groups...> H>
+  operator H() const {
+    if __likely_false(H::clazz != this->__clazz)
+      return H::New(nullptr);
+    __hc_invariant(this->__idata);
+    return H::New(*__idata);
+  }
+
+  void*& get() const { return *this->__idata; }
+  explicit operator bool() const {
+    return __is_valid_HANDLE(*__idata);
+  }
+
+public:
+  void** __idata; // Intrusive __data.
+  WinObjectClass __clazz = OB_Unknown;
+};
+
 using FileObjHandle = SelectiveHandle<CONSOLE_HANDLE, FILE_HANDLE>;
 using IOHandle      = SelectiveHandle<IO_HANDLE>;
 using IPCHandle     = SelectiveHandle<IPC_HANDLE>;
 using SyncHandle    = SelectiveHandle<SYNC_HANDLE>;
 using WaitHandle    = SelectiveHandle<SYNC_HANDLE, IPC_HANDLE>;
+
+using FileObjRef    = HandleRef<CONSOLE_HANDLE, FILE_HANDLE>;
+using IORef         = HandleRef<IO_HANDLE>;
+using IPCRef        = HandleRef<IPC_HANDLE>;
+using SyncRef       = HandleRef<SYNC_HANDLE>;
+using WaitRef       = HandleRef<SYNC_HANDLE, IPC_HANDLE>;
 
 //======================================================================//
 // Predefined Handles
@@ -189,5 +329,10 @@ $DefProxy(ThreadEffectiveToken, -6, TOKEN_HANDLE);
 } // namespace hc::sys::win
 
 #undef _HC_NTHANDLE_GROUP
+#undef $DeclHANDLEHead
+#undef $DeclHANDLE
+#undef $DefHANDLEEx
 #undef $DefHANDLE
+
+
 #undef $DefProxy
