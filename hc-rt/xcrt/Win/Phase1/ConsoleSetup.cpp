@@ -21,6 +21,7 @@
 #include <String/Utils.hpp>
 
 #include <Bootstrap/_NtModule.hpp>
+#include <Bootstrap/StringMerger.hpp>
 #include <Bootstrap/Win64KernelDefs.hpp>
 #include <Bootstrap/KUserSharedData.hpp>
 #include <Sys/Win/Console.hpp>
@@ -34,8 +35,9 @@
 #include <Common/Function.hpp>
 #include <Common/InlineMemcpy.hpp>
 #include <Common/MMatch.hpp>
-#include <Parcel/StaticVec.hpp>
+#include <Meta/Intrusive.hpp>
 #include <Meta/Unwrap.hpp>
+#include <Parcel/StaticVec.hpp>
 
 #define PACKING_TEST(obj, offset, member) \
  static_assert($offsetof(member, obj) == offset, \
@@ -174,6 +176,15 @@ __imut CSRConnectionState connectionState {};
 
 constinit bool XCRT_NAMESPACE::isConsoleApp = false;
 
+//////////////////////////////////////////////////////////////////////////
+// Utils
+
+static inline constexpr AccessMask CreateConsoleAccess() {
+  using enum AccessMask;
+  return Sync | ReadControl | WriteAttributes | ReadAttributes
+    | WriteEA | ReadEA | AppendData | WriteData | Execute | ReadData;
+}
+
 static bool InitConsoleFlag() {
   using namespace binfmt;
   auto O = __NtModule()->getHeader().win;
@@ -243,6 +254,55 @@ static inline usize CopyStringToBuffer(
   buf_size = (len * sizeof(wchar_t));
   return len;
 }
+
+/// Proxy: `RtlGetCurrentServiceSessionId`
+/// Signature: `ULong*(void)`
+static ULong* GetCurrentServiceSessionId() {
+  auto* data = ptr_cast<ULong>(HcCurrentPEB()->shared_data);
+  if (data == nullptr)
+    return data;
+  return ptr_cast<ULong>(*data);
+}
+
+/// Proxy: `RtlGetNtSystemRoot`
+/// Signature: `wchar_t*(void)`
+static UnicodeString GetNtSystemRoot() {
+  auto* session_id = GetCurrentServiceSessionId();
+  if (session_id == nullptr) {
+    auto& root = KUSER_SHARED_DATA.NtSystemRoot;
+    return UnicodeString::New(root, meta::__get_size(root));
+  }
+
+  auto* data = ptr_cast<u8>(HcCurrentPEB()->shared_data);
+  auto* root = ptr_cast<wchar_t>(data + 0x1e);
+  return UnicodeString::New(root);
+}
+
+/// Proxy: `ConsoleIsCallerInLowbox`
+/// Signature: `NtStatus(BOOLEAN*)`
+static NtStatus IsCallerInLowbox(bool& out) {
+  TokenHandle handle = ThreadEffectiveToken;
+  ULong token_class  = /*TokenIsAppContainer*/ 0x1D;
+  ULong return_buf  = 0;
+  ULong return_size = 0;
+  
+  NtStatus status = sys::isyscall<
+   Syscall::QueryInformationToken>(
+    handle, token_class,
+    &return_buf, sizeof(return_buf),
+    &return_size
+  );
+
+  if ($NtSuccess(status)) {
+    out = !!return_buf;
+    status = 0;
+  }
+
+  return status;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Implementation
 
 /// Proxy: `ConsoleInitializeServerData`
 /// Signature: `NtStatus(CONSOLE_SERVER_DATA*)`
@@ -314,29 +374,6 @@ static NtStatus InitializeServerData(CSRConsoleServerInfo& info) {
   );
 }
 
-/// Proxy: `ConsoleIsCallerInLowbox`
-/// Signature: `NtStatus(BOOLEAN*)`
-static NtStatus IsCallerInLowbox(bool& out) {
-  TokenHandle handle = ThreadEffectiveToken;
-  ULong token_class  = /*TokenIsAppContainer*/ 0x1D;
-  ULong return_buf  = 0;
-  ULong return_size = 0;
-  
-  NtStatus status = sys::isyscall<
-   Syscall::QueryInformationToken>(
-    handle, token_class,
-    &return_buf, sizeof(return_buf),
-    &return_size
-  );
-
-  if ($NtSuccess(status)) {
-    out = !!return_buf;
-    status = 0;
-  }
-
-  return status;
-}
-
 /// Proxy: `ConsoleCloseIfConsoleHandle`
 /// Signature: `NtStatus(HANDLE*)`
 static NtStatus CloseIfConsoleHandle(IOFile& handle) {
@@ -353,12 +390,6 @@ static NtStatus CloseIfConsoleHandle(IOFile& handle) {
     = sys::close_file(tmp_handle);
   handle = nullptr;
   return ret;
-}
-
-static inline constexpr AccessMask CreateConsoleAccess() {
-  using enum AccessMask;
-  return Sync | ReadControl | WriteAttributes | ReadAttributes
-    | WriteEA | ReadEA | AppendData | WriteData | Execute | ReadData;
 }
 
 /// Proxy: `ConsoleCreateConnectionObject`
@@ -653,6 +684,15 @@ static NtStatus AllocateConsole(CSRConnectionState& state) {
     return status;
   
   auto* PP = HcCurrentPEB()->process_params;
+  UnicodeString root = GetNtSystemRoot();
+
+  UStringMerger<280> buf {};
+  buf.merge(L"\\??\\", root, L"\\system32\\conhost.exe");
+  UnicodeString image_path = buf.toUStr();
+  buf.merge(L" 0xffffffff -ForceV1");
+  UnicodeString cmdline = buf.toUStr();
+  
+  // status = CreateHandle()
   // TODO
 
   return status;

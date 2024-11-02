@@ -350,6 +350,8 @@ public:
   }
 };
 
+using KeCallbackProc = NtStatus(*)(void*, u32);
+
 struct Win64PEB {
   Win64Bool         is_inherited_addr_space;
   Win64Bool         image_file_exec_options;
@@ -372,7 +374,16 @@ struct Win64PEB {
   Win64Addr         fast_PEB_lock_fn;   // PPEBLOCKROUTINE
   Win64Addr         fast_PEB_unlock_fn; // PPEBLOCKROUTINE
   u32               env_update_count;
-  Win64Addr         ke_callback_tbl;
+  KeCallbackProc*   ke_callback_tbl; // TODO
+  u32               __reserved;
+  u32               atl_thunk_slist_ptr32;
+  Win64Addr         api_set_map;
+  u32               TLS_expansion_counter;
+  Win64Addr         TLS_bitmap;
+  u32               TLS_bitmap_bits[2];
+  Win64Addr         readonly_shared_mem_base;
+  Win64Addr         shared_data;
+  Win64Addr*        readonly_static_server_data;
   // ...
   HC_MARK_DELETED(Win64PEB);
 public:

@@ -50,6 +50,7 @@ if(WIN32)
   target_sources(hcrt-src INTERFACE
     src/Bootstrap/COFFModule.cpp
     src/Bootstrap/ModuleParser.cpp
+    src/Bootstrap/StringMerger.cpp
     src/Bootstrap/StubParser.cpp
     src/Bootstrap/Syscalls.cpp
     src/Bootstrap/UnicodeString.cpp
