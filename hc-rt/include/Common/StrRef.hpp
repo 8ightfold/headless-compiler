@@ -320,8 +320,8 @@ namespace hc::common {
   };
 } // namespace hc::common
 
-namespace hc {
-  constexpr common::StrRef operator""sv(const char* S, usize N) {
-    return common::StrRef::New(S, N);
+namespace hc::literals {
+  constexpr com::StrRef operator""sv(const char* S, usize N) {
+    return com::StrRef::New(S, N);
   }
-} // namespace hc
+} // namespace hc::literals
