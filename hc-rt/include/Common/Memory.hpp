@@ -63,7 +63,8 @@ auto __array_memcpy(T(&dst)[N], const T(&src)[M]) -> T(&)[N] {
 template <usize N, typename T>
 requires(__is_trivially_copyable(T))
 T* __memset(T* dst, int ch) {
-  if constexpr (N == 0) return nullptr;
+  if constexpr (N == 0)
+    return nullptr;
   __builtin_memset_inline(dst, ch, __sizeof(T) * N);
   return dst;
 }
@@ -76,10 +77,9 @@ auto __array_memset(T(&dst)[N], int ch) -> T(&)[N] {
   return dst;
 }
 
-template <usize N, typename T>
+template <typename T>
 __always_inline T* __zero_memory(T& dst) {
-  if constexpr (N == 0) return nullptr;
-  return __memset<N>(__builtin_addressof(dst), 0);
+  return __memset<1>(__builtin_addressof(dst), 0);
 }
 
 template <usize N, typename T>
