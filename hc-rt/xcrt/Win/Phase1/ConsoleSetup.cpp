@@ -25,6 +25,7 @@
 #include <Bootstrap/KUserSharedData.hpp>
 #include <Sys/Win/Console.hpp>
 #include <Sys/Win/Filesystem.hpp>
+#include <Sys/Win/Object.hpp>
 #include <Sys/Win/Process.hpp>
 #include <Sys/Win/Volume.hpp>
 
@@ -117,7 +118,7 @@ struct CSRConnectionState {
     };
   };
   u32 SomeData;
-  GenericHandle ConnectionHandle;
+  DeviceHandle ConnectionHandle;
   ConsoleHandle ConsoleHandle;
   IOFile  InpHandle;
   IOFile  OutHandle;
@@ -363,7 +364,7 @@ static inline constexpr AccessMask CreateConsoleAccess() {
 /// Proxy: `ConsoleCreateConnectionObject`
 /// Signature: `NtStatus(HANDLE*, HANDLE, char*, void* buf, u16 buflen)
 static NtStatus CreateConnectionObject(
- FileObjRef out, ConsoleHandle console,
+ DeviceHandle out, ConsoleHandle console,
  StrRef name, AddrRange buf
 ) {
   CSRConsoleServerInfo info {};
@@ -416,7 +417,7 @@ static NtStatus CreateConnectionObject(
   attr.root_directory = console;
 
   IoStatusBlock io {};
-  ConsoleHandle hout = sys::open_file(
+  out = sys::open_file(
     CreateConsoleAccess(), attr,
     io, nullptr,
     FileAttribMask::None,
@@ -424,27 +425,235 @@ static NtStatus CreateConnectionObject(
     CreateDisposition::Create,
     CreateOptsMask::SyncIONoAlert
   );
-
-  out = hout;
   return io.status;
+}
+
+/// Proxy: `ConsoleCreateHandle`
+/// Signature: `NtStatus(HANDLE*, HANDLE, wchar_t* Where, bool, bool)`
+static NtStatus CreateHandle(
+ ConsoleHandle& out, DeviceHandle device,
+ UnicodeString where, bool inherits = true, bool is_synced = true
+) {
+  ObjectAttributes attr { .object_name = &where };
+  attr.attributes = ObjAttribMask::CaseInsensitive;
+  if (inherits)
+    attr.attributes |= ObjAttribMask::Inherit;
+  attr.root_directory = device;
+
+  IoStatusBlock io {};
+  out = sys::open_file(
+    CreateConsoleAccess(), attr,
+    io, nullptr,
+    FileAttribMask::None,
+    FileShareMask::All,
+    CreateDisposition::Create,
+    is_synced
+      ? CreateOptsMask::SyncIONoAlert
+      : CreateOptsMask::_None
+  );
+
+  if ($NtFail(io.status))
+    return io.status;
+  return 0;
+}
+
+/// Proxy: `ConsoleCreateStandardIoObjects`
+/// Signature: `NtStatus(CONNECTION_STATE*)`
+static NtStatus CreateStandardIoObjects(CSRConnectionState& state) {
+  NtStatus status = 0;
+  ConsoleHandle inp, out, err;
+  // Create standard input.
+  status = CreateHandle(inp, state.ConnectionHandle, L"\\Input"_UStr);
+  if ($NtFail(status))
+    return status;
+  // Create standard output.
+  status = CreateHandle(out, state.ConnectionHandle, L"\\Output"_UStr);
+  if ($NtFail(status)) {
+    sys::close_file(inp);
+    return status;
+  }
+
+  status = sys::duplicate_object(
+    out, err, AccessMask::Any, ObjAttribMask::None,
+    DupOptsMask::SameAccess | DupOptsMask::SameAttributes
+  );
+  if ($NtFail(status)) {
+    sys::close_file(inp);
+    sys::close_file(out);
+    return status;
+  }
+
+  state.InpHandle = inp;
+  state.OutHandle = out;
+  state.ErrHandle = err;
+  state.Flags = 0b111;
+
+  return status;
+}
+
+/// Proxy: `ConsoleSanitizeStandardIoObjects`
+/// Signature: `NtStatus(CONNECTION_STATE*)`
+static NtStatus SanitizeStandardIoObjects(CSRConnectionState& state) {
+  auto* PP = HcCurrentPEB()->process_params;
+  NtStatus status = 0;
+  ULong flags = 0;
+
+  auto inp = ConsoleHandle::New(nullptr);
+  auto out = ConsoleHandle::New(nullptr);
+  auto err = ConsoleHandle::New(nullptr);
+  
+  auto needs_sanitizing = [](IOFile file) -> bool {
+    if (file == nullptr)
+      return true;
+    const uptr mask = uptr(file) & 0x10000003;
+    return (mask == 0x3);
+  };
+
+  auto close_all = [&]() -> NtStatus {
+    if (inp) sys::close_file(inp);
+    if (out) sys::close_file(out);
+    if (err) sys::close_file(err);
+    return status;
+  };
+
+  // Create standard input (if required).
+  if (needs_sanitizing(PP->std_in)) {
+    status = CreateHandle(inp, state.ConnectionHandle, L"\\Input"_UStr);
+    if ($NtFail(status))
+      return close_all();
+    flags |= 0b001;
+  }
+  // Create standard output (if required).
+  if (needs_sanitizing(PP->std_out)) {
+    status = CreateHandle(out, state.ConnectionHandle, L"\\Output"_UStr);
+    if ($NtFail(status))
+      return close_all();
+    flags |= 0b010;
+  }
+  // Create standard error, or clone output (if required).
+  if (needs_sanitizing(PP->std_err)) {
+    if (!out) {
+      status = CreateHandle(err, state.ConnectionHandle, L"\\Output"_UStr);
+    } else {
+      status = sys::duplicate_object(
+        out, err, AccessMask::Any, ObjAttribMask::None,
+        DupOptsMask::SameAccess | DupOptsMask::SameAttributes
+      );
+    }
+    if ($NtFail(status))
+      return close_all();
+    flags |= 0b100;
+  }
+
+  if (has_flag<1>(flags))
+    // Assign standard in.
+    state.InpHandle = inp;
+  if (has_flag<2>(flags))
+    // Assign standard out.
+    state.OutHandle = out;
+  if (has_flag<3>(flags))
+    // Assign standard err.
+    state.ErrHandle = err;
+  
+  state.Flags = flags;
+  return status;
+}
+
+/// Proxy: `ConsoleCleanupConnectionState`
+/// Signature: `void(CONNECTION_STATE*)`
+static void CleanupConnectionState(CSRConnectionState& state) {
+  if (state.IsValidHandle) {
+    sys::close_file(state.ConnectionHandle);
+    sys::close_file(state.ConsoleHandle);
+  }
+
+  if (state.Flags & 0b111) {
+    if (state.InpHandle && state.HasInp)
+      sys::close_file(state.InpHandle);
+    if (state.OutHandle && state.HasOut)
+      sys::close_file(state.OutHandle);
+    if (state.ErrHandle && state.HasErr)
+      sys::close_file(state.ErrHandle);
+  }
 }
 
 /// Proxy: `ConsoleAttatchOrAllocate`
 /// Signature: `NtStatus(CONNECTION_STATE*, wchar_t*)`
 static NtStatus AttatchOrAllocate(CSRConnectionState& state, wchar_t* str) {
+  static constexpr usize desktopMax = 260;
+  auto* PP = HcCurrentPEB()->process_params;
+  NtStatus status = 0;
+  StrRef name;
+  AddrRange buf;
+  wchar_t desktop_buf[desktopMax];
 
-  // TODO: CreateConnectionObject();
+  if (str == nullptr) {
+    const auto& desktop = PP->desktop;
+    usize buf_len = desktopMax - 1;
+    buf_len = std::min(buf_len, desktop.getSize());
 
-  return 0;
+    com::inline_memcpy(
+      desktop_buf, desktop.buffer,
+      buf_len * sizeof(wchar_t)
+    );
+    desktop_buf[buf_len] = L'\0';
+
+    buf = AddrRange::New<void>(
+      desktop_buf, sizeof(desktop_buf));
+    name = "broker";
+  } else {
+    buf = AddrRange::New<void>(&str, sizeof(str));
+    name = "attach";
+  }
+
+  auto device = DeviceHandle::New(nullptr);
+  auto console = ConsoleHandle::New(nullptr);
+
+  status = CreateConnectionObject(
+    device, console,
+    name, buf
+  );
+  if ($NtFail(status))
+    return status;
+
+  status = CreateHandle(
+    console, device,
+    L"\\Reference"_UStr,
+    false, true
+  );
+  if ($NtFail(status)) {
+    if (device)
+      sys::close_file(device);
+    return status;
+  }
+
+  __zero_memory(state);
+  state.IsValidHandle = !!device;
+  state.ConnectionHandle = device;
+  state.ConsoleHandle = console;
+
+  if (!has_flagval<SF_UseStdHandles>(PP->window_flags))
+    status = CreateStandardIoObjects(state);
+  else
+    status = SanitizeStandardIoObjects(state);
+  
+  if ($NtFail(status))
+    CleanupConnectionState(state);
+  return status;
 }
 
 /// Proxy: `ConsoleAllocate`
 /// Signature: `NtStatus(CONNECTION_STATE*)`
 static NtStatus AllocateConsole(CSRConnectionState& state) {
   NtStatus status = 0;
-  if (!KUSER_SHARED_DATA.Dbg.ConsoleBrokerEnabled) {
-
-  }
+  if (KUSER_SHARED_DATA.Dbg.ConsoleBrokerEnabled)
+    return status;
+  status = AttatchOrAllocate(state, nullptr);
+  if (status != /*STATUS_INVALID_HANDLE*/0xC0000008)
+    return status;
+  
+  auto* PP = HcCurrentPEB()->process_params;
+  // TODO
 
   return status;
 }
@@ -460,7 +669,8 @@ static NtStatus CommitState(CSRConnectionState& state) {
 
   uptr out_handle = 0;
   const auto con_handle
-    = ConsoleHandle(state.ConnectionHandle);
+    // TODO: Check on this
+    = ConsoleHandle::New(state.ConnectionHandle.get());
   PP->console_handle = ptr_cast<__void>(con_handle.get());
 
   if (con_handle) {
@@ -478,7 +688,7 @@ static NtStatus CommitState(CSRConnectionState& state) {
   connectionState = state;
   if (state.Flags & 0b111) {
     if (state.HasInp)
-      PP->std_in = state.InpHandle;
+      PP->std_in  = state.InpHandle;
     if (state.HasOut)
       PP->std_out = state.OutHandle;
     if (state.HasErr)
@@ -513,7 +723,6 @@ static bool SetupCUIApp() {
   } else $scope {
     // TODO: CreateConnectionObject
     NtStatus status = 0;
-    
     bool in_lowbox = false;
     if (status != /*STATUS_ACCESS_DENIED*/ 0xC0000022)
       break;
