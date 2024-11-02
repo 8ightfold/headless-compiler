@@ -163,7 +163,7 @@ $HandleGroup(WAIT_HANDLE);
 $DefHANDLE(AccessTok,   TOKEN_HANDLE);
 $DefHANDLE(Console,     CONSOLE_HANDLE, IO_HANDLE);
 $DefHANDLE(ConsoleBuf,  IO_HANDLE);
-$DefHANDLE(Device);
+$DefHANDLE(Device,      FILE_HANDLE, IPC_HANDLE);
 $DefHANDLE(Directory,   FILE_HANDLE);
 $DefHANDLE(Event);
 $DefHANDLE(File,        FILE_HANDLE, IO_HANDLE);

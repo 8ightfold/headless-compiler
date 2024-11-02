@@ -119,6 +119,7 @@ public:
 };
 
 enum class ObjAttribMask : ULong {
+  None                = 0x00000,
   Inherit             = 0x00002,
   Permanent           = 0x00010,
   Exclusive           = 0x00020,

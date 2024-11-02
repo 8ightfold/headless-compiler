@@ -46,6 +46,7 @@ enum class CreateOptsMask : ULong {
   OpenForBackup       = 0x004000,
   OpenForSpaceQuery   = 0x008000,
   ReserveOplock       = 0x100000,
+  _None               = 0x000000,
 };
 
 enum class FileAttribMask : ULong {
