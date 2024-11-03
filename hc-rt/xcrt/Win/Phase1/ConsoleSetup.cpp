@@ -1013,6 +1013,8 @@ static NtStatus CommitState(CSRConnectionState& state) {
 //////////////////////////////////////////////////////////////////////////
 // Top-level
 
+/// Proxy: `ConsoleInitialize`.
+/// Signature: `NtStatus(void)`
 static bool SetupCUIApp() {
   NtStatus status = 0;
   auto* PP = HcCurrentPEB()->process_params;
@@ -1099,7 +1101,6 @@ bool XCRT_NAMESPACE::setup_console() {
     return false;
   }
 
-  XCRT_NAMESPACE::log_console_state();
   InitConsoleFlag();
   // InitCtrlHandling();
   InitExeName();
