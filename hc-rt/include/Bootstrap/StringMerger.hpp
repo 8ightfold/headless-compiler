@@ -36,6 +36,8 @@ struct IUStringMerger {
   IUStringMerger& add(const wchar_t* S);
   IUStringMerger& add(const wchar_t* S, usize n);
 
+  IUStringMerger& reset();
+
   UnicodeString toUStr() const {
     return UnicodeString::New(buf, capacity);
   }

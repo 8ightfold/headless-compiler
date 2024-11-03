@@ -18,6 +18,7 @@
 
 #include <Bootstrap/StringMerger.hpp>
 #include <Common/InlineMemcpy.hpp>
+#include <Common/InlineMemset.hpp>
 #include <Common/Strings.hpp>
 
 using namespace hc;
@@ -39,8 +40,16 @@ IUStringMerger& IUStringMerger::add(const wchar_t* S, usize n) {
     return *this;
   if __likely_false(!this->checkCap(n))
     return *this;
-  com::inline_memcpy(this->buf, S, n * sizeof(wchar_t));
+  com::inline_memcpy(this->buf + len, S, n * sizeof(wchar_t));
   this->len += n;
+  return *this;
+}
+
+IUStringMerger& IUStringMerger::reset() {
+  if (!buf || !capacity)
+    return *this;
+  com::inline_memset(buf, 0, this->len * sizeof(wchar_t));
+  this->len = 0;
   return *this;
 }
 
