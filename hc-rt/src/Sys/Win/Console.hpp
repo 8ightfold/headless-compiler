@@ -88,7 +88,7 @@ static_assert(sizeof(CSRParams) == 8);
 //////////////////////////////////////////////////////////////////////////
 
 __nt_attrs win::NtStatus control_device_file(
- win::ConsoleHandle handle,
+ win::ServeHandle handle,
  win::IoStatusBlock& io,
  win::CtlCode code,
  com::AddrRange in,

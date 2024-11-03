@@ -24,6 +24,7 @@
 
 #include <Common/Handle.hpp>
 #include <Common/Casting.hpp>
+#include <Meta/ExTraits.hpp>
 
 // For more info:
 // https://en.wikipedia.org/wiki/Object_Manager
@@ -153,6 +154,7 @@ enum WinObjectClass : boot::NtULong {
 
 $HandleGroup(HANDLE);
 $HandleGroup(CONSOLE_HANDLE);
+$HandleGroup(DEVICE_HANDLE);
 $HandleGroup(FILE_HANDLE);
 $HandleGroup(IO_HANDLE);
 $HandleGroup(IPC_HANDLE);
@@ -161,9 +163,9 @@ $HandleGroup(TOKEN_HANDLE);
 $HandleGroup(WAIT_HANDLE);
 
 $DefHANDLE(AccessTok,   TOKEN_HANDLE);
-$DefHANDLE(Console,     CONSOLE_HANDLE, IO_HANDLE);
+$DefHANDLE(Console,     CONSOLE_HANDLE, DEVICE_HANDLE, IO_HANDLE);
 $DefHANDLE(ConsoleBuf,  IO_HANDLE);
-$DefHANDLE(Device,      FILE_HANDLE, IPC_HANDLE);
+$DefHANDLE(Device,      FILE_HANDLE, DEVICE_HANDLE, IPC_HANDLE);
 $DefHANDLE(Directory,   FILE_HANDLE);
 $DefHANDLE(Event);
 $DefHANDLE(File,        FILE_HANDLE, IO_HANDLE);
@@ -238,14 +240,60 @@ public:
   void* __data = nullptr;
 };
 
+//////////////////////////////////////////////////////////////////////////
+// TODO: Ref Types
+
 template <typename...Groups> struct HandleRef {
+  using GroupSeq = meta::TySeq<Groups...>;
+
   template <__is_HANDLE_of<Groups...> H>
-  HandleRef(H& handle) :
+  HandleRef(H& handle) : __idata(&handle.__data) {}
+
+  template <__is_HANDLE_of<Groups...> H>
+  HandleRef(H* __nonnull phandle) : HandleRef(*phandle) {}
+
+  template <__is_HANDLE_of<Groups...> H>
+  HandleRef& operator=(H handle) {
+    __hc_invariant(this->__idata);
+    (*this->__idata) = handle.__data;
+    return *this;
+  }
+
+  template <typename...Other>
+  HandleRef& operator=(SelectiveHandle<Other...> shandle) {
+    static_assert(meta::__is_subset<GroupSeq, Other...>,
+      "Invalid SelectiveHandle assignment.");
+    __hc_invariant(this->__idata);
+    (*this->__idata) = shandle.__data;
+    return *this;
+  }
+
+  template <__is_HANDLE_of<Groups...> H>
+  operator H() const {
+    __hc_invariant(this->__idata);
+    return H::New(*__idata);
+  }
+
+  void*& get() const { return *this->__idata; }
+  explicit operator bool() const {
+    return __is_valid_HANDLE(*__idata);
+  }
+
+public:
+  void** __idata = nullptr; // Intrusive __data.
+};
+
+template <typename...Groups> struct HandleTypedRef {
+  template <__is_HANDLE_of<Groups...> H>
+  HandleTypedRef(H& handle) :
    __idata(&handle.__data), __clazz(H::clazz) {
   }
 
   template <__is_HANDLE_of<Groups...> H>
-  HandleRef& operator=(H handle) {
+  HandleTypedRef(H* __nonnull phandle) : HandleTypedRef(*phandle) {}
+
+  template <__is_HANDLE_of<Groups...> H>
+  HandleTypedRef& operator=(H handle) {
     if __likely_true(H::clazz == this->__clazz) {
       __hc_invariant(this->__idata);
       (*this->__idata) = handle.__data;
@@ -267,16 +315,18 @@ template <typename...Groups> struct HandleRef {
   }
 
 public:
-  void** __idata; // Intrusive __data.
+  void** __idata = nullptr; // Intrusive __data.
   WinObjectClass __clazz = OB_Unknown;
 };
 
+using ServeHandle   = SelectiveHandle<DEVICE_HANDLE>;
 using FileObjHandle = SelectiveHandle<CONSOLE_HANDLE, FILE_HANDLE>;
 using IOHandle      = SelectiveHandle<IO_HANDLE>;
 using IPCHandle     = SelectiveHandle<IPC_HANDLE>;
 using SyncHandle    = SelectiveHandle<SYNC_HANDLE>;
 using WaitHandle    = SelectiveHandle<SYNC_HANDLE, IPC_HANDLE>;
 
+using ServeRef      = HandleRef<DEVICE_HANDLE>;
 using FileObjRef    = HandleRef<CONSOLE_HANDLE, FILE_HANDLE>;
 using IORef         = HandleRef<IO_HANDLE>;
 using IPCRef        = HandleRef<IPC_HANDLE>;

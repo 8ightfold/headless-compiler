@@ -23,7 +23,9 @@
 namespace XCRT_NAMESPACE {
 
 extern constinit bool isConsoleApp;
+extern constinit bool isConsoleSetUp;
 
 bool setup_console();
+void log_console_state();
 
 } // namespace XCRT_NAMESPACE

@@ -96,11 +96,25 @@ static_assert(sizeof(__eg_handle_) == sizeof(void*));
 //////////////////////////////////////////////////////////////////////////
 // Casting
 
+template <typename To, typename From>
+concept handle_can_static_cast = requires(From& from) {
+  static_cast<To>(from);
+};
+
 template <typename To, typename From,
   typename ID, typename...AA>
 __ndbg_inline constexpr To
  handle_cast(const Handle<From, ID, AA...>& from) {
   static_assert(__is_convertible(From, To),
+    "Underlying type is not convertible.");
+  return static_cast<To>(from.__data);
+}
+
+template <typename To, typename From,
+  typename ID, typename...AA>
+__ndbg_inline constexpr To
+ handle_cast_ex(const Handle<From, ID, AA...>& from) {
+  static_assert(handle_can_static_cast<From, To>,
     "Underlying type is not convertible.");
   return static_cast<To>(from.__data);
 }

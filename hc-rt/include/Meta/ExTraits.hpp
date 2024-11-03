@@ -66,6 +66,26 @@ template <typename...TT>
 concept __all_unique = is_same<
   TySeq<TT...>, __unique_list_t<TT...>>;
 
+//////////////////////////////////////////////////////////////////////////
+
+template <typename Set, typename Subset>
+struct _TIsSubset {
+  $compile_failure(Set,
+    "Not a valid type sequence!");
+};
+
+template <typename...Set, typename...Subset>
+struct _TIsSubset<TySeq<Set...>, TySeq<Subset...>> {
+  static_assert(__all_unique<Set...>, "Invalid set!");
+  static constexpr usize setSize = sizeof...(Set);
+  static constexpr bool value =
+    (setSize >= sizeof...(Subset))
+    && (setSize == __unique_list_t<Set..., Subset...>::size);
+};
+
+template <class Set, typename...Subset>
+concept __is_subset = _TIsSubset<Set, TySeq<Subset...>>::value;
+
 //======================================================================//
 // Function Stuff
 //======================================================================//

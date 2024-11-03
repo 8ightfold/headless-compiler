@@ -31,9 +31,11 @@
 #include <Sys/Win/Volume.hpp>
 
 #include <BinaryFormat/COFF.hpp>
+#include <Common/DefaultFuncPtr.hpp>
 #include <Common/Flags.hpp>
 #include <Common/Function.hpp>
 #include <Common/InlineMemcpy.hpp>
+#include <Common/Location.hpp>
 #include <Common/MMatch.hpp>
 #include <Meta/Intrusive.hpp>
 #include <Meta/Unwrap.hpp>
@@ -47,6 +49,9 @@
   PACKING_TEST(CSRConsoleServerInfo, offset, member)
 #define CONN_TEST(offset, member) \
   PACKING_TEST(CSRConnectionObject, offset, member)
+
+#define $load_symbol(name) \
+  succeeded &= load_nt_symbol(name, #name)
 
 using namespace hc;
 using namespace hc::bootstrap;
@@ -172,12 +177,130 @@ __imut Win64LDRDataTableEntry* exeEntry = nullptr;
 __imut pcl::StaticVec<wchar_t, RT_MAX_PATH> exeName {};
 __imut CSRConnectionState connectionState {};
 
+/// Signature of `RtlCreateProcessParametersEx`.
+using CreatePPType = NtStatus(
+  Win64ProcParams** PP,
+  UnicodeString* image, UnicodeString* dll, UnicodeString* curr_dir,
+  UnicodeString* cmdline, void* env, UnicodeString* wnd_title,
+  UnicodeString* desktop_info, UnicodeString* shell_info,
+  UnicodeString* rt_data, ULong flags
+);
+
+__imut DefaultFuncPtr<ULong(const char*, ...)> DbgPrint {}; // TODO: Replace
+__imut DefaultFuncPtr<CreatePPType> RtlCreateProcessParametersEx {};
+__imut DefaultFuncPtr<NtStatus(Win64ProcParams*)> RtlDestroyProcessParameters {};
+
 } // namespace `anonymous`
 
 constinit bool XCRT_NAMESPACE::isConsoleApp = false;
+constinit bool XCRT_NAMESPACE::isConsoleSetUp = false;
+
+//////////////////////////////////////////////////////////////////////////
+// Logging
+
+#if _HC_DEBUG
+# define dbg_if(expr...) if (expr...)
+# define DBG_LOG(fmt, args...) do { \
+  if (0) CheckLogArgs(fmt "\n", ##args); \
+  DbgLog(SourceLocation::Current(), fmt "\n", ##args); \
+} while(0)
+#else
+# define dbg_if(expr...) if constexpr (false)
+# define DBG_LOG(fmt, ...) (void(0))
+#endif
+
+using CStr = const char[];
+
+__attribute__((__format__(__printf__, 1, 2)))
+static __always_inline void CheckLogArgs(
+  [[maybe_unused]] const char fmt[], ...) {
+}
+
+static void DbgLog(SourceLocation loc, const char* __nonnull fmt, auto...args) {
+  if __expect_false(!DbgPrint)
+    return;
+  // DbgPrint("[\"%s\", %i:%i] ", loc.__func, loc.__line, loc.__column);
+  DbgPrint("At %s:%i:%i:\n  In '%s': ",
+    loc.__file, loc.__line, loc.__column, loc.__func);
+  DbgPrint(fmt, args...);
+}
+
+static void DbgPrintC(CStr x, CStr fmt, auto...args) {
+  if __expect_false(!DbgPrint)
+    return;
+  DbgPrint("%s", x);
+  DbgPrint(fmt, args...);
+}
+
+static void DbgDumpImpl(CStr x, CStr fmt) {
+  if __expect_false(!DbgPrint)
+    return;
+  if (StrRef(fmt).beginsWith(" {"))
+    DbgPrint(fmt);
+  else
+    DbgPrintC(x, fmt);
+}
+
+static void DbgDumpImpl(CStr x, CStr fmt, auto...args) {
+  DbgPrintC(x, fmt, args...);
+}
+
+template <typename T>
+static void DbgDumpImpl(CStr x, CStr fmt, CStr pad, CStr ty, CStr id, T* V) {
+  if constexpr (meta::is_struct<T>) {
+    if (V) {
+      usize len = xcrt::stringlen(x) + xcrt::stringlen(pad);
+      auto ls = $zdynalloc(len + 1, char);
+      inline_memset(ls.data(), ' ', len);
+      __builtin_dump_struct(V, DbgDumpImpl, ls.data());
+      return;
+    }
+  }
+  DbgPrintC(x, fmt, pad, ty, id, V);
+}
+
+template <typename E>
+requires meta::is_enum<E>
+static void DbgDumpImpl(CStr x, CStr fmt, CStr pad, CStr ty, CStr id, E e) {
+  // "%s%s %s = %?\n"
+  DbgPrintC(x, "%s%s %s = 0x%X\n", pad, ty, id, e);
+}
+
+static void DbgDump(auto& obj) {
+  __builtin_dump_struct(&obj, DbgDumpImpl, "");
+}
+
+static void DbgDump(auto* obj) {
+  if (!obj) {
+    DBG_LOG("Passed nullptr!");
+    return;
+  }
+  __builtin_dump_struct(obj, DbgDumpImpl, "");
+}
 
 //////////////////////////////////////////////////////////////////////////
 // Utils
+
+template <typename F>
+static bool load_nt_symbol(
+ DefaultFuncPtr<F>& func, StrRef symbol) {
+  if __expect_true(func.isSet())
+    return true;
+  auto exp = __NtModule()->resolveExport<F>(symbol);
+  return func.setSafe($unwrap(exp));
+}
+
+static bool InitRtlFuncs() {
+  static bool has_succeeded = false;
+  if __expect_false(!has_succeeded) {
+    bool succeeded = true;
+    $load_symbol(DbgPrint);
+    $load_symbol(RtlCreateProcessParametersEx);
+    $load_symbol(RtlDestroyProcessParameters);
+    has_succeeded = succeeded;
+  }
+  return has_succeeded;
+}
 
 static inline constexpr AccessMask CreateConsoleAccess() {
   using enum AccessMask;
@@ -192,7 +315,7 @@ static bool InitConsoleFlag() {
   if (!O.isEmpty()) {
     using enum COFF::WindowsSubsystemType;
     const auto subsystem = O.$extract_member(subsystem);
-    const bool is_console = (subsystem != eSubsystemWindowsCUI);
+    const bool is_console = (subsystem == eSubsystemWindowsCUI);
     return (XCRT_NAMESPACE::isConsoleApp = is_console);
   }
 
@@ -232,6 +355,7 @@ static inline int ParseShellInfo(
   while (MMatch(*off).in(L'/' + 1, L':')) {
     ++off;
   }
+
   icon.__size = (off - icon.buffer) * sizeof(wchar_t);
   icon.__size_max = icon.__size;
   
@@ -282,14 +406,15 @@ static UnicodeString GetNtSystemRoot() {
 /// Signature: `NtStatus(BOOLEAN*)`
 static NtStatus IsCallerInLowbox(bool& out) {
   TokenHandle handle = ThreadEffectiveToken;
-  ULong token_class  = /*TokenIsAppContainer*/ 0x1D;
+  ULong token_class = /*TokenIsAppContainer*/ 0x1D;
   ULong return_buf  = 0;
   ULong return_size = 0;
+  constexpr ULong buf_size = sizeof(return_buf);
   
   NtStatus status = sys::isyscall<
    Syscall::QueryInformationToken>(
     handle, token_class,
-    &return_buf, sizeof(return_buf),
+    &return_buf, buf_size,
     &return_size
   );
 
@@ -299,6 +424,60 @@ static NtStatus IsCallerInLowbox(bool& out) {
   }
 
   return status;
+}
+
+static NtStatus SetSystemConsoleInfo(bool is_driver_loaded) {
+  ULong system_class = /*SystemConsoleInformation*/ 0x84;
+  ULong console_info = /*SYSTEM_CONSOLE_INFORMATION*/ is_driver_loaded;
+  constexpr ULong info_size = sizeof(console_info);
+
+  return sys::isyscall<Syscall::SetSystemInformation>(
+    system_class, &console_info, info_size
+  );
+}
+
+/// Proxy: `ConsoleLaunchServerProcess`
+/// Signature: `NtStatus(UNICODE_STRING*, UNICODE_STRING*, HANDLE)`
+static NtStatus LaunchServerProcess(
+ UnicodeString& image, UnicodeString& cmdline, DeviceHandle server) {
+  if __expect_false(!InitRtlFuncs()) {
+    // STATUS_UNSUCCESSFUL
+    return 0xC0000001;
+  }
+
+  NtStatus status = 0;
+  Win64ProcParams* PP_new = nullptr;
+  Win64ProcParams* PP = HcCurrentPEB()->process_params;
+  IoStatusBlock io {};
+
+  status = RtlCreateProcessParametersEx(
+    &PP_new, &image, nullptr, nullptr,
+    &cmdline, nullptr, nullptr,
+    &PP->desktop, nullptr, nullptr,
+    /*RTL_USER_PROC_PARAMS_NORMALIZED*/ 0x1
+  );
+  if (!PP_new || $NtFail(status)) {
+    DBG_LOG("Failed to create ProcessParameters: 0x%X.", status);
+    return status;
+  }
+  
+  constexpr auto code = CtlCode::New(
+    DeviceType::Console, 0xd,
+    CtlMethod::Neither, AccessMask::Any
+  );
+  status = sys::control_device_file(
+    server, io, code,
+    AddrRange::New<void>(PP_new, PP_new->size),
+    AddrRange::New()
+  );
+
+  RtlDestroyProcessParameters(PP_new);
+  return status;
+}
+
+static ConsoleHandle GetProcessConsoleHandle() {
+  auto* PP = HcCurrentPEB()->process_params;
+  return ConsoleHandle::New(PP->console_handle);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -324,6 +503,7 @@ static NtStatus InitializeServerData(CSRConsoleServerInfo& info) {
     info.ProcessGroupId = PP->group_id;
   } else {
     $unreachable_msg("Shit!");
+    DBG_LOG("Failed to set ProcessGroupId.");
     // info.ProcessGroupId = ClientId.UniqueProcess;
   }
 
@@ -378,13 +558,15 @@ static NtStatus InitializeServerData(CSRConsoleServerInfo& info) {
 /// Signature: `NtStatus(HANDLE*)`
 static NtStatus CloseIfConsoleHandle(IOFile& handle) {
   auto tmp_handle = ConsoleHandle::New(handle);
-  IoStatusBlock IO {};
-  auto info = sys::query_volume_info<FSDeviceInfo>(tmp_handle, IO);
+  IoStatusBlock io {};
+  auto info = sys::query_volume_info<FSDeviceInfo>(tmp_handle, io);
 
-  if ($NtFail(IO.status))
-    return IO.status;
+  if ($NtFail(io.status)) {
+    DBG_LOG("Query failed: 0x%X.", io.status);
+    return io.status;
+  }
   if (info->device_type != DeviceType::Console)
-    return IO.status;
+    return io.status;
   
   const NtStatus ret
     = sys::close_file(tmp_handle);
@@ -395,7 +577,7 @@ static NtStatus CloseIfConsoleHandle(IOFile& handle) {
 /// Proxy: `ConsoleCreateConnectionObject`
 /// Signature: `NtStatus(HANDLE*, HANDLE, char*, void* buf, u16 buflen)
 static NtStatus CreateConnectionObject(
- DeviceHandle out, ConsoleHandle console,
+ ServeRef out, ConsoleHandle console,
  StrRef name, AddrRange buf
 ) {
   CSRConsoleServerInfo info {};
@@ -447,8 +629,10 @@ static NtStatus CreateConnectionObject(
   attr.attributes = ObjAttribMask::CaseInsensitive;
   attr.root_directory = console;
 
+  DbgDump(attr);
+
   IoStatusBlock io {};
-  out = sys::open_file(
+  auto connection = sys::open_file(
     CreateConsoleAccess(), attr,
     io, nullptr,
     FileAttribMask::None,
@@ -456,13 +640,23 @@ static NtStatus CreateConnectionObject(
     CreateDisposition::Create,
     CreateOptsMask::SyncIONoAlert
   );
+
+  out = DeviceHandle::New(connection.get());
+  DBG_LOG("Object: 0x%p, Name: %wZ, Console: 0x%p",
+    connection.get(), conname, console.get());
   return io.status;
+}
+
+static inline NtStatus CreateEmptyConnectionObject(
+ ServeRef out, ConsoleHandle console) {
+  return CreateConnectionObject(
+    out, console, "", AddrRange::New());
 }
 
 /// Proxy: `ConsoleCreateHandle`
 /// Signature: `NtStatus(HANDLE*, HANDLE, wchar_t* Where, bool, bool)`
 static NtStatus CreateHandle(
- ConsoleHandle& out, DeviceHandle device,
+ ServeRef out, DeviceHandle device,
  UnicodeString where, bool inherits = true, bool is_synced = true
 ) {
   ObjectAttributes attr { .object_name = &where };
@@ -472,7 +666,7 @@ static NtStatus CreateHandle(
   attr.root_directory = device;
 
   IoStatusBlock io {};
-  out = sys::open_file(
+  auto connection = sys::open_file(
     CreateConsoleAccess(), attr,
     io, nullptr,
     FileAttribMask::None,
@@ -483,8 +677,11 @@ static NtStatus CreateHandle(
       : CreateOptsMask::_None
   );
 
-  if ($NtFail(io.status))
+  out = ConsoleHandle::New(connection.get());
+  if ($NtFail(io.status)) {
+    DBG_LOG("Failed to create connection: 0x%X.", io.status);
     return io.status;
+  }
   return 0;
 }
 
@@ -494,12 +691,15 @@ static NtStatus CreateStandardIoObjects(CSRConnectionState& state) {
   NtStatus status = 0;
   ConsoleHandle inp, out, err;
   // Create standard input.
-  status = CreateHandle(inp, state.ConnectionHandle, L"\\Input"_UStr);
-  if ($NtFail(status))
-    return status;
-  // Create standard output.
-  status = CreateHandle(out, state.ConnectionHandle, L"\\Output"_UStr);
+  status = CreateHandle(&inp, state.ConnectionHandle, L"\\Input"_UStr);
   if ($NtFail(status)) {
+    DBG_LOG("Failed to create input handle: 0x%X.", status);
+    return status;
+  }
+  // Create standard output.
+  status = CreateHandle(&out, state.ConnectionHandle, L"\\Output"_UStr);
+  if ($NtFail(status)) {
+    DBG_LOG("Failed to create output handle: 0x%X.", status);
     sys::close_file(inp);
     return status;
   }
@@ -509,14 +709,15 @@ static NtStatus CreateStandardIoObjects(CSRConnectionState& state) {
     DupOptsMask::SameAccess | DupOptsMask::SameAttributes
   );
   if ($NtFail(status)) {
+    DBG_LOG("Failed to create duplicate handle: 0x%X.", status);
     sys::close_file(inp);
     sys::close_file(out);
     return status;
   }
 
-  state.InpHandle = inp;
-  state.OutHandle = out;
-  state.ErrHandle = err;
+  state.InpHandle = handle_cast_ex<IOFile>(inp);
+  state.OutHandle = handle_cast_ex<IOFile>(out);
+  state.ErrHandle = handle_cast_ex<IOFile>(err);
   state.Flags = 0b111;
 
   return status;
@@ -541,6 +742,7 @@ static NtStatus SanitizeStandardIoObjects(CSRConnectionState& state) {
   };
 
   auto close_all = [&]() -> NtStatus {
+    DBG_LOG("Failed to sanitize handles: 0x%X.", status);
     if (inp) sys::close_file(inp);
     if (out) sys::close_file(out);
     if (err) sys::close_file(err);
@@ -549,14 +751,14 @@ static NtStatus SanitizeStandardIoObjects(CSRConnectionState& state) {
 
   // Create standard input (if required).
   if (needs_sanitizing(PP->std_in)) {
-    status = CreateHandle(inp, state.ConnectionHandle, L"\\Input"_UStr);
+    status = CreateHandle(&inp, state.ConnectionHandle, L"\\Input"_UStr);
     if ($NtFail(status))
       return close_all();
     flags |= 0b001;
   }
   // Create standard output (if required).
   if (needs_sanitizing(PP->std_out)) {
-    status = CreateHandle(out, state.ConnectionHandle, L"\\Output"_UStr);
+    status = CreateHandle(&out, state.ConnectionHandle, L"\\Output"_UStr);
     if ($NtFail(status))
       return close_all();
     flags |= 0b010;
@@ -564,7 +766,7 @@ static NtStatus SanitizeStandardIoObjects(CSRConnectionState& state) {
   // Create standard error, or clone output (if required).
   if (needs_sanitizing(PP->std_err)) {
     if (!out) {
-      status = CreateHandle(err, state.ConnectionHandle, L"\\Output"_UStr);
+      status = CreateHandle(&err, state.ConnectionHandle, L"\\Output"_UStr);
     } else {
       status = sys::duplicate_object(
         out, err, AccessMask::Any, ObjAttribMask::None,
@@ -576,15 +778,15 @@ static NtStatus SanitizeStandardIoObjects(CSRConnectionState& state) {
     flags |= 0b100;
   }
 
-  if (has_flag<1>(flags))
+  if (has_flag<0>(flags))
     // Assign standard in.
-    state.InpHandle = inp;
-  if (has_flag<2>(flags))
+    state.InpHandle = handle_cast_ex<IOFile>(inp);
+  if (has_flag<1>(flags))
     // Assign standard out.
-    state.OutHandle = out;
-  if (has_flag<3>(flags))
+    state.OutHandle = handle_cast_ex<IOFile>(out);
+  if (has_flag<2>(flags))
     // Assign standard err.
-    state.ErrHandle = err;
+    state.ErrHandle = handle_cast_ex<IOFile>(err);
   
   state.Flags = flags;
   return status;
@@ -598,14 +800,59 @@ static void CleanupConnectionState(CSRConnectionState& state) {
     sys::close_file(state.ConsoleHandle);
   }
 
+  auto do_close = [](IOFile file) {
+    if (!file) return;
+    const auto hnd = ConsoleHandle::New(file);
+    sys::close_file(hnd);
+  };
+
   if (state.Flags & 0b111) {
-    if (state.InpHandle && state.HasInp)
-      sys::close_file(state.InpHandle);
-    if (state.OutHandle && state.HasOut)
-      sys::close_file(state.OutHandle);
-    if (state.ErrHandle && state.HasErr)
-      sys::close_file(state.ErrHandle);
+    if (state.HasInp)
+      do_close(state.InpHandle);
+    if (state.HasOut)
+      do_close(state.OutHandle);
+    if (state.HasErr)
+      do_close(state.ErrHandle);
   }
+}
+
+static NtStatus CreateIOState(
+ CSRConnectionState& state,
+ DeviceHandle& device,
+ ConsoleHandle* pconsole = nullptr
+) {
+  NtStatus status = 0;
+  auto local_console
+    = ConsoleHandle::New(nullptr);
+  if (pconsole == nullptr) {
+    // Initialize local console handle.
+    status = CreateHandle(
+      &local_console, device, L"\\Reference"_UStr, false);
+    if ($NtFail(status)) {
+      DBG_LOG("Failed to create reference handle: 0x%X.", status);
+      if (device)
+        sys::close_file(device);
+      return status;
+    }
+    pconsole = &local_console;
+  }
+
+  auto* PP = HcCurrentPEB()->process_params;
+  __zero_memory(state);
+  state.IsValidHandle = !!device;
+  state.ConnectionHandle = device;
+  state.ConsoleHandle = *pconsole;
+
+  if (!has_flagval<SF_UseStdHandles>(PP->window_flags))
+    status = CreateStandardIoObjects(state);
+  else
+    status = SanitizeStandardIoObjects(state);
+  
+  if ($NtFail(status)) {
+    DBG_LOG("Failed to create iostate: 0x%X.", status);
+    CleanupConnectionState(state);
+  }
+  return status;
 }
 
 /// Proxy: `ConsoleAttatchOrAllocate`
@@ -638,39 +885,16 @@ static NtStatus AttatchOrAllocate(CSRConnectionState& state, wchar_t* str) {
   }
 
   auto device = DeviceHandle::New(nullptr);
-  auto console = ConsoleHandle::New(nullptr);
-
   status = CreateConnectionObject(
-    device, console,
+    &device, ConsoleHandle::New(nullptr),
     name, buf
   );
-  if ($NtFail(status))
-    return status;
-
-  status = CreateHandle(
-    console, device,
-    L"\\Reference"_UStr,
-    false, true
-  );
   if ($NtFail(status)) {
-    if (device)
-      sys::close_file(device);
+    DBG_LOG("Failed to attach/init console: 0x%X.", status);
     return status;
   }
-
-  __zero_memory(state);
-  state.IsValidHandle = !!device;
-  state.ConnectionHandle = device;
-  state.ConsoleHandle = console;
-
-  if (!has_flagval<SF_UseStdHandles>(PP->window_flags))
-    status = CreateStandardIoObjects(state);
-  else
-    status = SanitizeStandardIoObjects(state);
   
-  if ($NtFail(status))
-    CleanupConnectionState(state);
-  return status;
+  return CreateIOState(state, device);
 }
 
 /// Proxy: `ConsoleAllocate`
@@ -692,10 +916,51 @@ static NtStatus AllocateConsole(CSRConnectionState& state) {
   buf.merge(L" 0xffffffff -ForceV1");
   UnicodeString cmdline = buf.toUStr();
   
-  // status = CreateHandle()
-  // TODO
+  auto server = DeviceHandle::New(nullptr);
+  auto console = ConsoleHandle::New(nullptr);
 
-  return status;
+  const auto where = L"\\Device\\ConDrv\\Server"_UStr;
+  status = CreateHandle(
+    &server, DeviceHandle::New(nullptr),
+    where, true, false
+  );
+  if ($NtFail(status)) {
+    SetSystemConsoleInfo(true);
+    status = CreateHandle(
+      &server, DeviceHandle::New(nullptr),
+      where, true, false
+    );
+    if ($NtFail(status)) {
+      DBG_LOG("Failed to create server handle: 0x%X.", status);
+      return status;
+    }
+  }
+
+  status = CreateHandle(
+    &console, server, L"\\Reference"_UStr, false);
+  if ($NtFail(status)) {
+    DBG_LOG("Failed to create reference handle: 0x%X.", status);
+    sys::close_file(server);
+    return status;
+  }
+
+  status = LaunchServerProcess(image_path, cmdline, server);
+  sys::close_file(server);
+  if ($NtFail(status)) {
+    DBG_LOG("Failed to launch server: 0x%X.", status);
+    sys::close_file(console);
+    return status;
+  }
+
+  auto device = DeviceHandle::New(nullptr);
+  status = CreateEmptyConnectionObject(device, console);
+  if ($NtFail(status)) {
+    DBG_LOG("Failed to create connection: 0x%X.", status);
+    sys::close_file(console);
+    return status;
+  }
+
+  return CreateIOState(state, device, &console);
 }
 
 /// Proxy: `ConsoleCommitState`.
@@ -723,9 +988,12 @@ static NtStatus CommitState(CSRConnectionState& state) {
       AddrRange::New(),
       AddrRange::New(ptr_cast<>(&out_handle), 8)
     );
+  } else {
+    DBG_LOG("Invalid ConnectionHandle.");
+    return /*STATUS_INVALID_HANDLE*/0xC0000008;
   }
 
-  connectionState = state;
+  connectionState = state; // Save state.
   if (state.Flags & 0b111) {
     if (state.HasInp)
       PP->std_in  = state.InpHandle;
@@ -738,8 +1006,8 @@ static NtStatus CommitState(CSRConnectionState& state) {
   out_handle |= 1U; // No idea why we do this...
   sys::set_process<ProcInfo::ConsoleHostProcess>(out_handle);
   // TODO:
-  // InitializeCtrlHandling();
-  // NVar1 = SetTEBLangID();
+  // InitCtrlHandling();
+  // status = SetTEBLangID();
   return 0;
 }
 
@@ -748,7 +1016,7 @@ static NtStatus CommitState(CSRConnectionState& state) {
 
 static bool SetupCUIApp() {
   auto* PP = HcCurrentPEB()->process_params;
-  auto console = ConsoleHandle::New(PP->console_handle);
+  auto console = GetProcessConsoleHandle();
   const MMatch M(console);
 
   if (PP->console_flags & 0x4) {
@@ -758,25 +1026,52 @@ static bool SetupCUIApp() {
   }
 
   CSRConnectionState state {};
+  auto alloc_console = [&state] () -> bool {
+    NtStatus status = AllocateConsole(state);
+    if ($NtFail(status)) {
+      DBG_LOG("Failed to allocate console: 0x%X.", status);
+      return false;
+    }
+    status = CommitState(state);
+    return $NtSuccess(status);
+  };
+
   if (!console || M.is(CreateNewConsole, CreateNoWindow)) {
-    // TODO: ConsoleAllocate(state);
-  } else $scope {
-    // TODO: CreateConnectionObject
-    NtStatus status = 0;
-    bool in_lowbox = false;
-    if (status != /*STATUS_ACCESS_DENIED*/ 0xC0000022)
-      break;
-    if ($NtFail(IsCallerInLowbox(in_lowbox)))
-      break;
-    if (!in_lowbox)
-      break;
-    // sys::close_file(state.ConsoleHandle);
-    // TODO: ALLOC_CONSOLE
+    return alloc_console();
+  }
+  
+  auto device = DeviceHandle::New(nullptr);
+  NtStatus status = CreateEmptyConnectionObject(device, console);
+  if ($NtFail(status)) {
+    if (status == /*STATUS_ACCESS_DENIED*/0xC0000022) $scope {
+      bool in_lowbox = false;
+      status = IsCallerInLowbox(in_lowbox);
+      if ($NtFail(status)) break;
+      if (!in_lowbox) break;
+      sys::close_file(
+        GetProcessConsoleHandle());
+      return alloc_console();
+    }
+    DBG_LOG("Failed and not in lowbox: 0x%X.", status);
+    return false;
   }
 
-  // CommitState(state);
+  state.IsValidHandle = !!device;
+  state.ConnectionHandle = device;
+  state.ConsoleHandle = GetProcessConsoleHandle();
 
-  return false;
+  if (com::has_flagval<1>(PP->console_flags)) {
+    DBG_LOG("Has flag: 0x%X.", PP->console_flags);
+    status = SanitizeStandardIoObjects(state);
+    if ($NtFail(status)) {
+      DBG_LOG("Failed to sanitize io: 0x%X.", status);
+      CleanupConnectionState(state);
+      return false;
+    }
+  }
+
+  status = CommitState(state);
+  return $NtSuccess(status);
 }
 
 static bool SetupGUIApp() {
@@ -794,9 +1089,36 @@ static bool SetupGUIApp() {
 
 bool XCRT_NAMESPACE::setup_console() {
   exeEntry = Win64LoadOrderList::GetExecutableEntry();
+  if (!InitRtlFuncs()) {
+    DBG_LOG("Failed to initialize Rtl functions.");
+    XCRT_NAMESPACE::isConsoleSetUp = false;
+    return false;
+  }
+
+  XCRT_NAMESPACE::log_console_state();
   InitConsoleFlag();
+  // InitCtrlHandling();
   InitExeName();
-  if (!isConsoleApp)
-    return SetupGUIApp();
-  return SetupCUIApp();
+
+  bool did_setup = false;
+  if (XCRT_NAMESPACE::isConsoleApp)
+    did_setup = SetupCUIApp();
+  else
+    did_setup = SetupGUIApp();
+  
+  XCRT_NAMESPACE::isConsoleSetUp = did_setup;
+  return did_setup;
+}
+
+void XCRT_NAMESPACE::log_console_state() {
+  if (!DbgPrint)
+    return;
+  auto* PP = HcCurrentPEB()->process_params;
+  DbgPrint("isConsoleSetUp: %s\n",
+    XCRT_NAMESPACE::isConsoleSetUp ? "true" : "false");
+  DbgPrint("console: 0x%p\n", PP->console_handle);
+  DbgPrint("stdin:   0x%p\n", PP->std_in);
+  DbgPrint("stdout:  0x%p\n", PP->std_out);
+  DbgPrint("stderr:  0x%p\n", PP->std_err);
+  DbgPrint("\n");
 }

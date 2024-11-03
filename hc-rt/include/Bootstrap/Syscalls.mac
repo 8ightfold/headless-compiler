@@ -97,6 +97,9 @@ $NtGen(CreateSemaphore)
 $NtGen(OpenSemaphore)
 $NtGen(QuerySemaphore)
 $NtGen(ReleaseSemaphore)
+// System
+$NtGen(QuerySystemInformation)
+$NtGen(SetSystemInformation)
 // Thread
 $NtGen(AlertResumeThread) 
 $NtGen(Continue) 
@@ -119,6 +122,7 @@ $NtGen(QueryTimer)
 $NtGen(SetTimer)
 // Token
 $NtGen(QueryInformationToken)
+$NtGen(SetInformationToken)
 // Misc.
 $NtGen(Close)                       // NtStatus(WinHandle)
 $NtGen(GetCurrentProcessorNumber)   // ULong()

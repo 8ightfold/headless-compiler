@@ -350,7 +350,7 @@ public:
   }
 };
 
-using KeCallbackProc = NtStatus(*)(void*, u32);
+using KeCallbackProc = i32(*)(void*, u32);
 
 struct Win64PEB {
   Win64Bool         is_inherited_addr_space;
