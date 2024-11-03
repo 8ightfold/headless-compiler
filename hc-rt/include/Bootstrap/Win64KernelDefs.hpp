@@ -183,7 +183,7 @@ public:
     if __expect_false(!S) 
       return nullptr;
     SelfType* curr = this->asMutable();
-    if __expect_false(curr->isSentinel())
+    if (curr->isSentinel())
       curr = curr->next();
     // This is evil... buuut we never modify the buffer so it's ok ;)
     const auto ustr = Win64UnicodeString::New(S);
