@@ -19,9 +19,32 @@
 #pragma once
 
 #include "Nt/Filesystem.hpp"
+#include <Common/PtrRange.hpp>
 
 namespace hc::sys {
 inline namespace __nt {
+
+[[nodiscard]] __nt_attrs
+win::FileObjHandle open_file_ex(
+ NtAccessMask mask,
+ win::ObjectAttributes& attr,
+ win::IoStatusBlock& io, 
+ win::LargeInt* alloc_size,
+ NtFileAttribMask file_attr, 
+ NtFileShareMask share_access,
+ NtCreateDisposition disposition, 
+ NtCreateOptsMask create_opts,
+ AddrRange ex_attrs
+) {
+  win::FileObjHandle hout;
+  io.status = isyscall<NtSyscall::CreateFile>(
+    &hout, mask, &attr, &io, alloc_size, 
+    file_attr, share_access, 
+    disposition, create_opts,
+    ex_attrs.data(), win::ULong(ex_attrs.size())
+  );
+  return hout;
+}
 
 [[nodiscard]] __nt_attrs
 win::FileObjHandle open_file(
@@ -35,14 +58,11 @@ win::FileObjHandle open_file(
  NtCreateOptsMask create_opts 
   = NtCreateOptsMask::IsFile
 ) {
-  win::FileObjHandle hout;
-  io.status = isyscall<NtSyscall::CreateFile>(
-    &hout, mask, &attr, &io, alloc_size, 
-    file_attr, share_access, 
-    disposition, create_opts,
-    nullptr, win::ULong(0UL)
+  return open_file_ex(
+    mask, attr, io, alloc_size,
+    file_attr, share_access, disposition, create_opts,
+    AddrRange::New()
   );
-  return hout;
 }
 
 __nt_attrs win::NtStatus read_file(
