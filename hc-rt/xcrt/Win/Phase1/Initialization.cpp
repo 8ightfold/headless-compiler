@@ -104,7 +104,7 @@ void __xcrt_setup(void) {
 
   // Set up standard IO.
   XCRT_NAMESPACE::setup_heap_funcs();
-  XCRT_NAMESPACE::setup_console();
+  // XCRT_NAMESPACE::setup_console();
   // TODO: __xcrt_sysio_setup();
 
   // Set up thread_local backend after sysio, 

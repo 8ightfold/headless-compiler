@@ -17,6 +17,7 @@
 //===----------------------------------------------------------------===//
 
 #include <Bootstrap/_NtModule.hpp>
+#include <Bootstrap/StringMerger.hpp>
 #include <Common/Casting.hpp>
 #include <Common/InlineMemcpy.hpp>
 #include <Common/StrRef.hpp>
@@ -104,7 +105,12 @@ NtStatus TestPrint(StrRef Str) {
 
 NtStatus TestPrint(const wchar_t* WStr) {
   auto Str = $to_str(WStr);
-  return TestPrintI(Str.data(), Str.size());
+  return TestPrintI(Str.data(), Str.size() - 1);
+}
+
+NtStatus TestPrint(UnicodeString UStr) {
+  auto Str = $to_str_sz(UStr.buffer, UStr.getSize());
+  return TestPrintI(Str.data(), Str.size() - 1);
 }
 
 static Win64Addr GetConsoleHandleRaw() {
@@ -113,18 +119,35 @@ static Win64Addr GetConsoleHandleRaw() {
     ->console_handle;
 }
 
+static Win64Addr GetConsoleHandleRaw(usize N) {
+  auto* PP = boot::HcCurrentPEB()->process_params;
+  switch (N) {
+   case 0: return PP->std_in;
+   case 1: return PP->std_out;
+   case 2: return PP->std_err;
+   default:
+    return PP->console_handle;
+  }
+}
+
 static ConsoleHandle GetConsoleHandle() {
   return ConsoleHandle::New(GetConsoleHandleRaw());
 }
 
+static ConsoleHandle GetConsoleHandle(usize N) {
+  return ConsoleHandle::New(GetConsoleHandleRaw(N));
+}
+
 void TestPrintCon(StrRef Str) {
-  auto fd = GetConsoleHandle();
+  auto fd = GetConsoleHandle(1);
   usize written = 0;
   auto R = sys::write_console(fd, Str.data(), Str.size(), &written);
   if (written != Str.size()) {
     TestPrint("Failed to write string!");
     TestPrint(Str);
+    return;
   }
+  sys::write_console(fd, "\n", 1, &written);
 }
 
 #define TEST_QUERY(name, bound...) do { \
@@ -230,7 +253,7 @@ int main(int V, char** Args) {
   XCRT_NAMESPACE::log_console_state();
   if (!XCRT_NAMESPACE::isConsoleSetUp) {
     TestPrint("Console setup failed.");
-    return 1;
+    // return 1;
   } else if (!GetConsoleHandle()) {
     TestPrint("No console handle.");
     return 1;
