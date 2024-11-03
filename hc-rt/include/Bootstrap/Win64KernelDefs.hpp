@@ -186,7 +186,7 @@ public:
     if __expect_false(curr->isSentinel())
       curr = curr->next();
     // This is evil... buuut we never modify the buffer so it's ok ;)
-    const auto ustr = Win64UnicodeString::New(const_cast<wchar_t*>(S));
+    const auto ustr = Win64UnicodeString::New(S);
     while (!curr->isSentinel()) {
       const auto tbl = curr->asLDRDataTableEntry();
       const Win64UnicodeString& dll_ustr = tbl->base_dll_name;
