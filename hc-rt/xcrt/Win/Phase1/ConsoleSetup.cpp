@@ -198,15 +198,17 @@ constinit bool XCRT_NAMESPACE::isConsoleSetUp = false;
 //////////////////////////////////////////////////////////////////////////
 // Logging
 
-#if _HC_DEBUG
+#if _HC_DEBUG && 0
 # define dbg_if(expr...) if (expr...)
 # define DBG_LOG(fmt, args...) do { \
   if (0) CheckLogArgs(fmt "\n", ##args); \
   DbgLog(SourceLocation::Current(), fmt "\n", ##args); \
 } while(0)
+# define DBG_DUMP(expr...) DbgDump(expr)
 #else
 # define dbg_if(expr...) if constexpr (false)
 # define DBG_LOG(fmt, ...) (void(0))
+# define DBG_DUMP(...) (void(0))
 #endif
 
 using CStr = const char[];
@@ -305,7 +307,7 @@ static bool InitRtlFuncs() {
 static inline constexpr AccessMask CreateConsoleAccess() {
   using enum AccessMask;
   return Sync | ReadControl | WriteAttributes | ReadAttributes
-    | WriteEA | ReadEA | AppendData | WriteData | Execute | ReadData;
+    | WriteEA | ReadEA | AppendData | WriteData | ReadData;
 }
 
 static bool InitConsoleFlag() {
@@ -629,21 +631,21 @@ static NtStatus CreateConnectionObject(
   attr.attributes = ObjAttribMask::CaseInsensitive;
   attr.root_directory = console;
 
-  DbgDump(attr);
-
   IoStatusBlock io {};
-  auto connection = sys::open_file(
+  auto connection = sys::open_file_ex(
     CreateConsoleAccess(), attr,
     io, nullptr,
     FileAttribMask::None,
     FileShareMask::All,
     CreateDisposition::Create,
-    CreateOptsMask::SyncIONoAlert
+    CreateOptsMask::SyncIONoAlert,
+    AddrRange::New<void>(obj.get(), size)
   );
 
   out = DeviceHandle::New(connection.get());
-  DBG_LOG("Object: 0x%p, Name: %wZ, Console: 0x%p",
-    connection.get(), conname, console.get());
+  DBG_LOG("Object: 0x%p, Access: 0x%x, Size: %u, Console: 0x%p",
+    connection.get(), ULong(CreateConsoleAccess()),
+    unsigned(size), console.get());
   return io.status;
 }
 
@@ -1015,11 +1017,12 @@ static NtStatus CommitState(CSRConnectionState& state) {
 // Top-level
 
 static bool SetupCUIApp() {
+  NtStatus status = 0;
   auto* PP = HcCurrentPEB()->process_params;
   auto console = GetProcessConsoleHandle();
   const MMatch M(console);
 
-  if (PP->console_flags & 0x4) {
+  if (com::has_flag<2>(PP->console_flags)) {
     CloseIfConsoleHandle(PP->std_in);
     CloseIfConsoleHandle(PP->std_in);
     CloseIfConsoleHandle(PP->std_err);
@@ -1038,10 +1041,13 @@ static bool SetupCUIApp() {
 
   if (!console || M.is(CreateNewConsole, CreateNoWindow)) {
     return alloc_console();
+  } else if (console == InvalidHandle) {
+    status = CommitState(state);
+    return $NtSuccess(status);
   }
   
   auto device = DeviceHandle::New(nullptr);
-  NtStatus status = CreateEmptyConnectionObject(device, console);
+  status = CreateEmptyConnectionObject(device, console);
   if ($NtFail(status)) {
     if (status == /*STATUS_ACCESS_DENIED*/0xC0000022) $scope {
       bool in_lowbox = false;
@@ -1060,14 +1066,15 @@ static bool SetupCUIApp() {
   state.ConnectionHandle = device;
   state.ConsoleHandle = GetProcessConsoleHandle();
 
-  if (com::has_flagval<1>(PP->console_flags)) {
-    DBG_LOG("Has flag: 0x%X.", PP->console_flags);
-    status = SanitizeStandardIoObjects(state);
-    if ($NtFail(status)) {
-      DBG_LOG("Failed to sanitize io: 0x%X.", status);
-      CleanupConnectionState(state);
-      return false;
+  $scope {
+    if (com::has_flag<1>(PP->console_flags)) {
+      status = SanitizeStandardIoObjects(state);
+      if ($NtSuccess(status))
+        break;
     }
+
+    CleanupConnectionState(state);
+    return false;
   }
 
   status = CommitState(state);
