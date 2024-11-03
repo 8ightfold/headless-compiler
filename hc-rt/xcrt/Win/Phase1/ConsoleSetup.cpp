@@ -643,9 +643,6 @@ static NtStatus CreateConnectionObject(
   );
 
   out = DeviceHandle::New(connection.get());
-  DBG_LOG("Object: 0x%p, Access: 0x%x, Size: %u, Console: 0x%p",
-    connection.get(), ULong(CreateConsoleAccess()),
-    unsigned(size), console.get());
   return io.status;
 }
 
