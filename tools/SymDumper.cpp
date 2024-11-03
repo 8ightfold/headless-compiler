@@ -70,6 +70,10 @@ namespace S = hc::sys;
 
 constinit bool OnlyNt = true;
 
+namespace std {
+  using ::exit;
+} // namespace std
+
 void __dump_introspect(
  u32& count, const char* fmt, auto&&...args) {
   ++count;

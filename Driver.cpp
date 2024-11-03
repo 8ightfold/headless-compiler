@@ -386,7 +386,7 @@ static W::NtStatus TestPrintExI(const char* Str, usize N) {
 
   ExceptionRecord Record {};
   Record.code    = 0x40010006; // DBG_PRINTEXCEPTION_C
-  Record.record  = nullptr;
+  Record.next    = nullptr;
   Record.address = ptr_cast<void>(&TestPrintExI);
   Record.nparams = 2;
   Record.info[0] = N;
@@ -434,11 +434,21 @@ extern "C" {
 #pragma clang pop_macro("__section")
 }
 
+void log_console_state() {
+  auto* PP = boot::HcCurrentPEB()->process_params;
+  std::printf("console: 0x%p\n", PP->console_handle);
+  std::printf("stdin:   0x%p\n", PP->std_in);
+  std::printf("stdout:  0x%p\n", PP->std_out);
+  std::printf("stderr:  0x%p\n", PP->std_err);
+  std::printf("\n");
+}
+
 int main(int N, char* A[], char* Env[]) {
   volatile int ret = 0;
   __try_load_dbgprint();
   // printPtrRange(sys::Args::ProgramDirW(), "Executable");
   // printPtrRange(sys::Args::WorkingDirW(), "Working in");
+  log_console_state();
 
   if (__native_startup_state == __initialized)
     TestPrintEx("Omg!\n");

@@ -25,13 +25,31 @@
 
 #include <xcrt.hpp>
 #include <String/Utils.hpp>
+#include <Phase1/ConsoleSetup.hpp>
 
 #include <Sys/Win/Console.hpp>
 #include <Sys/Win/Process.hpp>
 
+#include "CFTest.hidden.hpp"
+
 using namespace hc;
 using namespace hc::bootstrap;
 using namespace hc::sys::win;
+
+__always_inline constexpr char wchar_conv(wchar_t WC) {
+  return (WC <= 0xFF) ? static_cast<char>(WC) : '?';
+}
+
+#define $to_str_sz(S, size) ({ \
+  const usize lenU__ = size; \
+  auto wstrU__ = $dynalloc(lenU__ + 1, char); \
+  for (usize IU__ = 0; IU__ < lenU__; ++IU__) \
+    wstrU__[IU__] = wchar_conv(S[IU__]); \
+  wstrU__[lenU__] = '\0'; \
+  wstrU__; \
+})
+
+#define $to_str(S) $to_str_sz(S, xcrt::wstringlen(S))
 
 static bool SetInDbgPrint() {
   if (HcCurrentTEB()->in_debug_print) {
@@ -81,6 +99,11 @@ static NtStatus TestPrintI(const char* Str, usize N) {
 }
 
 NtStatus TestPrint(StrRef Str) {
+  return TestPrintI(Str.data(), Str.size());
+}
+
+NtStatus TestPrint(const wchar_t* WStr) {
+  auto Str = $to_str(WStr);
   return TestPrintI(Str.data(), Str.size());
 }
 
@@ -134,13 +157,12 @@ void TestSet() {
 
 template <usize N>
 void TestStrnlenI(const char(&A)[N], usize max) {
-  TestPrint(A);
   constexpr usize N2 = (N - 1);
   const usize Ex = (N2 > max) ? max : N2;
   if (xcrt::stringnlen(A, max) == Ex)
-    TestPrint("   [PASSED]");
-  else
-    TestPrint("   [FAILED]");
+    return;
+  TestPrint(A);
+  TestPrint("   [FAILED]");
 }
 
 void TestStrnlen() {
@@ -153,19 +175,31 @@ void TestStrnlen() {
   TestStrnlenI("3828282828", 77);
 }
 
-template <usize N>
-void TestStrstrI(const char(&A)[N], const char* needle, bool B) {
+template <typename Char>
+const Char* find_first_str(const Char* S, const Char* Needle, usize MaxRead) {
+  const auto Cmp = [](Char L, Char R) -> i32 { return L - R; };
+  void* const P = xcrt::xfind_first_str<Char>(S, Needle, MaxRead, Cmp);
+  return static_cast<const Char*>(P);
+}
+
+template <typename Char, usize N>
+void TestStrstrI(const Char(&A)[N], const Char* Needle, bool B) {
+  const bool CFRes = TestCF(Needle);
+  if (CFRes && (!!find_first_str(A, Needle, (N - 1)) == B))
+    return;
   TestPrint(A);
-  TestPrint(needle);
-  if (!!xcrt::find_first_str(A, needle, (N - 1)) == B)
-    TestPrint("   [PASSED]");
+  TestPrint(Needle);
+  if (!CFRes)
+    TestPrint("   [FAILED] Differing CF");
   else
     TestPrint("   [FAILED]");
 }
 
 void TestStrstr() {
+  TestStrstrI("Hello world!", "orl", true);
+
   TestStrstrI("abcdefg", "def", true);
-  TestStrstrI("abcdefg", "efg", true);
+  TestStrstrI(L"abcdefg", L"efg", true);
   TestStrstrI(
     "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz",
     "zabcdefghijkl", true
@@ -179,14 +213,6 @@ void TestStrstr() {
 
 //////////////////////////////////////////////////////////////////////////
 
-struct Global {
-  ~Global() { TestPrint("Global"); }
-};
-
-struct Static {
-  ~Static() { TestPrint("Static"); }
-};
-
 static constinit int X = 1;
 static constinit int Y = 1;
 static constinit int Z = 1;
@@ -195,19 +221,17 @@ $Once { ::X = 2; };
 $Once { ::Y = 4; };
 $Once { ::Z = 8; };
 
-void static_() {
-  static Static S {};
-  xcrt::exit(X + Y);
-}
-Global global {};
-
 int main(int V, char** Args) {
   // TestQuery();
   // TestSet();
   // TestStrnlen();
-  TestStrstr();
+  // TestStrstr();
 
-  if (!GetConsoleHandle()) {
+  XCRT_NAMESPACE::log_console_state();
+  if (!XCRT_NAMESPACE::isConsoleSetUp) {
+    TestPrint("Console setup failed.");
+    return 1;
+  } else if (!GetConsoleHandle()) {
     TestPrint("No console handle.");
     return 1;
   }
@@ -217,6 +241,6 @@ int main(int V, char** Args) {
     TestPrintCon(S);
     // TestPrint(S);
   }
-  static_();
+
   return X + Y + Z; // Returns 14!!
 }

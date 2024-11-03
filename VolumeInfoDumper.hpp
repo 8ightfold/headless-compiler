@@ -227,7 +227,7 @@ inline void printControlInfo(W::FSControlInfo& V) {
 inline const char* getDeviceTypeStr(W::DeviceType V) {
   using enum W::DeviceType;
   switch (V) {
-   case UTCPPort:           return "UTCPPort";
+   case _8042Port:          return "8042Port";
    case ACPI:               return "ACPI";
    case Battery:            return "Battery";
    case Beep:               return "Beep";
@@ -313,7 +313,7 @@ inline void printObjectUUID(W::GUID& UUID, bool upper = false) {
     "0123456789abcdef",
     "0123456789ABCDEF"
   };
-  std::printf(" UUID: {%.8lx-%.4hx-%.4hx-",
+  std::printf(" UUID: {%.8x-%.4hx-%.4hx-",
     UUID.prefix, UUID.groupA, UUID.groupB);
   for (int I = 0; I < 8; ++I) {
     const u8 B = UUID.postfix[I];
