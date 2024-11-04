@@ -284,6 +284,34 @@ inline const char* getDeviceTypeStr(W::DeviceType V) {
    case VirtualDisk:        return "VirtualDisk";
    case WaveIn:             return "WaveIn";
    case WaveOut:            return "WaveOut";
+
+   case InfiniBand:         return "InfiniBand";
+   case VMBus:              return "VMBus";
+   case CryptProvider:      return "CryptProvider";
+   case WPD:                return "WPD";
+   case BlueTooth:          return "BlueTooth";
+   case MT_Composite:       return "MT_Composite";
+   case MT_Transport:       return "MT_Transport";
+   case Biometric:          return "Biometric";
+   case PMI:                return "PMI";
+   case EnhancedStorage:    return "EnhancedStorage";
+   case DevAPI:             return "DevAPI";
+   case GPIO:               return "GPIO";
+   case USBEx:              return "USBEx";
+   case Console:            return "Console";
+   case NearFieldProximity: return "NearFieldProximity";
+   case SystemEnv:          return "SystemEnv";
+   case VirtualBlock:       return "VirtualBlock";
+   case PointOfService:     return "PointOfService";
+   case StorageReplication: return "StorageReplication";
+   case TrustedEnv:         return "TrustedEnv";
+   case UCM:                return "UCM";
+   case UCM_TCPCI:          return "UCM_TCPCI";
+   case PersistentMemory:   return "PersistentMemory";
+   case NV_DIMM:            return "NV_DIMM";
+   case Holographic:        return "Holographic";
+   case SDFXHCI:            return "SDFXHCI";
+
    default:                 return "Invalid";
   }
 }

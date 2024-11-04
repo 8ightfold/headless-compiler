@@ -4,7 +4,7 @@ include(Setup.cmake)
 
 project(
   headless-compiler
-  VERSION 0.2.1
+  VERSION 0.2.2
   LANGUAGES CXX C
 )
 

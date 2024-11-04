@@ -23,6 +23,7 @@
 #include <Common/StrRef.hpp>
 #include <Meta/Once.hpp>
 #include <Sys/Win/Except.hpp>
+#include <Sys/File.hpp>
 
 #include <xcrt.hpp>
 #include <String/Utils.hpp>
@@ -30,6 +31,7 @@
 
 #include <Sys/Win/Console.hpp>
 #include <Sys/Win/Process.hpp>
+#include <Sys/Win/Volume.hpp>
 
 #include "CFTest.hidden.hpp"
 
@@ -138,7 +140,7 @@ static ConsoleHandle GetConsoleHandle(usize N) {
   return ConsoleHandle::New(GetConsoleHandleRaw(N));
 }
 
-void TestPrintCon(StrRef Str) {
+void TestPrintCon(StrRef Str, bool Newline = true) {
   auto fd = GetConsoleHandle(1);
   usize written = 0;
   auto R = sys::write_console(fd, Str.data(), Str.size(), &written);
@@ -147,7 +149,128 @@ void TestPrintCon(StrRef Str) {
     TestPrint(Str);
     return;
   }
-  sys::write_console(fd, "\n", 1, &written);
+  if (Newline) {
+    sys::write_console(fd, "\n", 1, &written);
+  }
+}
+
+DeviceType GetHandleType(GenericHandle H) {
+  auto tmp_handle = ConsoleHandle::New(H.get());
+  IoStatusBlock io {};
+  auto info = sys::query_volume_info<FSDeviceInfo>(tmp_handle, io);
+  if ($NtFail(io.status))
+    return static_cast<DeviceType>(-1);
+  return info->device_type;
+}
+
+inline const char* getDeviceTypeStr(DeviceType V) {
+  using enum DeviceType;
+  switch (V) {
+   case _8042Port:          return "8042Port";
+   case ACPI:               return "ACPI";
+   case Battery:            return "Battery";
+   case Beep:               return "Beep";
+   case BusExtender:        return "BusExtender";
+   case CDRom:              return "CDRom";
+   case CDRomFilesystem:    return "CDRomFilesystem";
+   case Changer:            return "Changer";
+   case Controller:         return "Controller";
+   case Datalink:           return "Datalink";
+   case DFS:                return "DFS";
+   case DFSFilesystem:      return "DFSFilesystem";
+   case DFSVolume:          return "DFSVolume";
+   case Disk:               return "Disk";
+   case DiskFilesystem:     return "DiskFilesystem";
+   case DVD:                return "DVD";
+   case Filesystem:         return "Filesystem";
+   case FIPS:               return "FIPS";
+   case FullscreenVideo:    return "FullscreenVideo";
+   case InPort:             return "InPort";
+   case Keyboard:           return "Keyboard";
+   case KS:                 return "KS";
+   case KSec:               return "KSec";
+   case Mailslot:           return "Mailslot";
+   case MassStorage:        return "MassStorage";
+   case MIDIIn:             return "MIDIIn";
+   case MIDIOut:            return "MIDIOut";
+   case Modem:              return "Modem";
+   case Mouse:              return "Mouse";
+   case MultiUNCProvider:   return "MultiUNCProvider";
+   case NamedPipe:          return "NamedPipe";
+   case Network:            return "Network";
+   case NetworkBrowser:     return "NetworkBrowser";
+   case NetworkFilesystem:  return "NetworkFilesystem";
+   case NetworkRedirector:  return "NetworkRedirector";
+   case Null:               return "Null";
+   case ParallelPort:       return "ParallelPort";
+   case PhysNetcard:        return "PhysNetcard";
+   case Printer:            return "Printer";
+   case Scanner:            return "Scanner";
+   case Screen:             return "Screen";
+   case Serenum:            return "Serenum";
+   case SerialMousePort:    return "SerialMousePort";
+   case SerialPort:         return "SerialPort";
+   case SmartCard:          return "SmartCard";
+   case Sound:              return "Sound";
+   case Streams:            return "Streams";
+   case Tape:               return "Tape";
+   case TapeFilesystem:     return "TapeFilesystem";
+   case TerminalServer:     return "TerminalServer";
+   case Transport:          return "Transport";
+   case Unknown:            return "Unknown";
+   case VirtualDosMachine:  return "VirtualDosMachine";
+   case Video:              return "Video";
+   case VirtualDisk:        return "VirtualDisk";
+   case WaveIn:             return "WaveIn";
+   case WaveOut:            return "WaveOut";
+
+   case InfiniBand:         return "InfiniBand";
+   case VMBus:              return "VMBus";
+   case CryptProvider:      return "CryptProvider";
+   case WPD:                return "WPD";
+   case BlueTooth:          return "BlueTooth";
+   case MT_Composite:       return "MT_Composite";
+   case MT_Transport:       return "MT_Transport";
+   case Biometric:          return "Biometric";
+   case PMI:                return "PMI";
+   case EnhancedStorage:    return "EnhancedStorage";
+   case DevAPI:             return "DevAPI";
+   case GPIO:               return "GPIO";
+   case USBEx:              return "USBEx";
+   case Console:            return "Console";
+   case NearFieldProximity: return "NearFieldProximity";
+   case SystemEnv:          return "SystemEnv";
+   case VirtualBlock:       return "VirtualBlock";
+   case PointOfService:     return "PointOfService";
+   case StorageReplication: return "StorageReplication";
+   case TrustedEnv:         return "TrustedEnv";
+   case UCM:                return "UCM";
+   case UCM_TCPCI:          return "UCM_TCPCI";
+   case PersistentMemory:   return "PersistentMemory";
+   case NV_DIMM:            return "NV_DIMM";
+   case Holographic:        return "Holographic";
+   case SDFXHCI:            return "SDFXHCI";
+
+   default:                 return "Invalid";
+  }
+}
+
+void PrintHandleType(GenericHandle H) {
+  DeviceType D = GetHandleType(H);
+  TestPrintCon(getDeviceTypeStr(D));
+}
+
+void PrintHandleTypeN(const char* name, usize N) {
+  TestPrintCon(name, false);
+  TestPrintCon(": ", false);
+  PrintHandleType(GetConsoleHandle(N));
+}
+
+void PrintHandles() {
+  PrintHandleTypeN("Con", -1);
+  PrintHandleTypeN("Inp", 0);
+  PrintHandleTypeN("Out", 1);
+  PrintHandleTypeN("Err", 2);
 }
 
 #define TEST_QUERY(name, bound...) do { \
@@ -250,6 +373,11 @@ int main(int V, char** Args) {
   // TestStrnlen();
   // TestStrstr();
 
+  //PrintHandles();
+
+  hc::write_file(pout, "Hello world!\n");
+  hc::write_file(perr, "Hello error!\n");
+
   XCRT_NAMESPACE::log_console_state();
   if (!XCRT_NAMESPACE::isConsoleSetUp) {
     TestPrint("Console setup failed.");
@@ -257,12 +385,6 @@ int main(int V, char** Args) {
   } else if (!GetConsoleHandle()) {
     TestPrint("No console handle.");
     return 1;
-  }
-
-  for (int Ix = 0; Ix < V; ++Ix) {
-    StrRef S = Args[Ix];
-    TestPrintCon(S);
-    // TestPrint(S);
   }
 
   return X + Y + Z; // Returns 14!!
