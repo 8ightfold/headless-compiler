@@ -254,7 +254,7 @@ namespace hc::sys {
     FWriteType* write_fn;
     FSeekType*  seek_fn;
     FCloseType* close_fn;
-    [[maybe_unused]] OSMtx mtx;
+    [[maybe_unused]] OSMtx mtx; // TODO
 
     u8 ungetc_buf = 0;
     IIOFileBuf* buf;
