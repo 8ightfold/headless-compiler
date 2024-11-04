@@ -42,7 +42,7 @@ namespace hc::sys {
      fd(fd), raw_handle(nullptr), io_block() { }
   public:
     void setHandle(win::IOHandle H) {
-      this->raw_handle = H.__data;
+      this->raw_handle = H.get();
     }
 
   public:

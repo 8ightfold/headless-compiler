@@ -113,11 +113,15 @@ inline win::NtStatus write_generic(
 ) {
   static constexpr usize maxBufs = 6;
   struct __packed_alignas(u32) Input {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpacked-non-pod"
+    // Packing warnings can be safely ignored.
     win::GenericHandle handle;
     win::ULong xcount = 0;
     win::ULong ycount = 0;
     // 2 extra for `CSRParams` info
     CSRMessage msg[maxBufs + 2];
+#pragma clang diagnostic pop
   };
 
   static_assert(sizeof(Input) ==

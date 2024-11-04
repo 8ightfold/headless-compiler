@@ -104,8 +104,7 @@ void __xcrt_setup(void) {
 
   // Set up standard IO.
   XCRT_NAMESPACE::setup_heap_funcs();
-  XCRT_NAMESPACE::setup_console();
-  // TODO: __xcrt_sysio_setup();
+  __xcrt_sysio_setup();
 
   // Set up thread_local backend after sysio, 
   // as that may print on error.
@@ -119,7 +118,7 @@ void __xcrt_setup(void) {
 void __xcrt_shutdown(void) {
   // Run shutdown functions in reverse order.
   EMUTLS_SHUTDOWN();
-  // TODO: __xcrt_sysio_shutdown();
+  __xcrt_sysio_shutdown();
   __xcrt_locks_shutdown();
 }
 

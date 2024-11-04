@@ -135,6 +135,7 @@ public:
   /// Overwrites are only valid when `force` is `true`.
   template <is_valid_opqerr T, usize N>
   static OpaqueError RegisterUserError(
+   // TODO: Change this to a map
    T V, const char(&S)[N], bool force = false) {
     const OpqErrorTy G  = ErrorTy(V);
     const OpqErrorID ID = ErrorID(V);

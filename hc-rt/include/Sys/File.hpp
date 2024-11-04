@@ -28,65 +28,71 @@
 #include <Sys/Errors.hpp>
 
 namespace hc {
-namespace sys { 
-  struct IIOFile;
-  struct IIOFileBuf;
+namespace sys {
 
-  enum BufferMode {
-    None, Line, Full
-  };
+struct IIOFile;
+struct IIOFileBuf;
 
-  template <typename T = void>
-  using IOResult = common::Result<T, Error>;
+enum BufferMode {
+  None, Line, Full
+};
 
-  struct FileAdaptor {
-    enum { invalArgMax = 3 };
-    using InvalArgsType = bool(&)[invalArgMax];
-  public:
-    // TODO:
-    constexpr FileAdaptor(IIOFileBuf& buf) : buf(&buf) { (void) this->buf; }
-    /// Opens a file, same flag syntax as `std::fopen`'s extended mode.
-    IIOFile* openFileRaw(common::StrRef path, common::StrRef flags);
-    /// Closes a file, returns `true` if handle was valid.
-    bool closeFileRaw(IIOFile* file);
-    /// Returns the last error, if there was one.
-    Error getLastError() const { return err; }
-    /// Returns the positions for `Error::eInval`.
-    /// Indexes are `true` if they were invalid.
-    auto invalArgsPos() const
-     -> const bool(&)[invalArgMax] { 
-      return invals;
-    }
-    /// Resets any error info.
-    void clearError();
-  private:
-    IIOFileBuf* buf;
-    Error err = Error::eNone;
-    bool invals[invalArgMax] {};
-  };
+template <typename T = void>
+using IOResult = com::Result<T, Error>;
 
+struct FileAdaptor {
+  enum { invalArgMax = 3 };
+  using InvalArgsType = bool(&)[invalArgMax];
+public:
+  // TODO:
+  constexpr FileAdaptor(IIOFileBuf& buf) : buf(&buf) { (void) this->buf; }
   /// Opens a file, same flag syntax as `std::fopen`'s extended mode.
-  IOResult<IIOFile*> open_file(common::StrRef path, IIOFileBuf& buf, common::StrRef flags);
+  IIOFile* openFileRaw(com::StrRef path, com::StrRef flags);
   /// Closes a file, returns `true` if handle was valid.
-  IOResult<> close_file(IIOFile* file);
-  /// Returns the number of open file slots.
-  usize available_files();
+  bool closeFileRaw(IIOFile* file);
+  /// Returns the last error, if there was one.
+  Error getLastError() const { return err; }
+  /// Returns the positions for `Error::eInval`.
+  /// Indexes are `true` if they were invalid.
+  auto invalArgsPos() const
+   -> const bool(&)[invalArgMax] { 
+    return invals;
+  }
+  /// Resets any error info.
+  void clearError();
+private:
+  IIOFileBuf* buf;
+  Error err = Error::eNone;
+  bool invals[invalArgMax] {};
+};
+
+/// Opens a file, same flag syntax as `std::fopen`'s extended mode.
+IOResult<IIOFile*> open_file(com::StrRef path, IIOFileBuf& buf, com::StrRef flags);
+/// Closes a file, returns `true` if handle was valid.
+IOResult<> close_file(IIOFile* file);
+/// Returns the number of open file slots.
+usize available_files();
+
 } // namespace sys
 
-  using RawIOFile = sys::IIOFile;
-  using IOFile    = RawIOFile*;
+using RawIOFile = sys::IIOFile;
+using IOFile    = RawIOFile*;
 
-  //====================================================================//
-  // Standard File Handles
-  //====================================================================//
+//======================================================================//
+// Standard File Handles
+//======================================================================//
 
 namespace sys {
-  extern constinit IIOFile* pout;
-  extern constinit IIOFile* perr;
-  extern constinit IIOFile* pin;
+extern constinit IIOFile* pout;
+extern constinit IIOFile* perr;
+extern constinit IIOFile* pin;
 } // namespace sys
 
-  using sys::pout;
-  using sys::perr;
-  using sys::pin;
+using sys::pout;
+using sys::perr;
+using sys::pin;
+
+// TODO: Temporary example
+sys::IOResult<int> write_file(IOFile file, com::StrRef data);
+
 } // namespace hc

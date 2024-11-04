@@ -25,49 +25,54 @@
  { val, msg __VA_OPT__(,) extra }
 
 namespace hc::sys {
-  using OSErr = struct _OSErr;
-  struct _OSErr {
-    static void SetLastError(OpqErrorID ID) {
-      SysErr::SetLastError(ID);
-    }
-    static void SetLastError(Error E) {
-      const auto opq = SysErr::GetOpaqueError(E);
-      SysErr::SetLastError(opq);
-    }
-    static void SetLastError(OpaqueError E) {
-      SysErr::SetLastError(E);
-    }
-  };
 
-  //====================================================================//
-  // Implementation
-  //====================================================================//
+using OSErr = struct _OSErr;
+struct _OSErr {
+  static void SetLastError(OpqErrorID ID) {
+    SysErr::SetLastError(ID);
+  }
+  static void SetLastError(Error E) {
+    if (E == Error::eSetOSError)
+      // Don't set the result if it already has been.
+      return;
+    const auto opq = SysErr::GetOpaqueError(E);
+    SysErr::SetLastError(opq);
+  }
+  static void SetLastError(OpaqueError E) {
+    SysErr::SetLastError(E);
+  }
+};
 
-  struct [[gnu::packed]] OpqErrorExtra {
-    ErrorSeverity severity;
-    u8  __reserved8;
-    u16 __reserved16;
-    u32 __reserved32;
-  };
+//======================================================================//
+// Implementation
+//======================================================================//
 
-  /// The underlying representation of an error.
-  /// Useful for wrapping objects nicely.
-  struct IOpaqueError {
-    using StrType = const char*;
-  public:
-    constexpr IOpaqueError(StrType V, StrType M, ErrorSeverity S) :
-     error_val(V), message(M), extra(S) { }
-    constexpr IOpaqueError(StrType V, StrType M) :
-     IOpaqueError(V, M, ErrorSeverity::Unset) { }
-    
-  public:
-    virtual ErrorGroup getErrorGroup() const {
-      return ErrorGroup::Unknown;
-    }
-    
-  public:
-    StrType error_val;
-    StrType message;
-    OpqErrorExtra extra;
-  };
+struct [[gnu::packed]] OpqErrorExtra {
+  ErrorSeverity severity;
+  u8  __reserved8;
+  u16 __reserved16;
+  u32 __reserved32;
+};
+
+/// The underlying representation of an error.
+/// Useful for wrapping objects nicely.
+struct IOpaqueError {
+  using StrType = const char*;
+public:
+  constexpr IOpaqueError(StrType V, StrType M, ErrorSeverity S) :
+   error_val(V), message(M), extra(S) { }
+  constexpr IOpaqueError(StrType V, StrType M) :
+   IOpaqueError(V, M, ErrorSeverity::Unset) { }
+  
+public:
+  virtual ErrorGroup getErrorGroup() const {
+    return ErrorGroup::Unknown;
+  }
+  
+public:
+  StrType error_val;
+  StrType message;
+  OpqErrorExtra extra;
+};
+
 } // namespace hc::sys

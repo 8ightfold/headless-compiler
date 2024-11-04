@@ -21,11 +21,10 @@
 #include "IOFile.hpp"
 #include "OpaqueError.hpp"
 
-#define $FileErr(e) S::FileResult::Err(({ OSErr::SetLastError(e); e; }))
+#define $FileErr(e) FileResult::Err(({ OSErr::SetLastError(e); e; }))
 
 using namespace hc;
 using namespace hc::sys;
-namespace S = hc::sys;
 
 template <typename T, typename U>
 static inline void copy_range(PtrRange<T> to, PtrRange<U> from) {
@@ -251,7 +250,7 @@ FileResult IIOFile::writeUnlockedFull(ImmPtrRange<u8> data) {
   pos = 0;
   // If not all data was flushed, an error occured.
   if (flush_res.isErr() || bytes_flushed < flush_size) {
-    err = true;
+    this->err = true;
     OSErr::SetLastError(flush_res.err);
     return {
       bytes_flushed <= init_pos ? 
@@ -279,4 +278,20 @@ FileResult IIOFile::writeUnlockedFull(ImmPtrRange<u8> data) {
   }
 
   return len;
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+IOResult<int> hc::write_file(IOFile file, com::StrRef data) {
+  if (!file) {
+    return $Err(Error::eInval);
+  } else if (data.isEmpty()) {
+    return $Ok(0);
+  }
+
+  const FileResult R = file->write(
+    data.intoImmRange<void>());
+  if (R.isErr())
+    return $Err(R.err);
+  return $Ok(R.value);
 }

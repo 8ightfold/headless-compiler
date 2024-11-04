@@ -122,6 +122,12 @@ struct _PtrRangeType<void> {
   using type = _VoidPtrProxy;
 };
 
+template <>
+struct _PtrRangeType<const void> {
+  // TODO: Make immut?
+  using type = _VoidPtrProxy;
+};
+
 template <typename T>
 using __ptr_range_base_t = typename
   _PtrRangeType<T>::type;

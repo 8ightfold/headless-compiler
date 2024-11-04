@@ -22,10 +22,11 @@
 #include <Parcel/Skiplist.hpp>
 #include <Sys/OpaqueError.hpp>
 #include <Sys/Win/IOFile.hpp>
+#include "Console.hpp"
 #include "Filesystem.hpp"
 #include "PathNormalizer.hpp"
 
-#define $FileErr(e) S::FileResult::Err(e)
+#define $FileErr(e) FileResult::Err(e)
 #define $SetErr(e...) $Err(__set_err(e))
 
 using namespace hc;
@@ -41,26 +42,35 @@ namespace {
 //======================================================================//
 
 namespace {
-  WinIOFile* __nt_openfile(FileAdaptor& self, PtrRange<wchar_t> wpath, IIOMode flags) {
-    __hc_invariant(!wpath.isEmpty());
-    auto name  = win::UnicodeString::New(wpath);
-    (void) name;
-    return nullptr;
-  }
 
-  WinIOFile* __nt_openfile(FileAdaptor& self, StrRef path, IIOMode flags) {
-    __hc_invariant(!path.isEmpty());
-    auto wpath = $to_wstr(path.data());
-    if (path.beginsWith("\\\\?\\"))
-      // Assume the path was valid under Nt.
-      wpath[1] = L'?';
-    return __nt_openfile(self, wpath, flags);
-  }
+WinIOFile* __nt_openfile(FileAdaptor& self, PtrRange<wchar_t> wpath, IIOMode flags) {
+  __hc_invariant(!wpath.isEmpty());
+  auto name  = win::UnicodeString::New(wpath);
+  (void) name;
+  return nullptr;
+}
 
-  inline Error __set_err(const Error E) {
-    OSErr::SetLastError(E);
-    return E;
-  }
+WinIOFile* __nt_openfile(FileAdaptor& self, StrRef path, IIOMode flags) {
+  __hc_invariant(!path.isEmpty());
+  auto wpath = $to_wstr(path.data());
+  if (path.beginsWith("\\\\?\\"))
+    // Assume the path was valid under Nt.
+    wpath[1] = L'?';
+  return __nt_openfile(self, wpath, flags);
+}
+
+inline Error __nt_handle_status(NtStatus status) {
+  if ($NtSuccess(status))
+    return Error::eNone;
+  OSErr::SetLastError(status);
+  return Error::eSetOSError;
+}
+
+inline Error __set_err(const Error E) {
+  OSErr::SetLastError(E);
+  return E;
+}
+
 } // namespace `anonymous`
 
 IIOFile* FileAdaptor::openFileRaw(StrRef path, StrRef flags) {
@@ -143,12 +153,24 @@ usize sys::available_files() {
 // Platform Functions
 //======================================================================//
 
-FileResult sys::win_file_read(IIOFile* file, common::AddrRange in) {
+FileResult sys::win_file_read(IIOFile* file, com::AddrRange in) {
+  __hc_unreachable("`win_file_read` unimplemented.");
   return $FileErr(0);
 }
 
-FileResult sys::win_file_write(IIOFile* file, common::ImmAddrRange out) {
-  return $FileErr(0);
+FileResult sys::win_file_write(IIOFile* file, com::ImmAddrRange out) {
+  auto* wfile = reinterpret_cast<WinIOFile*>(file);
+  if (int fd = wfile->fd; fd >= 0 && fd <= 2) {
+    const auto handle = win::ConsoleHandle::New(wfile->raw_handle);
+    usize nwritten = 0;
+    NtStatus status = write_console(
+      handle, ptr_cast<const char>(out.data()), out.size(), &nwritten
+    );
+    return {nwritten, __nt_handle_status(status)};
+  }
+
+  const auto ret = __nt_handle_status(/*STATUS_NOT_IMPLEMENTED*/0xC0000002);
+  return $FileErr(ret);
 }
 
 IOResult<long> sys::win_file_seek(IIOFile* file, long offset, int) {
