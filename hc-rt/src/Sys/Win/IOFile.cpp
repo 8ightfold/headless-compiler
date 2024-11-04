@@ -30,12 +30,10 @@
 
 using namespace hc;
 using namespace hc::sys;
-namespace P = hc::parcel;
-namespace S = hc::sys;
 
 namespace {
   constexpr usize max_files = RT_MAX_FILES;
-  constinit P::Skiplist<WinIOFile, max_files> file_slots {};
+  constinit pcl::Skiplist<WinIOFile, max_files> file_slots {};
 } // namespace `anonymous`
 
 //======================================================================//
@@ -121,14 +119,14 @@ void FileAdaptor::clearError() {
 // Free Functions
 //======================================================================//
 
-IOResult<IIOFile*> S::open_file(StrRef path, IIOFileBuf& buf, StrRef flags) {
+IOResult<IIOFile*> sys::open_file(StrRef path, IIOFileBuf& buf, StrRef flags) {
   FileAdaptor F(buf);
   if (IIOFile* file = F.openFileRaw(path, flags))
     return $Ok(file);
   return $SetErr(F.getLastError());
 }
 
-IOResult<> S::close_file(IIOFile* file) {
+IOResult<> sys::close_file(IIOFile* file) {
   if (!file)
     return $Err(Error::eInval);
   FileAdaptor F(file->getFileBuf());
@@ -137,7 +135,7 @@ IOResult<> S::close_file(IIOFile* file) {
   return $SetErr(F.getLastError());
 }
 
-usize S::available_files() {
+usize sys::available_files() {
   return max_files - file_slots.countActive();
 }
 
@@ -145,20 +143,20 @@ usize S::available_files() {
 // Platform Functions
 //======================================================================//
 
-FileResult S::win_file_read(IIOFile* file, common::AddrRange in) {
+FileResult sys::win_file_read(IIOFile* file, common::AddrRange in) {
   return $FileErr(0);
 }
 
-FileResult S::win_file_write(IIOFile* file, common::ImmAddrRange out) {
+FileResult sys::win_file_write(IIOFile* file, common::ImmAddrRange out) {
   return $FileErr(0);
 }
 
-IOResult<long> S::win_file_seek(IIOFile* file, long offset, int) {
+IOResult<long> sys::win_file_seek(IIOFile* file, long offset, int) {
   __hc_unreachable("`win_file_seek` unimplemented.");
   return $Err(Error::eNone);
 }
 
 [[gnu::flatten]]
-IOResult<> S::win_file_close(IIOFile* file) {
+IOResult<> sys::win_file_close(IIOFile* file) {
   return close_file(file);
 }
