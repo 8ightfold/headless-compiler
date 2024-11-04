@@ -482,6 +482,19 @@ static ConsoleHandle GetProcessConsoleHandle() {
   return ConsoleHandle::New(PP->console_handle);
 }
 
+static Pair<bool, NtStatus> IsConsoleHandle(IOFile file) {
+  auto tmp_handle = ConsoleHandle::New(file);
+  IoStatusBlock io {};
+  auto info = sys::query_volume_info<FSDeviceInfo>(tmp_handle, io);
+
+  if ($NtFail(io.status)) {
+    DBG_LOG("Query failed: 0x%X.", io.status);
+    return {false, io.status};
+  }
+  const bool ret = (info->device_type == DeviceType::Console);
+  return {ret, io.status};
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Implementation
 
@@ -556,24 +569,34 @@ static NtStatus InitializeServerData(CSRConsoleServerInfo& info) {
   );
 }
 
+static bool AllConsoleHandles() {
+  auto* PP = HcCurrentPEB()->process_params;
+  auto not_console = [] (IOFile f) -> bool {
+    auto [is_console, _] = IsConsoleHandle(f);
+    return !is_console;
+  };
+
+  if (not_console(PP->std_in))
+    return false;
+  if (not_console(PP->std_out))
+    return false;
+  if (not_console(PP->std_err))
+    return false;
+
+  return true;
+}
+
 /// Proxy: `ConsoleCloseIfConsoleHandle`
 /// Signature: `NtStatus(HANDLE*)`
 static NtStatus CloseIfConsoleHandle(IOFile& handle) {
-  auto tmp_handle = ConsoleHandle::New(handle);
-  IoStatusBlock io {};
-  auto info = sys::query_volume_info<FSDeviceInfo>(tmp_handle, io);
-
-  if ($NtFail(io.status)) {
-    DBG_LOG("Query failed: 0x%X.", io.status);
-    return io.status;
-  }
-  if (info->device_type != DeviceType::Console)
-    return io.status;
+  auto [is_console, status] = IsConsoleHandle(handle);
+  if (!is_console || $NtFail(status))
+    return status;
   
-  const NtStatus ret
-    = sys::close_file(tmp_handle);
+  status = sys::close_file(
+    ConsoleHandle::New(handle));
   handle = nullptr;
-  return ret;
+  return status;
 }
 
 /// Proxy: `ConsoleCreateConnectionObject`
@@ -1093,25 +1116,31 @@ static bool SetupGUIApp() {
   return $NtSuccess(R);
 }
 
+
+
 bool XCRT_NAMESPACE::setup_console() {
+  bool& did_setup = XCRT_NAMESPACE::isConsoleSetUp;
   exeEntry = Win64LoadOrderList::GetExecutableEntry();
+  InitConsoleFlag();
+
   if (!InitRtlFuncs()) {
     DBG_LOG("Failed to initialize Rtl functions.");
-    XCRT_NAMESPACE::isConsoleSetUp = false;
-    return false;
+    return (did_setup = false);
   }
 
-  InitConsoleFlag();
+  // Check if the console has already been initialized via KernelBase.
+  if (XCRT_NAMESPACE::isConsoleApp && AllConsoleHandles()) {
+    DBG_LOG("Console already initialized!");
+    return (did_setup = true);
+  }
+  
   // InitCtrlHandling();
   InitExeName();
-
-  bool did_setup = false;
-  if (XCRT_NAMESPACE::isConsoleApp)
+  if (XCRT_NAMESPACE::isConsoleApp) {
     did_setup = SetupCUIApp();
-  else
+  } else {
     did_setup = SetupGUIApp();
-  
-  XCRT_NAMESPACE::isConsoleSetUp = did_setup;
+  }
   return did_setup;
 }
 
