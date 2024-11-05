@@ -30,7 +30,7 @@ using LazyIIOFile = RawLazy<WinIOFile>;
 namespace {
 constinit IIOFileArray<poutBufSize> pOut_buf {};
 constinit IIOFileArray<0>           pErr_buf {};
-constinit IIOFileArray<pinBufSize>  pInp_buf {};
+constinit IIOFileArray<pinpBufSize> pInp_buf {};
 
 constinit LazyIIOFile pOut {};
 constinit LazyIIOFile pErr {};
