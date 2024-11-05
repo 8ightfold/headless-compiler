@@ -178,7 +178,7 @@ void ExceptionRecord::Raise(ExceptionRecord& record) {
     ctx, &handler_data, &establisher_frame, nullptr);
   record.address = ptr_cast<>(ctx->GP.rip);
 
-  raise_exception(record, ctx, true);
+  RaiseException(record, ctx, true);
   return;
 }
 #else
@@ -207,7 +207,7 @@ void ExceptionRecord::Raise(ExceptionRecord& record) {
     &ctx, &handler_data, &establisher_frame, nullptr);
   record.address = ptr_cast<>(ctx.GP.rip);
 
-  raise_exception(record, &ctx, true);
+  RaiseException(record, &ctx, true);
   return;
 }
 #endif

@@ -1,4 +1,4 @@
-//===- Sys/Win/Wait.hpp ---------------------------------------------===//
+//===- Std/cstdio ---------------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -17,32 +17,13 @@
 //===----------------------------------------------------------------===//
 
 #pragma once
+#pragma clang system_header
 
-#include "Nt/Structs.hpp"
+#include <Std/cstddef>
+#include <Sys/_File.hpp>
 
-namespace hc::sys {
-inline namespace __nt {
+namespace std {
 
-__nt_attrs win::NtStatus WaitSingle(
-  win::WaitHandle handle,
-  win::LargeInt* timeout,
-  bool alertable
-) {
-  return isyscall<NtSyscall::WaitForSingleObject>(
-    $unwrap_handle(handle), timeout, 
-    win::Boolean(alertable)
-  );
-}
+typedef hc::sys::IIOFile* FILE;
 
-__nt_attrs win::NtStatus WaitSingle(
-  win::WaitHandle handle
-) {
-  return isyscall<NtSyscall::WaitForSingleObject>(
-    $unwrap_handle(handle), 
-    (win::LargeInt*)nullptr, 
-    win::Boolean(false)
-  );
-}
-
-} // inline namespace __nt
-} // namespace hc::sys
+} // namespace std

@@ -22,32 +22,33 @@
 
 namespace hc::sys {
 inline namespace __nt {
-  /// Raises a premade SEH exception.
-  /// @param record A valid `ExceptionRecord`
-  /// @param ctx Pointer to a platform-specific `ContextSave`.
-  /// @param first_chance
-  ///   If exception handlers should be considered.
-  ///   If `false`, calling process will be killed.
-  __nt_attrs win::NtStatus raise_exception(
-   win::ExceptionRecord& record,
-   __nonnull win::ContextSave* ctx,
-   bool first_chance = false
-  ) {
-    return isyscall<NtSyscall::RaiseException>(
-      &record, ctx, win::Boolean(first_chance)
-    );
-  }
+/// Raises a premade SEH exception.
+/// @param record A valid `ExceptionRecord`
+/// @param ctx Pointer to a platform-specific `ContextSave`.
+/// @param first_chance
+///   If exception handlers should be considered.
+///   If `false`, calling process will be killed.
+__nt_attrs win::NtStatus RaiseException(
+ win::ExceptionRecord& record,
+ __nonnull win::ContextSave* ctx,
+ bool first_chance = false
+) {
+  return isyscall<NtSyscall::RaiseException>(
+    &record, ctx, win::Boolean(first_chance)
+  );
+}
 
-  /// Creates and raises a first-chance SEH exception.
-  /// @param code The status code to raise.
-  /// @param args
-  ///   Arguments to be passed.
-  ///   Each must be `<= sizeof(void*)`.
-  __nt_attrs void raise_exception(i32 code, auto...args) {
-    using ExType = win::ExceptionRecord;
-    const void* const addr = __builtin_return_address(0);
-    auto record = ExType::New(code, addr, args...); 
-    ExType::Raise(record);
-  }
+/// Creates and raises a first-chance SEH exception.
+/// @param code The status code to raise.
+/// @param args
+///   Arguments to be passed.
+///   Each must be `<= sizeof(void*)`.
+__nt_attrs void RaiseException(i32 code, auto...args) {
+  using ExType = win::ExceptionRecord;
+  const void* const addr = __builtin_return_address(0);
+  auto record = ExType::New(code, addr, args...); 
+  ExType::Raise(record);
+}
+
 } // namespace __nt
 } // namespace hc::sys

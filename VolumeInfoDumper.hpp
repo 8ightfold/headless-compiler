@@ -48,7 +48,7 @@ public:
   template <typename FSType, 
     usize N = S::__fsinf_exbytes<FSType>>
   auto load() {
-    return S::query_volume_info<FSType, N>(handle, io);
+    return S::QueryVolumeInfo<FSType, N>(handle, io);
   }
 
   bool failed(const char* S = nullptr) const {
@@ -79,7 +79,7 @@ struct ScopedFileHandle {
   
   ~ScopedFileHandle() {
     if (__handle)
-      S::close_file(__handle);
+      S::CloseFile(__handle);
   }
 
   operator W::FileObjHandle() const {
@@ -377,7 +377,7 @@ inline void printVolumeInfo(const wchar_t* drive_str) {
   auto name = W::UnicodeString::New(mdrive_str);
   W::IoStatusBlock io {};
   ScopedFileHandle handle(
-    S::get_volume_handle(name, io));
+    S::GetVolumeHandle(name, io));
   if (!handle || $NtFail(io.status)) {
     std::printf(
       "Unable to open volume \"%ls\".\n", 

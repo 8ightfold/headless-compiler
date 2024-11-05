@@ -1,4 +1,4 @@
-//===- Sys/Win/Wait.hpp ---------------------------------------------===//
+//===- Sys/_File.hpp ------------------------------------------------===//
 //
 // Copyright (C) 2024 Eightfold
 //
@@ -15,34 +15,20 @@
 //     limitations under the License.
 //
 //===----------------------------------------------------------------===//
+//
+//  Public API for file operations. Implementation is in IOFile.hpp.
+//
+//===----------------------------------------------------------------===//
 
 #pragma once
 
-#include "Nt/Structs.hpp"
-
 namespace hc::sys {
-inline namespace __nt {
 
-__nt_attrs win::NtStatus WaitSingle(
-  win::WaitHandle handle,
-  win::LargeInt* timeout,
-  bool alertable
-) {
-  return isyscall<NtSyscall::WaitForSingleObject>(
-    $unwrap_handle(handle), timeout, 
-    win::Boolean(alertable)
-  );
-}
+struct IIOFile;
+struct IIOFileBuf;
 
-__nt_attrs win::NtStatus WaitSingle(
-  win::WaitHandle handle
-) {
-  return isyscall<NtSyscall::WaitForSingleObject>(
-    $unwrap_handle(handle), 
-    (win::LargeInt*)nullptr, 
-    win::Boolean(false)
-  );
-}
+enum BufferMode {
+  None, Line, Full
+};
 
-} // inline namespace __nt
 } // namespace hc::sys

@@ -98,6 +98,12 @@
 #define __visibility(ty) __attribute__((__visibility__(#ty)))
 #define __hidden __visibility(hidden)
 
+#if _HC_DEBUG
+# define __hc_inline inline
+#else
+# define __hc_inline __always_inline
+#endif
+
 #if _MSC_VER
 # define __hc_declspec(...) __declspec(__VA_ARGS__)
 #else

@@ -87,7 +87,7 @@ static_assert(sizeof(CSRParams) == 8);
 
 //////////////////////////////////////////////////////////////////////////
 
-__nt_attrs win::NtStatus control_device_file(
+__nt_attrs win::NtStatus ControlDeviceFile(
  win::ServeHandle handle,
  win::IoStatusBlock& io,
  win::CtlCode code,
@@ -104,7 +104,7 @@ __nt_attrs win::NtStatus control_device_file(
 }
 
 /// Handles CSR messaging.
-inline win::NtStatus write_generic(
+inline win::NtStatus WriteConsoleGeneric(
  win::ConsoleHandle handle,
  win::GenericHandle input_handle,
  CSRParams& params,
@@ -159,7 +159,7 @@ inline win::NtStatus write_generic(
   }
 
   win::IoStatusBlock io;
-  return control_device_file(
+  return ControlDeviceFile(
     handle, io, win::consoleWrite,
     AddrRange::New(
       ptr_cast<>(&in),
@@ -169,7 +169,7 @@ inline win::NtStatus write_generic(
   );
 }
 
-inline win::NtStatus write_console(
+inline win::NtStatus WriteConsole(
  win::ConsoleHandle handle,
  com::DualString str, usize count,
  usize* chars_written = nullptr
@@ -191,7 +191,7 @@ inline win::NtStatus write_console(
     .buffer = buf.data()
   };
 
-  win::NtStatus ret = write_generic(
+  win::NtStatus ret = WriteConsoleGeneric(
     handle, win::GenericHandle(),
     P.init(AI_WriteConsole), &msg,
     CSRMessageBuf::New()

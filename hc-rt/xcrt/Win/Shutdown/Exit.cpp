@@ -40,7 +40,7 @@ namespace {
     return;
   HcCurrentTEB()->in_debug_print = true;
 
-  sys::raise_exception(
+  sys::RaiseException(
     0x40010006,
     S.size() + 2, S.data()
   );

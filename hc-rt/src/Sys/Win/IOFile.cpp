@@ -163,7 +163,7 @@ FileResult sys::win_file_write(IIOFile* file, com::ImmAddrRange out) {
   if (int fd = wfile->fd; fd >= 0 && fd <= 2) {
     const auto handle = win::ConsoleHandle::New(wfile->raw_handle);
     usize nwritten = 0;
-    NtStatus status = write_console(
+    NtStatus status = WriteConsole(
       handle, ptr_cast<const char>(out.data()), out.size(), &nwritten
     );
     return {nwritten, __nt_handle_status(status)};

@@ -24,7 +24,7 @@ namespace hc::sys {
 inline namespace __nt {
 
 [[nodiscard]] __nt_attrs
-win::MutexHandle create_mutant(
+win::MutexHandle CreateMutant(
   win::NtStatus& S,
   NtAccessMask mask = win::MutantAllAccess,
   const wchar_t* name = nullptr,
@@ -41,7 +41,7 @@ win::MutexHandle create_mutant(
   return hout;
 }
 
-__nt_attrs win::NtStatus query_mutant(
+__nt_attrs win::NtStatus QueryMutant(
   win::MutexHandle handle,
   win::MutantInfoClass type,
   win::BasicMutantInfo& info,
@@ -54,7 +54,7 @@ __nt_attrs win::NtStatus query_mutant(
   );
 }
 
-__nt_attrs win::NtStatus release_mutant(
+__nt_attrs win::NtStatus ReleaseMutant(
   win::MutexHandle handle,
   i32* prev_count = nullptr
 ) {
@@ -63,7 +63,7 @@ __nt_attrs win::NtStatus release_mutant(
   );
 }
 
-__always_inline win::NtStatus close_mutant(
+__always_inline win::NtStatus CloseMutant(
   win::MutexHandle handle
 ) {
   return isyscall<NtSyscall::Close>(

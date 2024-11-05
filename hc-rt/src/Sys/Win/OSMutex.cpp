@@ -46,7 +46,7 @@ namespace {
     win::LargeInt* const P = __mtx_time_fmt(I, ms);
     (void) P;
     do {
-      S = wait_single(nt_handle);
+      S = WaitSingle(nt_handle);
       if __expect_false($NtFail(S)) {
         OSErr::SetLastError(S);
         S = hc::Max<win::NtStatus>; // WAIT_FAILED
@@ -58,7 +58,7 @@ namespace {
 
 RawMtxHandle S::RawMtxHandle::New(const wchar_t* name) {
   win::NtStatus S = 0;
-  auto H = create_mutant(S,
+  auto H = CreateMutant(S,
     win::MutantAllAccess, name);
   __hc_invariant($NtSuccess(S));
   if __expect_false($NtFail(S))
@@ -77,7 +77,7 @@ RawMtxHandle S::RawMtxHandle::New(const char* name) {
 void S::RawMtxHandle::Delete(RawMtxHandle H) {
   __hc_invariant(H.isInitialized());
   const auto nt_handle = win::MutexHandle::New(H.__ptr);
-  const win::NtStatus S = close_mutant(nt_handle);
+  const win::NtStatus S = CloseMutant(nt_handle);
   __hc_invariant($NtSuccess(S));
   if __expect_false($NtFail(S))
     OSErr::SetLastError(S);
@@ -87,7 +87,7 @@ void S::RawMtxHandle::Delete(RawMtxHandle H) {
 void S::RawMtxHandle::Lock(RawMtxHandle H) {
   __hc_invariant(H.isInitialized());
   const auto nt_handle = win::MutexHandle::New(H.__ptr);
-  const win::NtStatus S = wait_single(nt_handle);
+  const win::NtStatus S = WaitSingle(nt_handle);
   __hc_invariant($NtSuccess(S));
   if __expect_false($NtFail(S))
     OSErr::SetLastError(S);
@@ -110,7 +110,7 @@ i32 S::RawMtxHandle::Unlock(RawMtxHandle H) {
   const auto nt_handle = win::MutexHandle::New(H.__ptr);
   i32 last_count = 0;
   [[maybe_unused]] auto S = 
-   release_mutant(nt_handle, &last_count);
+   ReleaseMutant(nt_handle, &last_count);
   __hc_invariant($NtSuccess(S));
   if __expect_false($NtFail(S))
     OSErr::SetLastError(S);

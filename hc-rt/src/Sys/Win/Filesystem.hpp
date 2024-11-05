@@ -25,7 +25,7 @@ namespace hc::sys {
 inline namespace __nt {
 
 [[nodiscard]] __nt_attrs
-win::FileObjHandle open_file_ex(
+win::FileObjHandle OpenFileEx(
  NtAccessMask mask,
  win::ObjectAttributes& attr,
  win::IoStatusBlock& io, 
@@ -47,7 +47,7 @@ win::FileObjHandle open_file_ex(
 }
 
 [[nodiscard]] __nt_attrs
-win::FileObjHandle open_file(
+win::FileObjHandle OpenFile(
  NtAccessMask mask,
  win::ObjectAttributes& attr,
  win::IoStatusBlock& io, 
@@ -58,14 +58,14 @@ win::FileObjHandle open_file(
  NtCreateOptsMask create_opts 
   = NtCreateOptsMask::IsFile
 ) {
-  return open_file_ex(
+  return OpenFileEx(
     mask, attr, io, alloc_size,
     file_attr, share_access, disposition, create_opts,
     AddrRange::New()
   );
 }
 
-__nt_attrs win::NtStatus read_file(
+__nt_attrs win::NtStatus ReadFile(
  win::FileHandle handle,
  win::IoStatusBlock& io, 
  com::PtrRange<char> buf, 
@@ -83,7 +83,7 @@ __nt_attrs win::NtStatus read_file(
   );
 }
 
-__always_inline win::NtStatus close_file(
+__always_inline win::NtStatus CloseFile(
  win::FileObjHandle handle
 ) {
   return isyscall<NtSyscall::Close>(

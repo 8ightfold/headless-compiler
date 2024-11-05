@@ -25,17 +25,11 @@
 #include <Common/PtrRange.hpp>
 #include <Common/Result.hpp>
 #include <Common/StrRef.hpp>
+#include <Std/cstdio>
 #include <Sys/Errors.hpp>
 
 namespace hc {
 namespace sys {
-
-struct IIOFile;
-struct IIOFileBuf;
-
-enum BufferMode {
-  None, Line, Full
-};
 
 template <typename T = void>
 using IOResult = com::Result<T, Error>;

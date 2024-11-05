@@ -72,16 +72,16 @@ static bool init_exit() {
   }
 
   RtlAcquirePebLock();
-  terminate_process_threads(status);
+  TerminateProcessThreads(status);
   LdrShutdownProcess(); // Unload dlls
   // TODO: CsrClientCallServer
-  terminate_process(status); // Terminate current process.
+  TerminateProcess(status); // Terminate current process.
 
   RtlReleasePebLock(); // Should never get here...
   $unreachable_msg("exit call failed.");
 }
 
 [[noreturn]] void hc::sys::terminate(int status) {
-  terminate_process(win::NtStatus(status));
+  TerminateProcess(win::NtStatus(status));
   $unreachable_msg("terminate call failed.");
 }

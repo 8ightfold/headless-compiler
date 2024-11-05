@@ -467,7 +467,7 @@ static NtStatus LaunchServerProcess(
     DeviceType::Console, 0xd,
     CtlMethod::Neither, AccessMask::Any
   );
-  status = sys::control_device_file(
+  status = sys::ControlDeviceFile(
     server, io, code,
     AddrRange::New<void>(PP_new, PP_new->size),
     AddrRange::New()
@@ -485,7 +485,7 @@ static ConsoleHandle GetProcessConsoleHandle() {
 static Pair<bool, NtStatus> IsConsoleHandle(IOFile file) {
   auto tmp_handle = ConsoleHandle::New(file);
   IoStatusBlock io {};
-  auto info = sys::query_volume_info<FSDeviceInfo>(tmp_handle, io);
+  auto info = sys::QueryVolumeInfo<FSDeviceInfo>(tmp_handle, io);
 
   if ($NtFail(io.status)) {
     DBG_LOG("Query failed: 0x%X.", io.status);
@@ -593,7 +593,7 @@ static NtStatus CloseIfConsoleHandle(IOFile& handle) {
   if (!is_console || $NtFail(status))
     return status;
   
-  status = sys::close_file(
+  status = sys::CloseFile(
     ConsoleHandle::New(handle));
   handle = nullptr;
   return status;
@@ -655,7 +655,7 @@ static NtStatus CreateConnectionObject(
   attr.root_directory = console;
 
   IoStatusBlock io {};
-  auto connection = sys::open_file_ex(
+  auto connection = sys::OpenFileEx(
     CreateConsoleAccess(), attr,
     io, nullptr,
     FileAttribMask::None,
@@ -688,7 +688,7 @@ static NtStatus CreateHandle(
   attr.root_directory = device;
 
   IoStatusBlock io {};
-  auto connection = sys::open_file(
+  auto connection = sys::OpenFile(
     CreateConsoleAccess(), attr,
     io, nullptr,
     FileAttribMask::None,
@@ -722,18 +722,18 @@ static NtStatus CreateStandardIoObjects(CSRConnectionState& state) {
   status = CreateHandle(&out, state.ConnectionHandle, L"\\Output"_UStr);
   if ($NtFail(status)) {
     DBG_LOG("Failed to create output handle: 0x%X.", status);
-    sys::close_file(inp);
+    sys::CloseFile(inp);
     return status;
   }
 
-  status = sys::duplicate_object(
+  status = sys::DuplicateObject(
     out, err, AccessMask::Any, ObjAttribMask::None,
     DupOptsMask::SameAccess | DupOptsMask::SameAttributes
   );
   if ($NtFail(status)) {
     DBG_LOG("Failed to create duplicate handle: 0x%X.", status);
-    sys::close_file(inp);
-    sys::close_file(out);
+    sys::CloseFile(inp);
+    sys::CloseFile(out);
     return status;
   }
 
@@ -765,9 +765,9 @@ static NtStatus SanitizeStandardIoObjects(CSRConnectionState& state) {
 
   auto close_all = [&]() -> NtStatus {
     DBG_LOG("Failed to sanitize handles: 0x%X.", status);
-    if (inp) sys::close_file(inp);
-    if (out) sys::close_file(out);
-    if (err) sys::close_file(err);
+    if (inp) sys::CloseFile(inp);
+    if (out) sys::CloseFile(out);
+    if (err) sys::CloseFile(err);
     return status;
   };
 
@@ -790,7 +790,7 @@ static NtStatus SanitizeStandardIoObjects(CSRConnectionState& state) {
     if (!out) {
       status = CreateHandle(&err, state.ConnectionHandle, L"\\Output"_UStr);
     } else {
-      status = sys::duplicate_object(
+      status = sys::DuplicateObject(
         out, err, AccessMask::Any, ObjAttribMask::None,
         DupOptsMask::SameAccess | DupOptsMask::SameAttributes
       );
@@ -818,14 +818,14 @@ static NtStatus SanitizeStandardIoObjects(CSRConnectionState& state) {
 /// Signature: `void(CONNECTION_STATE*)`
 static void CleanupConnectionState(CSRConnectionState& state) {
   if (state.IsValidHandle) {
-    sys::close_file(state.ConnectionHandle);
-    sys::close_file(state.ConsoleHandle);
+    sys::CloseFile(state.ConnectionHandle);
+    sys::CloseFile(state.ConsoleHandle);
   }
 
   auto do_close = [](IOFile file) {
     if (!file) return;
     const auto hnd = ConsoleHandle::New(file);
-    sys::close_file(hnd);
+    sys::CloseFile(hnd);
   };
 
   if (state.Flags & 0b111) {
@@ -853,7 +853,7 @@ static NtStatus CreateIOState(
     if ($NtFail(status)) {
       DBG_LOG("Failed to create reference handle: 0x%X.", status);
       if (device)
-        sys::close_file(device);
+        sys::CloseFile(device);
       return status;
     }
     pconsole = &local_console;
@@ -962,15 +962,15 @@ static NtStatus AllocateConsole(CSRConnectionState& state) {
     &console, server, L"\\Reference"_UStr, false);
   if ($NtFail(status)) {
     DBG_LOG("Failed to create reference handle: 0x%X.", status);
-    sys::close_file(server);
+    sys::CloseFile(server);
     return status;
   }
 
   status = LaunchServerProcess(image_path, cmdline, server);
-  sys::close_file(server);
+  sys::CloseFile(server);
   if ($NtFail(status)) {
     DBG_LOG("Failed to launch server: 0x%X.", status);
-    sys::close_file(console);
+    sys::CloseFile(console);
     return status;
   }
 
@@ -978,7 +978,7 @@ static NtStatus AllocateConsole(CSRConnectionState& state) {
   status = CreateEmptyConnectionObject(device, console);
   if ($NtFail(status)) {
     DBG_LOG("Failed to create connection: 0x%X.", status);
-    sys::close_file(console);
+    sys::CloseFile(console);
     return status;
   }
 
@@ -1005,7 +1005,7 @@ static NtStatus CommitState(CSRConnectionState& state) {
       DeviceType::Console, 0x8,
       CtlMethod::Neither, AccessMask::Any
     );
-    (void) sys::control_device_file(
+    (void) sys::ControlDeviceFile(
       con_handle, io, code,
       AddrRange::New(),
       AddrRange::New(ptr_cast<>(&out_handle), 8)
@@ -1026,7 +1026,7 @@ static NtStatus CommitState(CSRConnectionState& state) {
   }
 
   out_handle |= 1U; // No idea why we do this...
-  sys::set_process<ProcInfo::ConsoleHostProcess>(out_handle);
+  sys::SetProcess<ProcInfo::ConsoleHostProcess>(out_handle);
   // TODO:
   // InitCtrlHandling();
   // status = SetTEBLangID();
@@ -1076,7 +1076,7 @@ static bool SetupCUIApp() {
       status = IsCallerInLowbox(in_lowbox);
       if ($NtFail(status)) break;
       if (!in_lowbox) break;
-      sys::close_file(
+      sys::CloseFile(
         GetProcessConsoleHandle());
       return alloc_console();
     }

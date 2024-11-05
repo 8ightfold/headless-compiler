@@ -27,14 +27,14 @@ namespace hc::sys {
 inline namespace __nt {
 
 /// Gets a handle to the current process.
-inline win::ProcessHandle current_process() {
+inline win::ProcessHandle CurrentProcess() {
   static constexpr uptr curr = iptr(-1);
   void* const P = ptr_cast<>(curr);
   return win::ProcessHandle::New(P);
 }
 
 /// Invokes `NtTerminateProcess`.
-__nt_attrs win::NtStatus __terminate_process(
+__nt_attrs win::NtStatus __TerminateProcess(
  const void* process_raw, win::Long exit_status) {
   return isyscall<NtSyscall::TerminateProcess>(
     process_raw,
@@ -43,24 +43,24 @@ __nt_attrs win::NtStatus __terminate_process(
 }
 
 /// Terminates a process from a handle.
-inline win::NtStatus terminate_process(
+inline win::NtStatus TerminateProcess(
  win::ProcessHandle handle,
  win::NtStatus exit_status
 ) {
-  return __terminate_process(
+  return __TerminateProcess(
     $unwrap_handle(handle),
     win::Long(exit_status)
   );
 }
 
 /// Terminates the current process.
-inline win::NtStatus terminate_process(win::NtStatus exit_status) {
-  return terminate_process(current_process(), exit_status);
+inline win::NtStatus TerminateProcess(win::NtStatus exit_status) {
+  return TerminateProcess(CurrentProcess(), exit_status);
 }
 
 /// Terminates the current process' threads.
-inline win::NtStatus terminate_process_threads(win::NtStatus exit_status) {
-  return __terminate_process(nullptr, win::Long(exit_status));
+inline win::NtStatus TerminateProcessThreads(win::NtStatus exit_status) {
+  return __TerminateProcess(nullptr, win::Long(exit_status));
 }
 
 //======================================================================//
@@ -98,7 +98,7 @@ inline __abi_hidden void __qpi_assign(To& to, From from) {
 }
 
 template <win::ProcInfo InfoClass, typename...Query>
-[[nodiscard]] __nt_attrs auto query_process_info(
+[[nodiscard]] __nt_attrs auto QueryProcessInfo(
   win::ProcessHandle handle, Query&&...query)
  -> com::Pair<win::NtStatus, /*Length*/ win::ULong> {
   using QType = win::ProcQuery<InfoClass>;
@@ -125,28 +125,28 @@ template <win::ProcInfo InfoClass, typename...Query>
 }
 
 template <win::ProcInfo InfoClass, usize ArrSize = 0>
-[[nodiscard]] inline auto query_process(win::ProcessHandle handle)
+[[nodiscard]] inline auto QueryProcess(win::ProcessHandle handle)
  -> QueryResult<win::ProcQuery<InfoClass>> {
   using QType = win::ProcQuery<InfoClass>;
   // Return ASAP if invalid.
   if __expect_false(!handle)
     return $Err(/*INVALID_HANDLE*/ 0xC0000008, 0);
   __procinfo_type<QType, ArrSize> query {};
-  auto [status, bytes] = query_process_info<InfoClass>(handle, query);
+  auto [status, bytes] = QueryProcessInfo<InfoClass>(handle, query);
   if ($NtFail(status))
     return $Err(status, bytes);
   return $Ok(query);
 }
 
 template <win::ProcInfo InfoClass, usize ArrSize = 0>
-[[nodiscard]] inline auto query_process() {
-  return query_process<InfoClass, ArrSize>(current_process());
+[[nodiscard]] inline auto QueryProcess() {
+  return QueryProcess<InfoClass, ArrSize>(CurrentProcess());
 }
 
 //////////////////////////////////////////////////////////////////////////
 
 template <win::ProcInfo InfoClass, typename...Set>
-__nt_attrs win::NtStatus set_process_info(
+__nt_attrs win::NtStatus SetProcessInfo(
   win::ProcessHandle handle, Set&&...set) {
   using SType = win::ProcSet<InfoClass>;
   static_assert(win::__is_valid_procinfo<SType, Set...>,
@@ -165,16 +165,16 @@ __nt_attrs win::NtStatus set_process_info(
 }
 
 template <win::ProcInfo InfoClass, typename...Set>
-inline bool set_process(win::ProcessHandle handle, Set&&...set) {
+inline bool SetProcess(win::ProcessHandle handle, Set&&...set) {
   const win::NtStatus status
-    = set_process_info<InfoClass>(handle, set...);
+    = SetProcessInfo<InfoClass>(handle, set...);
   return $NtSuccess(status);
 }
 
 template <win::ProcInfo InfoClass, typename...Set>
-inline bool set_process(Set&&...set) {
+inline bool SetProcess(Set&&...set) {
   const win::NtStatus status
-    = set_process_info<InfoClass>(current_process(), set...);
+    = SetProcessInfo<InfoClass>(CurrentProcess(), set...);
   return $NtSuccess(status);
 }
 

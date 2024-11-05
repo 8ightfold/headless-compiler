@@ -32,7 +32,7 @@ __global usize __fsinf_exbytes = (FSType::isDynamic ? 16U : 0U);
 
 template <win::is_fsinfo FSType, 
   usize ExBytes = __fsinf_exbytes<FSType>>
-__nt_attrs auto query_volume_info(
+__nt_attrs auto QueryVolumeInfo(
   win::FileObjHandle handle,
   win::IoStatusBlock& io) 
  -> NtQueryWrapper<FSType, ExBytes> {
@@ -58,7 +58,7 @@ __nt_attrs auto query_volume_info(
   return ICW;
 }
 
-__nt_attrs win::FileObjHandle get_volume_handle(
+__nt_attrs win::FileObjHandle GetVolumeHandle(
  win::UnicodeString& name,
  win::IoStatusBlock& io
 ) {
@@ -79,25 +79,25 @@ __nt_attrs win::FileObjHandle get_volume_handle(
     NtCreateOptsMask::SyncIONoAlert |
     NtCreateOptsMask::OpenForBackup;
   // Return a handle to the volume.
-  return open_file(
+  return OpenFile(
     mask, attr, io, nullptr, 
     fattr, share, dispo, opts);
 }
 
 template <win::is_fsinfo FSType, 
   usize ExBytes = __fsinf_exbytes<FSType>>
-__nt_attrs auto query_create_volume_info(
+__nt_attrs auto QueryCreateVolumeInfo(
   win::UnicodeString& name,
   win::IoStatusBlock& io)
  -> NtQueryWrapper<FSType, ExBytes> {
   using RetType = NtQueryWrapper<FSType, ExBytes>;
-  auto handle = get_volume_handle(name, io);
+  auto handle = GetVolumeHandle(name, io);
   if (!handle || $NtFail(io.status))
     return RetType{};
   // Now forward the handle.
-  RetType ICW = query_volume_info<
+  RetType ICW = QueryVolumeInfo<
     FSType, ExBytes>(handle, io);
-  close_file(handle);
+  CloseFile(handle);
   return ICW;
 }
 

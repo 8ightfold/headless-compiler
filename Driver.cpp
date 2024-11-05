@@ -392,7 +392,7 @@ static W::NtStatus TestPrintExI(const char* Str, usize N) {
   Record.info[0] = N;
   Record.info[1] = uptr(Str);
   ExceptionRecord::Raise(Record);
-  // sys::raise_exception(&Record, true);
+  // sys::RaiseException(&Record, true);
   // Ex(&Record);
 
   UnsetInDbgPrint();
@@ -567,7 +567,7 @@ int main(int N, char* A[], char* Env[]) {
   auto share      = W::FileShareMask::Read;
   auto createDis  = W::CreateDisposition::Open;
 
-  W::FileHandle handle = S::open_file(
+  W::FileHandle handle = S::OpenFile(
     mask, obj_attr, io, nullptr, 
     file_attr, share,
     createDis
@@ -583,13 +583,13 @@ int main(int N, char* A[], char* Env[]) {
   std::printf("Opened file `%ls`.\n", name.buffer);
 
   auto buf = $dynalloc(2048, char).zeroMemory();
-  if (auto S = S::read_file(handle, io, buf.intoRange()); $NtFail(S)) {
+  if (auto S = S::ReadFile(handle, io, buf.intoRange()); $NtFail(S)) {
     std::printf("Read failed! [0x%.8X]\n", S);
-    return S::close_file(handle);
+    return S::CloseFile(handle);
   }
   std::printf("Buffer contents:\n%.128s\n...\n\n", buf.data());
   
-  if (W::NtStatus S = S::close_file(handle); $NtFail(S)) {
+  if (W::NtStatus S = S::CloseFile(handle); $NtFail(S)) {
     std::printf("Closing failed! [0x%.8X]\n", S);
     return S;
   }

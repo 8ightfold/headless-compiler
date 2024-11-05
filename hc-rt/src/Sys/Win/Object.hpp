@@ -26,7 +26,7 @@ namespace hc::sys {
 inline namespace __nt {
 
 template <win::__is_HANDLE Handle>
-__nt_attrs win::NtStatus duplicate_object_ex(
+__nt_attrs win::NtStatus DuplicateObjectEx(
  Handle source, win::ProcessHandle source_proc,
  Handle& target, win::ProcessHandle target_proc,
  win::AccessMask desired_access,
@@ -42,16 +42,16 @@ __nt_attrs win::NtStatus duplicate_object_ex(
 }
 
 template <win::__is_HANDLE Handle>
-inline win::NtStatus duplicate_object(
+inline win::NtStatus DuplicateObject(
  Handle source, Handle& target,
  win::AccessMask desired_access,
  win::ObjAttribMask attr,
  win::DupOptsMask opts
   = win::DupOptsMask::None
 ) {
-  return duplicate_object_ex(
-    source, current_process(),
-    target, current_process(),
+  return DuplicateObjectEx(
+    source, CurrentProcess(),
+    target, CurrentProcess(),
     desired_access, attr, opts
   );
 }

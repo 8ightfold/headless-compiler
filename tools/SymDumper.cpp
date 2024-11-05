@@ -181,7 +181,7 @@ static S::win::FileHandle openfile(
   auto share      = S::win::FileShareMask::Read;
   auto createDis  = S::win::CreateDisposition::Open;
 
-  S::win::FileHandle handle = S::open_file(
+  S::win::FileHandle handle = S::OpenFile(
     mask, obj_attr, io, nullptr, 
     file_attr, share,
     createDis
@@ -205,7 +205,7 @@ static bool readfile(
 ) {
   auto buf = R.template intoRange<char>();
   S::win::LargeInt offset { .quad = off };
-  if (auto S = S::read_file(handle, io, buf, &offset); $NtFail(S)) {
+  if (auto S = S::ReadFile(handle, io, buf, &offset); $NtFail(S)) {
     std::printf("Read failed! [0x%.8X]\n", S);
     return false;
   }
@@ -213,7 +213,7 @@ static bool readfile(
 }
 
 static void closefile(S::win::FileHandle handle) {
-  if (S::win::NtStatus S = S::close_file(handle); $NtFail(S)) {
+  if (S::win::NtStatus S = S::CloseFile(handle); $NtFail(S)) {
     std::printf("Closing failed! [0x%.8X]\n", S);
     std::exit(S);
   }
