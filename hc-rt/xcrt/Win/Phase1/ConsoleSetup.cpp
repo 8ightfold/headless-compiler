@@ -469,7 +469,7 @@ static NtStatus LaunchServerProcess(
   );
   status = sys::ControlDeviceFile(
     server, io, code,
-    AddrRange::New<void>(PP_new, PP_new->size),
+    AddrRange::New(PP_new, PP_new->size),
     AddrRange::New()
   );
 
@@ -662,7 +662,7 @@ static NtStatus CreateConnectionObject(
     FileShareMask::All,
     CreateDisposition::Create,
     CreateOptsMask::SyncIONoAlert,
-    AddrRange::New<void>(obj.get(), size)
+    AddrRange::New(obj.get(), size)
   );
 
   out = DeviceHandle::New(connection.get());
@@ -898,11 +898,10 @@ static NtStatus AttatchOrAllocate(CSRConnectionState& state, wchar_t* str) {
     );
     desktop_buf[buf_len] = L'\0';
 
-    buf = AddrRange::New<void>(
-      desktop_buf, sizeof(desktop_buf));
+    buf = AddrRange::New(desktop_buf, sizeof(desktop_buf));
     name = "broker";
   } else {
-    buf = AddrRange::New<void>(&str, sizeof(str));
+    buf = AddrRange::New(&str, sizeof(str));
     name = "attach";
   }
 

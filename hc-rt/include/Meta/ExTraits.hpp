@@ -21,6 +21,7 @@
 #include <Common/Fundamental.hpp>
 #include "_FnTraits.hpp"
 #include "_PackTraits.hpp"
+#include "_QualTraits.hpp"
 #include "Objects.hpp"
 
 HC_HAS_REQUIRED(builtin, __type_pack_element);

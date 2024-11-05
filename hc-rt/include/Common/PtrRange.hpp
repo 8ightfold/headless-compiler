@@ -19,17 +19,24 @@
 #pragma once
 
 #include <Meta/Traits.hpp>
+#include <Meta/_QualTraits.hpp>
 
 #define $PRange(ty...) ::hc::common::PtrRange<ty>
 
 namespace hc::common {
 
+template <typename RawVoid = void>
+requires meta::is_void<meta::RemoveCVRef<RawVoid>>
 struct [[gsl::Pointer]] _VoidPtrProxy {
   using Type = _VoidPtrProxy;
   using Ref = Type&;
   using CRef = const Type&;
-  using RawVoidType = void*;
-  using TrueType = u8*;
+  using RawVoidType = RawVoid*;
+
+  template <typename T>
+  using CastType = meta::__copy_quals<T, RawVoid>;
+  using TrueType = CastType<u8>*;
+
 public:
   _VoidPtrProxy() = default;
   _VoidPtrProxy(const _VoidPtrProxy&) = default;
@@ -58,15 +65,16 @@ private:
 public:
   template <meta::not_void T>
   explicit operator T*() const __noexcept {
+    static_assert(meta::__matching_quals<T, RawVoid>);
     return reinterpret_cast<T*>(this->__data);
   } 
 
-  operator RawVoidType() const __noexcept {
-    return static_cast<RawVoidType>(this->__data);
+  operator RawVoid*() const __noexcept {
+    return static_cast<RawVoid*>(this->__data);
   }
 
   inline constexpr RawVoidType get() const {
-    return static_cast<RawVoidType>(this->__data);;
+    return static_cast<RawVoid*>(this->__data);;
   }
 
   [[gnu::always_inline]] 
@@ -113,19 +121,29 @@ private:
 };
 
 template <typename T>
+_VoidPtrProxy(T*) -> _VoidPtrProxy<void>;
+
+template <typename T>
+_VoidPtrProxy(const T*) -> _VoidPtrProxy<const void>;
+
+template <typename T>
+_VoidPtrProxy(volatile T*) -> _VoidPtrProxy<volatile void>;
+
+template <typename T>
+_VoidPtrProxy(const volatile T*) -> _VoidPtrProxy<const volatile void>;
+
+////////////////////////////////////////////////////////////////////////
+// Traits
+
+template <typename T>
 struct _PtrRangeType {
   using type = T*;
 };
 
-template <>
-struct _PtrRangeType<void> {
-  using type = _VoidPtrProxy;
-};
-
-template <>
-struct _PtrRangeType<const void> {
-  // TODO: Make immut?
-  using type = _VoidPtrProxy;
+template <typename RawVoid>
+requires meta::is_void<meta::RemoveCVRef<RawVoid>>
+struct _PtrRangeType<RawVoid> {
+  using type = _VoidPtrProxy<RawVoid>;
 };
 
 template <typename T>
@@ -146,8 +164,9 @@ template <typename T>
   return ptr_distance(blhs, brhs);
 }
 
+template <typename VT>
 [[nodiscard]] __always_inline usize ptr_distance(
- _VoidPtrProxy lhs, _VoidPtrProxy rhs) noexcept {
+ _VoidPtrProxy<VT> lhs, _VoidPtrProxy<VT> rhs) noexcept {
   return ptr_distance(lhs.get(), rhs.get());
 }
 
@@ -162,68 +181,84 @@ template <typename T>
   }
 }
 
+template <typename VT>
 [[nodiscard]] __always_inline usize ptr_distance_bytes(
- _VoidPtrProxy lhs, _VoidPtrProxy rhs) noexcept {
+ _VoidPtrProxy<VT> lhs, _VoidPtrProxy<VT> rhs) noexcept {
   return ptr_distance_bytes(lhs.get(), rhs.get());
 }
 
 ////////////////////////////////////////////////////////////////////////
 // Implementation
 
-// TODO: Add deducing this
+template <typename T = __dummy>
+struct PtrRange;
 
-template <typename T = void> struct PtrRange {
+template <> struct PtrRange<__dummy> {
+  template <typename T>
+  [[gnu::always_inline, gnu::const]]
+  constexpr static PtrRange<T> New() {
+    return { nullptr, 0 };
+  }
+
+  template <typename T>
+  [[gnu::always_inline, gnu::const]]
+  constexpr static PtrRange<T> New(T* begin, T* end) {
+    using ProxyType = __ptr_range_base_t<T>;
+    return { ProxyType(begin), ProxyType(end) };
+  }
+
+  template <typename VT>
+  [[gnu::always_inline, gnu::const]]
+  static PtrRange<VT> New(
+   _VoidPtrProxy<VT> begin, _VoidPtrProxy<VT> end) {
+    return { begin, end };
+  }
+
+  template <typename T>
+  [[gnu::always_inline, gnu::const]]
+  constexpr static PtrRange<T> New(T* begin, usize size) {
+    const __ptr_range_base_t<T> begin_adaptor { begin };
+    return { begin_adaptor, begin_adaptor + size };
+  }
+
+  template <typename VT>
+  [[gnu::always_inline, gnu::const]]
+  static PtrRange<VT> New(
+   _VoidPtrProxy<VT> begin, usize size) {
+    return { begin, begin + size };
+  }
+
+  template <meta::not_void T, usize N>
+  [[gnu::always_inline, gnu::const]]
+  constexpr static PtrRange<T> New(T(&A)[N]) {
+    return { A, A + N };
+  }
+};
+
+template <typename T> struct PtrRange {
   using SelfType = PtrRange<T>;
   using PtrType  = __ptr_range_base_t<T>;
+  using ArrType  = std::conditional_t<meta::is_void<T>, u8, T>;
 public:
   [[gnu::always_inline, gnu::const]]
   constexpr static SelfType New() {
     return { nullptr, 0 };
   }
 
-  template <typename U = T>
   [[gnu::always_inline, gnu::const]]
-  constexpr static PtrRange<U> New(U* begin, U* end) {
-    return { begin, end };
+  constexpr static SelfType New(T* begin, T* end) {
+    return { PtrType(begin), PtrType(end) };
   }
 
   [[gnu::always_inline, gnu::const]]
-  static PtrRange<void> New(void* begin, void* end) {
-    return {_VoidPtrProxy(begin), _VoidPtrProxy(end)};
+  constexpr static SelfType New(T* begin, usize size) {
+    const PtrType begin_adaptor { begin };
+    return { begin_adaptor, begin_adaptor + size };
   }
 
+  template <usize N>
   [[gnu::always_inline, gnu::const]]
-  static PtrRange<const void> New(const void* begin, const void* end) {
-    return {_VoidPtrProxy(begin), _VoidPtrProxy(end)};
-  }
-
-  [[gnu::always_inline, gnu::const]]
-  static PtrRange<void> New(
-   _VoidPtrProxy begin, _VoidPtrProxy end) {
-    return { begin, end };
-  }
-
-  template <typename U = T>
-  [[gnu::always_inline, gnu::const]]
-  constexpr static PtrRange<U> New(U* begin, usize size) {
-    if constexpr (__is_void(U)) {
-      PtrType begin_adaptor { begin };
-      return { begin_adaptor, begin_adaptor + size };
-    } else {
-      return { begin, begin + size };
-    }
-  }
-
-  [[gnu::always_inline, gnu::const]]
-  static PtrRange<void> New(
-   _VoidPtrProxy begin, usize size) {
-    return { begin, begin + size };
-  }
-
-  template <typename U = T, usize N>
-  [[gnu::always_inline, gnu::const]]
-  constexpr static PtrRange<U> New(U(&A)[N])
-   requires meta::not_void<U> {
+  constexpr static SelfType New(ArrType(&A)[N]) {
     return { A, A + N };
   }
 
@@ -321,13 +356,13 @@ public:
 
   template <>
   __always_inline PtrRange<void> intoRange<void>() const {
-    return PtrRange::New<void>(__begin, __end);
+    return PtrRange<void>::New(__begin, __end);
   }
 
   template <>
   __always_inline PtrRange<const void>
    intoRange<const void>() const {
-    return PtrRange::New<const void>(__begin, __end);
+    return PtrRange<const void>::New(__begin, __end);
   }
 
   template <typename U>
