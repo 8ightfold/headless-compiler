@@ -28,9 +28,9 @@ using namespace hc::sys;
 using LazyIIOFile = RawLazy<WinIOFile>;
 
 namespace {
-constinit IIOFileArray<1024> pOut_buf {};
-constinit IIOFileArray<0>    pErr_buf {};
-constinit IIOFileArray<512>  pInp_buf {};
+constinit IIOFileArray<poutBufSize> pOut_buf {};
+constinit IIOFileArray<0>           pErr_buf {};
+constinit IIOFileArray<pinBufSize>  pInp_buf {};
 
 constinit LazyIIOFile pOut {};
 constinit LazyIIOFile pErr {};

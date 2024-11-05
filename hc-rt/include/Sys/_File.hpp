@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include <Common/Features.hpp>
+
 namespace hc::sys {
 
 struct IIOFile;
@@ -30,5 +32,8 @@ struct IIOFileBuf;
 enum BufferMode {
   None, Line, Full
 };
+
+__global usize poutBufSize = 1024;
+__global usize pinpBufSize = 512;
 
 } // namespace hc::sys
