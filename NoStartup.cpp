@@ -24,6 +24,7 @@
 #include <Meta/Once.hpp>
 #include <Sys/Win/Except.hpp>
 #include <Sys/File.hpp>
+#include <cstdarg>
 
 #include <xcrt.hpp>
 #include <String/Utils.hpp>

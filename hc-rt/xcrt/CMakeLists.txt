@@ -2,7 +2,9 @@ include_guard(DIRECTORY)
 
 add_library(hcrt-xinc INTERFACE)
 add_library(hcrt::xinc ALIAS hcrt-xinc)
-target_include_directories(hcrt-xinc INTERFACE include)
+target_include_directories(hcrt-xinc INTERFACE
+  include ${HC_SRC_DIR}/include/Std
+)
 target_forward_options(hcrt-xinc INTERFACE RT_MAX_ATEXIT)
 target_compile_definitions(hcrt-xinc INTERFACE __XCRT__=1)
 target_compile_options(hcrt-xinc INTERFACE -nostdinc++ -nostdinc -static)
